@@ -41,20 +41,21 @@
 - [x] T3: Implementar `calc_ingredient_macros()` en `src/utils/macros.py` → files: src/utils/macros.py → verify: `python -c "from src.utils.macros import calc_ingredient_macros as c; from types import SimpleNamespace as N; r=c(N(unit='gr',kcal=150,protein=12,carbs=1,fat=10,price=3.0),100); assert r['kcal']==150.0 and r['price']==0.3; r2=c(N(unit='u',kcal=75,protein=6,carbs=0,fat=5,price=0.5),2); assert r2['kcal']==150.0 and r2['price']==1.0; print('OK')"`
 - [x] T4: Implementar `calc_recipe_macros()` en `src/utils/macros.py` → files: src/utils/macros.py → verify: `python -c "from src.utils.macros import calc_recipe_macros as c; from types import SimpleNamespace as N; i1=N(unit='gr',kcal=100,protein=5,carbs=10,fat=3,price=1.0); i2=N(unit='u',kcal=50,protein=2,carbs=1,fat=4,price=0.2); r=c([N(ingredient_id=1,quantity=200),N(ingredient_id=2,quantity=2)],{1:i1,2:i2}); assert r['kcal']==300.0 and r['price']==0.6; print('OK')"`
 - [x] T5: Implementar `estimate_1rm()` en `src/utils/macros.py` → files: src/utils/macros.py → verify: `python -c "from src.utils.macros import estimate_1rm; assert abs(estimate_1rm(100,5)-116.67)<0.01; assert abs(estimate_1rm(100,1)-103.33)<0.01; print('OK')"`
-- [ ] T6: Rellenar `tests/unit/test_fuzzy_utils.py` (5 tests: exact, typo, no_match, accents, case/spaces) → files: tests/unit/test_fuzzy_utils.py → verify: `pytest tests/unit/test_fuzzy_utils.py -v`
-- [ ] T7: Rellenar `tests/unit/test_macros_utils.py` (5 tests: gr, u, compound, epley, single_rep) → files: tests/unit/test_macros_utils.py → verify: `pytest tests/unit/test_macros_utils.py -v`
+- [x] T6: Rellenar `tests/unit/test_fuzzy_utils.py` (5 tests: exact, typo, no_match, accents, case/spaces) → files: tests/unit/test_fuzzy_utils.py → verify: `pytest tests/unit/test_fuzzy_utils.py -v`
+- [x] T7: Rellenar `tests/unit/test_macros_utils.py` (5 tests: gr, u, compound, epley, single_rep) → files: tests/unit/test_macros_utils.py → verify: `pytest tests/unit/test_macros_utils.py -v`
 
 ## Verification
 > Contraste con spec (se rellena al cerrar)
 
-- Criterio 1 (normalizar nombre): 
-- Criterio 2 (fuzzy match): 
-- Criterio 3 (macros por unidad): 
-- Criterio 4 (macros receta): 
-- Criterio 5 (1RM Epley): 
-- Criterio 6 (redondeo 2 dec): 
+- Criterio 1 (normalizar nombre): `normalize()` en `src/utils/fuzzy.py` (NFKD + strip combining + lower + collapse). Cubierto por `test_normalize_accents` y `test_normalize_case_and_spaces` (T1 verify OK).
+- Criterio 2 (fuzzy match): `fuzzy_match()` en `src/utils/fuzzy.py` (SequenceMatcher.ratio, umbral 0.6, else None). Cubierto por `test_fuzzy_match_exact/typo/no_match` (T2 verify OK).
+- Criterio 3 (macros por unidad): `calc_ingredient_macros()` en `src/utils/macros.py` (u: ×qty; gr/ml: ×qty/100; price u:×qty, gr:×qty/1000, ml:×qty/1000). Cubierto por `test_calc_ingredient_macros_gr/u` (T3 verify OK).
+- Criterio 4 (macros receta): `calc_recipe_macros()` en `src/utils/macros.py` (suma items indexados por `ingredient_id`). Cubierto por `test_calc_recipe_macros_compound` (T4 verify OK).
+- Criterio 5 (1RM Epley): `estimate_1rm()` en `src/utils/macros.py` (weight × (1 + reps/30)). Cubierto por `test_estimate_1rm_epley/single_rep` (T5 verify OK).
+- Criterio 6 (redondeo 2 dec): `round(x, 2)` al construir el dict de salida en T3/T4/T5 (salidas 150.0, 0.3, 0.6, 1.0, 116.67, 103.33). Verificado en los asserts de `test_macros_utils.py`.
 
 ## Close
 > Cierre (se rellena al cerrar)
 
-- **Estado**: 
+- **Estado**: ✅ Done (7/7 tareas, 6/6 criterios; 10/10 tests unitarios OK)
+- **Commits**: T1 `651f3f3` · T2 `85eff3c` · T3 `fe0a8df` · T4 `7a574f6` · T5 `e67b430` · T6 `608d4a9` · T7 `8ce85f2`

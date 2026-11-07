@@ -48,7 +48,7 @@
 
 | Feature | Archivo |
 |---------|---------|
-| `utils-core` | `odd/tasks/utils-core.md` |
+| — | — |
 
 ---
 
@@ -57,6 +57,7 @@
 | Feature | Archivo | Fecha |
 |---------|---------|-------|
 | db-layer | `odd/tasks/db-layer.md` | 2026-11 |
+| utils-core | `odd/tasks/utils-core.md` | 2026-11 |
 
 ---
 
