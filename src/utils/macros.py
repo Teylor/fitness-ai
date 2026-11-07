@@ -43,4 +43,4 @@ def calc_recipe_macros(recipe_items: list, ingredients: dict) -> dict:
 
 def estimate_1rm(weight: float, reps: int) -> float:
     """Fórmula de Epley: weight × (1 + reps/30)."""
-    ...
+    return round(weight * (1 + reps / 30.0), 2)
