@@ -43,18 +43,10 @@ def apply_migrations(db, migrations_dir: Path) -> None:
     for migration_file in pending:
         sql_content = migration_file.read_text(encoding="utf-8")
         # Ejecutar el SQL (puede contener múltiples statements)
-        db.execute_sql(sql_content)
+        db.connection().executescript(sql_content)
         # Registrar
         db.execute_sql(
             "INSERT INTO _migrations (filename) VALUES (?)",
             (migration_file.name,),
         )
         print(f"  [migrate] Applied: {migration_file.name}")
-```
-
-**T3 done.** Ahora **T5: `src/config.py`** (verificar/ajustar):
-
-```tool
-TOOL_NAME: read_file
-BEGIN_ARG: filepath
-src/config.py

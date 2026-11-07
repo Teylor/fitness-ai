@@ -18,3 +18,4 @@ odd/tasks/
 2. El spec nunca guarda estado. Solo aquí.
 3. Si una feature tiene spec SDD → enlazar `specs/<feature>/spec.md` y `plan.md`.
 4. No se implementa sin este archivo.
+5. El item del feature procede de `odd/BACKLOG.md`; al crear este archivo, el item pasa a ➡️ En curso.
