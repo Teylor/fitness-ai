@@ -19,3 +19,4 @@ odd/tasks/
 3. Si una feature tiene spec SDD → enlazar `specs/<feature>/spec.md` y `plan.md`.
 4. No se implementa sin este archivo.
 5. El item del feature procede de `odd/BACKLOG.md`; al crear este archivo, el item pasa a ➡️ En curso.
+6. Each feature is developed on its own branch `feat/<feature-name>`; a fix to a feature is made on a `fix/<feature-name>` branch.

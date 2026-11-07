@@ -167,6 +167,7 @@ specs/
 5. **Cambio solo de implementación.** No se toca el spec.
 6. **Aprobación del usuario.** Antes de `implement`, el usuario debe aprobar spec + plan + tasks.
 7. **Backlog como cola única.** El agente consulta `odd/BACKLOG.md` antes de empezar y actualiza el estado del item al arrancar (➡️ En curso) y al cerrar (🏁 Finalizados). No se arranca una feature sin item aprobado.
+8. **Branching.** Each feature is developed on its own branch `feat/<feature-name>`, created when the feature starts. A fix to a feature is made on a `fix/<feature-name>` branch.
 
 ---
 

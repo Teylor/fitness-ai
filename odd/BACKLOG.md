@@ -12,6 +12,7 @@
 5. Al empezar una feature → el item se mueve a `odd/tasks/<feature>.md` y desaparece de Propuestos.
 6. Al cerrarla (todas las tareas ✅ + Verification rellenada en `odd/tasks/<feature>.md`) → se lista en **Finalizados** con fecha.
 7. El agente mantiene el backlog al día: al arrancar una feature su item pasa a ➡️ En curso; al cerrarla, a 🏁 Finalizados. El backlog es la cola única de trabajo: no se arranca nada que no esté aprobado aquí.
+8. Each feature is developed on its own branch `feat/<feature-name>`, created when the feature starts. A fix to a feature is made on a `fix/<feature-name>` branch.
 
 ## Estados
 
