@@ -31,7 +31,6 @@
 
 | # | Prioridad | Feature | Estado | Nota |
 |---|-----------|---------|--------|------|
-| 1 | P0 | `utils-core` | ✅ Aprobado | `fuzzy.py` + `macros.py` (fuzzy_match, normalize, calc macros, epley) + tests unit. Base de todo lo demás. |
 | 2 | P0 | `services-nutrition` | ✅ Aprobado | Ingredient, Recipe, Meal, Goal (provisional, cascadas, resumen diario) + tests. |
 | 3 | P0 | `services-training` | ✅ Aprobado | Exercise, Workout (sets, PRs, 1RM estimado) + tests. |
 | 4 | P0 | `mcp-server` | ✅ Aprobado | Registrar las 19 tools con schema real (SDK `mcp`), errores JSON según api-spec + tests integration. |
@@ -49,7 +48,7 @@
 
 | Feature | Archivo |
 |---------|---------|
-| — | — |
+| `utils-core` | `odd/tasks/utils-core.md` |
 
 ---
 
