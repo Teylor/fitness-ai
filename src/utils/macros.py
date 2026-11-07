@@ -33,7 +33,12 @@ def calc_recipe_macros(recipe_items: list, ingredients: dict) -> dict:
     Returns:
         {"kcal": float, "protein": float, "carbs": float, "fat": float, "price": float}
     """
-    ...
+    totals = {'kcal': 0.0, 'protein': 0.0, 'carbs': 0.0, 'fat': 0.0, 'price': 0.0}
+    for item in recipe_items:
+        part = calc_ingredient_macros(ingredients[item.ingredient_id], item.quantity)
+        for key, val in part.items():
+            totals[key] += val
+    return {key: round(val, 2) for key, val in totals.items()}
 
 
 def estimate_1rm(weight: float, reps: int) -> float:
