@@ -34,7 +34,7 @@
 ## Tasks
 > Checklist de implementación
 
-- [x] T1: Definir 9 clases Peewee en `src/db/models.py` → files: src/db/models.py → verify: `python -c "from src.db.models import *; print('OK')"` ✅ (código revisado: 9 modelos + BaseModel + ALL_MODELS)
+- [x] T1: Definir 9 clases Peewee en `src/db/models.py` → files: src/db/models.py → verify: `python -c "from src.db.models import *; print('OK')"` ✅ `T1 OK: 9 models` (fix: SQLiteExtDatabase → SqliteDatabase)
 - [ ] T2: Implementar `get_db()` + `init_db()` en `src/db/connection.py` → files: src/db/connection.py → verify: `python -c "from src.db.connection import init_db; init_db(); print('OK')"`
 - [ ] T3: Implementar `src/db/migrate.py` (ensure_migrations_table, get_pending, apply) → files: src/db/migrate.py → verify: `python -c "from src.db.migrate import apply_migrations; print('OK')"`
 - [ ] T4: Verificar/ajustar `src/db/migrations/001_initial.sql` (coherente con models.py) → files: src/db/migrations/001_initial.sql → verify: init_db() → `SELECT name FROM sqlite_master WHERE type='table'` → 9 tablas

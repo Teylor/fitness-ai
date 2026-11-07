@@ -17,7 +17,7 @@ from peewee import (
 from playhouse.sqlite_ext import SqliteDatabase
 
 # Instancia global de DB (se reasigna en tests a :memory:)
-db = SQLiteExtDatabase("data/fitness.db")
+db = SqliteDatabase("data/fitness.db")
 
 
 class BaseModel(Model):
