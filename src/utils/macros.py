@@ -11,7 +11,16 @@ def calc_ingredient_macros(ingredient, quantity: float) -> dict:
     Returns:
         {"kcal": float, "protein": float, "carbs": float, "fat": float, "price": float}
     """
-    ...
+    unit = ingredient.unit
+    scale = quantity if unit == 'u' else quantity / 100.0
+    price_scale = quantity if unit == 'u' else quantity / 1000.0
+    return {
+        'kcal': round(ingredient.kcal * scale, 2),
+        'protein': round(ingredient.protein * scale, 2),
+        'carbs': round(ingredient.carbs * scale, 2),
+        'fat': round(ingredient.fat * scale, 2),
+        'price': round(ingredient.price * price_scale, 2),
+    }
 
 
 def calc_recipe_macros(recipe_items: list, ingredients: dict) -> dict:
