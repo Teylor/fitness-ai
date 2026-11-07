@@ -1,0 +1,1 @@
+"""Tools MCP expuestas a Hermes Agent."""

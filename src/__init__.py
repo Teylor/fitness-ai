@@ -1,0 +1,1 @@
+"""Fitness AI - MCP Server para tracking de alimentación y entrenamiento."""
