@@ -1,22 +1,22 @@
 # Feature Tasks (ODD)
 
-> Una sola fuente de progreso por feature. El checklist vive AQUÍ, no en el spec.
+> A single source of progress per feature. The checklist lives HERE, not in the spec.
 
-## Estructura
+## Structure
 
 ```
 odd/tasks/
-├── README.md              ← este archivo
-├── <feature-1>.md         ← checklist de feature 1
-├── <feature-2>.md         ← checklist de feature 2
+├── README.md              ← this file
+├── <feature-1>.md         ← feature 1 checklist
+├── <feature-2>.md         ← feature 2 checklist
 └── ...
 ```
 
-## Reglas
+## Rules
 
-1. Un archivo por feature.
-2. El spec nunca guarda estado. Solo aquí.
-3. Si una feature tiene spec SDD → enlazar `specs/<feature>/spec.md` y `plan.md`.
-4. No se implementa sin este archivo.
-5. El item del feature procede de `odd/BACKLOG.md`; al crear este archivo, el item pasa a ➡️ En curso.
+1. One file per feature.
+2. The spec never holds state. Only here.
+3. If a feature has an SDD spec → link `specs/<feature>/spec.md` and `plan.md`.
+4. Nothing is implemented without this file.
+5. The feature item comes from `odd/BACKLOG.md`; when this file is created, the item moves to ➡️ In progress.
 6. Each feature is developed on its own branch `feat/<feature-name>`; a fix to a feature is made on a `fix/<feature-name>` branch.
