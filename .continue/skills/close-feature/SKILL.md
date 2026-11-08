@@ -20,7 +20,7 @@ Cuando todas las tareas del checklist están `[x]`.
    - Fecha de cierre.
    - Resumen de lo implementado.
    - "Siguiente paso" si hay follow-up pendiente.
-5. **Commit final**: `feat(<module>): close <feature> [all tasks done]`
+5. **Report pre-commit final**: resumen de lo implementado, resultado de `pytest tests/ -v` y mensaje sugerido `feat(<module>): close <feature> [all tasks done]`. El commit lo ejecuta el usuario (o el agente si se lo pide explícitamente).
 
 ## Reglas
 - No cerrar sin verificar TODOS los criterios de aceptación.

@@ -15,10 +15,16 @@ Después de `track-feature` (checklist aprobado por usuario).
 4. **Verificar**:
    - Ejecutar test → debe pasar (verde).
    - Ejecutar comando de verificación especificado en la tarea.
-5. **Commit**: `feat(<module>): <descripción> [T#]`
-6. **Marcar** en `odd/tasks/<feature>.md`:
-   - `[x] T#: <descripción> → verify: <evidencia: pytest output, comando, etc.>`
-7. **Repetir** con la siguiente tarea.
+5. **Report pre-commit** (obligatorio, antes de cualquier commit):
+   a. **Cambios hechos**: archivos afectados y qué se modificó en cada uno, con el porqué.
+   b. **Tests (si aplican)**: qué tests cubren los cambios (nuevos y existentes) y su resultado. Si no hay tests aplicables → declararlo explícitamente.
+   c. **Mensaje de commit sugerido**: `feat(<module>): <descripción> [T#]`
+6. **Esperar la decisión del usuario** (no avanzar solo):
+   - El usuario hace el commit (o pide al agente que lo haga con el mensaje acordado) → **Marcar** en `odd/tasks/<feature>.md`:
+     - `[x] T#: <descripción> → verify: <evidencia: pytest output, comando, etc.>`
+   - El usuario pide cambios → dejar la tarea en `[~]`, aplicar, re-verificar tests y repetir el report.
+   - El usuario dice "continuar a la siguiente tarea" → **Marcar** `[x]` con evidencia (el commit queda a criterio del usuario).
+7. **Repetir** con la siguiente tarea (solo tras la decisión del usuario).
 
 ## Reglas
 - **Una tarea por vez.** No agrupar.
@@ -26,7 +32,9 @@ Después de `track-feature` (checklist aprobado por usuario).
 - Si un test falla → no pasar a la siguiente hasta arreglar.
 - Si aparece complejidad inesperada → escalar a SDD (→ `sdd-specify`).
 - Evidencia obligatoria: sin evidencia, la tarea no está hecha.
-- Commit por tarea (no agrupar commits).
+- Commit por tarea (no agrupar commits), ejecutado por el usuario tras el report pre-commit.
+- El agente no ejecuta `git commit` por su cuenta.
+- No avanzar a la siguiente tarea sin la decisión del usuario tras el report.
 
 ## Formato de evidencia
 

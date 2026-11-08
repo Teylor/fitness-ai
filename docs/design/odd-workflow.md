@@ -57,7 +57,7 @@ Petición del usuario
 ┌─────────────────────────────────────────────────────────────────────┐
 │ 5. IMPLEMENT                                                       │
 │    Una tarea por vez. TDD si está configurado.                     │
-│    Commit por tarea. Marcar progreso en el checklist.              │
+│    Report pre-commit; commit del usuario por tarea.                │
 │    → src/ (código)                                                 │
 │    → odd/tasks/<feature>.md (marcar [x] + evidencia)               │
 └───────────────────────────────┬─────────────────────────────────────┘
@@ -168,6 +168,7 @@ specs/
 6. **Aprobación del usuario.** Antes de `implement`, el usuario debe aprobar spec + plan + tasks.
 7. **Backlog como cola única.** El agente consulta `odd/BACKLOG.md` antes de empezar y actualiza el estado del item al arrancar (➡️ En curso) y al cerrar (🏁 Finalizados). No se arranca una feature sin item aprobado.
 8. **Branching.** Each feature is developed on its own branch `feat/<feature-name>`, created when the feature starts. A fix to a feature is made on a `fix/<feature-name>` branch.
+9. **Pre-commit gate.** Antes de cada commit (tarea, cierre o archivado) el agente presenta el report pre-commit (cambios hechos, tests si aplican, mensaje sugerido) y se detiene: el usuario hace el commit, pide cambios o dice que continúe. El agente no ejecuta `git commit` por su cuenta.
 
 ---
 
@@ -179,8 +180,8 @@ specs/
 | `explore` | Lee el código real, tests y ADRs relevantes antes de proponer nada. |
 | `classify` | Decide el tamaño: trivial, pequeño, sustancial o necesita spec. |
 | `track-feature` | Crea o actualiza `odd/tasks/<feature>.md` antes de la primera escritura. |
-| `implement-task` | Una tarea por vez, con TDD si está configurado, y marca progreso y evidencia. |
-| `close-feature` | Cierra criterios de aceptación, actualiza el documento, deja el siguiente paso y marca 🏁 Finalizado en `odd/BACKLOG.md`. |
+| `implement-task` | Una tarea por vez, con TDD si está configurado, report pre-commit antes de cada commit, y marca progreso y evidencia. |
+| `close-feature` | Cierra criterios de aceptación, actualiza el documento, deja el siguiente paso, presenta el report pre-commit final y marca 🏁 Finalizado en `odd/BACKLOG.md`. |
 
 ## Skills de la rama SDD (solo si classify escala)
 
@@ -252,5 +253,27 @@ tests/
 1. **Antes** de implementar una tarea → escribir el test (rojo).
 2. **Implementar** la tarea (verde).
 3. **Refactorizar** si hace falta.
-4. **Commit** con mensaje: `feat(<module>): <tarea> [T#]`
-5. Marcar `[x]` en `odd/tasks/<feature>.md` con evidencia: `pytest tests/unit/test_x.py::test_y -v` → PASSED
+4. **Report pre-commit** (obligatorio, antes de cualquier commit):
+   - **Cambios hechos**: archivos afectados y qué se modificó en cada uno.
+   - **Tests (si aplican)**: qué tests cubren los cambios (nuevos y existentes) y su resultado; si no aplican, declararlo.
+   - **Mensaje sugerido**: `feat(<module>): <tarea> [T#]`
+5. **Esperar la decisión del usuario** (ver "Report pre-commit" más abajo).
+6. Marcar `[x]` en `odd/tasks/<feature>.md` con evidencia: `pytest tests/unit/test_x.py::test_y -v` → PASSED.
+
+### Report pre-commit (gate antes de cada commit)
+
+> El agente no ejecuta `git commit` por su cuenta ni avanza a la siguiente tarea sin la decisión del usuario.
+
+Formato del report:
+
+1. **Cambios hechos**: archivos afectados y qué se modificó en cada uno, con el porqué.
+2. **Tests (si aplican)**: qué tests cubren los cambios (nuevos y existentes) y su resultado. Si no hay tests aplicables → declararlo explícitamente.
+3. **Mensaje de commit sugerido**: `feat(<module>): <tarea> [T#]` (`docs(...)` / `refactor(...)` / `chore:` según el tipo de cambio).
+
+Tras el report, el agente se detiene y el usuario decide:
+
+| Decisión del usuario | Acción del agente |
+|----------------------|-------------------|
+| Hacer el commit (él mismo o pidiéndoselo al agente) | Marcar `[x]` con evidencia → siguiente tarea. |
+| Pedir cambios | Tarea en `[~]`, aplicar, re-verificar tests y repetir el report. |
+| "Continuar a la siguiente tarea" | Marcar `[x]` con evidencia → siguiente tarea (el commit queda a criterio del usuario). |
