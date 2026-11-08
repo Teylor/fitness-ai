@@ -41,7 +41,7 @@
 | 8 | P3 | `seed-data` | ✅ Aprobado | Catálogo inicial de ingredientes/ejercicios. |
 | 9 | P2 | `odd-merge-back` | ✅ Aprobado | Al cerrar, reflujar los criterios cumplidos a `docs/specs/` globales (imita el merge de deltas de OpenSpec; cierra el punto débil del ODD). |
 
-> Orden recomendado de ejecución: 1 → 2/3 → 4 (dependencias). 5 puede ir en paralelo.
+> Orden recomendado de ejecución: `translate-to-english` → 2/3 → 4 (dependencias). 5 puede ir en paralelo.
 
 ---
 
@@ -49,7 +49,7 @@
 
 | Feature | Archivo |
 |---------|---------|
-| — | — |
+| `translate-to-english` | `odd/tasks/translate-to-english.md` |
 
 ---
 

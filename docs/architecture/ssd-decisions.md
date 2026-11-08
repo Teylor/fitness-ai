@@ -24,3 +24,23 @@ Sistema local de un solo usuario. No hay necesidad de escalabilidad. Se requiere
 - ✅ Migraciones simples para un solo usuario.
 - ❌ No escalable a multi-usuario (no es un requisito).
 - ❌ Sin réplicas
+
+---
+
+## ADR-002: Project language is English
+
+**Date**: 2026-11-08
+**Status**: Accepted
+
+### Context
+All project artifacts (docs, specs, ODD, ADRs, READMEs, code comments/docstrings, test descriptions, SQL and script comments) were written in Spanish. To keep the codebase consistent and broadly readable, the project standardizes on a single language.
+
+### Decision
+- All project artifacts are written in **English**: docs, specs, architecture, ODD, ADRs, READMEs, code comments/docstrings, test docstrings/assertion messages, SQL comments, and script comments.
+- Code identifiers, imports, syntax, and technical terms are unaffected (they already follow Python/SQL conventions).
+- Existing Spanish content is migrated to English by the `translate-to-english` feature; no new Spanish content is added from now on.
+
+### Consequences
+- ✅ One consistent language across the whole project.
+- ✅ New readers/contributors need no Spanish.
+- ⚠️ Test fixtures that intentionally exercise accent/normalization behavior (e.g. `normalize("Café")`, `normalize("Ñandú")`) are preserved as-is, because the accented input is the point of those tests.
