@@ -1,5 +1,5 @@
 -- 001_initial.sql
--- Esquema inicial: todas las tablas, índices y vistas.
+-- Initial scheme: all tables, indexes and views.
 
 CREATE TABLE IF NOT EXISTS ingredients (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,

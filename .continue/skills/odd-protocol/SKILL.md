@@ -1,22 +1,26 @@
 # Skill: odd-protocol
 
-> Orquestador del ciclo ODD. Impone el orden: autorizar, explorar, resolver incertidumbre, clasificar, registrar, implementar, cerrar.
+> Orchestrator for the ODD cycle. Enforces the order: authorize, explore, resolve uncertainty, classify, track, implement, close.
 
-## Cuándo se activa
-Siempre. Es el primer skill que se invoca ante cualquier petición de cambio.
+## When it activates
+Always. It is the first skill invoked for any change request.
 
-## Pasos
+## Steps
 
-1. **Autorizar**: Confirmar con el usuario que se va a trabajar en la feature.
-2. **Explorar** (→ `explore`): Leer código real, tests, ADRs relevantes.
-3. **Resolver incertidumbre**: Preguntar al usuario lo que no se entiende.
-4. **Clasificar** (→ `classify`): Decidir tamaño (trivial/pequeño/sustancial/SDD).
-5. **Registrar** (→ `track-feature`): Crear `odd/tasks/<feature>.md`.
-6. **Implementar** (→ `implement-task`): Una tarea por vez, TDD.
-7. **Cerrar** (→ `close-feature`): Verificar criterios, actualizar docs, dejar siguiente paso.
+1. **Authorize**: Confirm with the user that work will proceed on the feature.
+2. **Explore** (→ `explore`): Read the actual code, tests, and relevant ADRs.
+3. **Resolve uncertainty**: Ask the user about anything unclear.
+4. **Classify** (→ `classify`): Decide the size (trivial/small/substantial/SDD).
+5. **Track** (→ `track-feature`): Create `odd/tasks/<feature>.md`.
+6. **Implement** (→ `implement-task`): Per execution mode (rule 11): fast (default) — run the whole feature in one pass, TDD, ONE pre-commit report at the end; slow — one task at a time, pre-commit report before each commit. (the user runs the commit)
+7. **Close** (→ `close-feature`): Verify the criteria, update the docs, leave the next step.
 
-## Reglas
-- No saltar pasos.
-- No implementar sin `track-feature`.
-- No cerrar sin verificar todos los criterios de aceptación.
-- Si `classify` escala a SDD → invocar rama SDD antes de `implement-task`.
+## Rules
+- Do not skip steps.
+- Do not implement without `track-feature`.
+- Do not close without verifying all acceptance criteria.
+- No commit without a pre-commit report (changes, tests where applicable, suggested message) and the user's decision.
+- The agent does not run `git commit` on its own.
+- If `classify` escalates to SDD → invoke the SDD branch before `implement-task`.
+- Execution mode (rule 11): default fast; complex features use slow; when complexity is unclear, ask the user which mode to use before implementing.
+- All generated project text (docs, ODD, comments, docstrings, tests, commit messages) is written in English (ADR-002). Spanish only in the conversation with the user.

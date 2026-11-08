@@ -1,21 +1,20 @@
+# API Specification (MCP Server)
 
-# Especificación de API (MCP Server)
+> MCP Tools exposed by the local Python server. Hermes Agent invokes them to interact with the system.
 
-> Tools MCP expuestas por el server Python local. Hermes Agent las invoca para interactuar con el sistema.
+## Conventions
 
-## Convenciones
-
-- **Transporte**: MCP local (localhost)
-- **Formato**: JSON (entrada y salida)
-- **Errores**: `{"status": "error", "code": "...", "message": "..."}`
-- **Idempotencia**: Las tools de creación buscan antes de insertar (fuzzy match) para evitar duplicados.
-- **Fechas**: `DD-MM-YYYY` para fechas, `DD-MM-YYYYTHH:MM:SS` para datetime
-- **Unidades**: `gr` | `ml` | `u`
+- **Transport**: Local MCP (localhost)
+- **Format**: JSON (input and output)
+- **Errors**: `{"status": "error", "code": "...", "message": "..."}`
+- **Idempotency**: Creation tools check before inserting (fuzzy match) to avoid duplicates.
+- **Dates**: `DD-MM-YYYY` for dates, `DD-MM-YYYYTHH:MM:SS` for datetime
+- **Units**: `gr` | `ml` | `u`
 
 ---
 
-## ALIMENTACIÓN
+## NUTRITION / FOOD
 
 ### `register_meal`
 
-Registrar una ingesta (ingrediente o receta). Si
+Register an intake (ingredient or recipe). If

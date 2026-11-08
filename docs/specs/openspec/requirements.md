@@ -1,18 +1,16 @@
-# Requisitos
+# Requirements
 
-> Especificación de requisitos del sistema de tracking de alimentación, economía y entrenamiento.
-> Interacción principal: voz → Hermes Agent (MCP) → Sistema.
+> Requirements specification for the nutrition, finance, and workout tracking system.
+> Primary interaction: voice → Hermes Agent (MCP) → System.
 
-## Contexto
+## Context
 
-El sistema corre 24/7 en un PC local (modo servidor). Un agente de IA (Hermes Agent) se conecta
-vía MCP server local para ejecutar acciones: registrar comidas, consultar macros, registrar
-entrenamientos, consultar PRs, etc. El usuario interactúa por teléfono con Hermes.
+The system runs 24/7 on a local PC (server mode). An AI agent (Hermes Agent) connects via a local MCP server to execute actions: logging meals, querying macros, recording workouts, checking PRs, etc. The user interacts with Hermes via phone.
 
 ## Stack
 
-| Componente | Tecnología |
-|-----------|-----------|
-| Lenguaje | Python |
-| Base de datos | SQLite |
-| Integración IA | MCP Server (local)
+| Component | Technology |
+|---|---|
+| Language | Python |
+| Database | SQLite |
+| AI Integration | MCP Server (local) |

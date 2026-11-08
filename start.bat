@@ -1,10 +1,10 @@
 @echo off
 echo === Fitness AI - Starting ===
 
-REM Crear carpeta de datos si no existe
+REM Create folder of data if not exists
 if not exist "data" mkdir data
 
-REM Iniciar MCP server
+REM Start MCP server
 echo Starting MCP server on localhost:9700...
 python -m src.main
 

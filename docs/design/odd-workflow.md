@@ -1,233 +1,237 @@
-# Ciclo de Trabajo SDD + ODD
+# SDD + ODD Workflow
 
-> Proceso obligatorio para cualquier cambio en el proyecto. El agente impone este orden.
+> Mandatory process for any change in the project. The agent enforces this order.
 
-## Principio
+## Principle
 
-> **No se implementa sin spec.** Antes de tocar código, se revisan y actualizan las specs.
-> Una vez aprobadas por el usuario, se empieza la implementación.
-
----
-
-## Fase 0 — BACKLOG (gate de entrada)
-
-> Antes de SPECIFY, el trabajo debe existir como item en `odd/BACKLOG.md` (📥 Propuesto → ✅ Aprobado).
-> Al arrancar la feature, el item pasa a ➡️ En curso. Al cerrarla, a 🏁 Finalizados.
-> El backlog es la cola única de trabajo: no se arranca nada que no esté aprobado ahí.
+> **No implementation without a spec.** Before touching code, specs are reviewed and updated.
+> Once approved by the user, implementation begins.
 
 ---
 
-## Ciclo completo
+## Phase 0 — BACKLOG (Entry Gate)
+
+> Before SPECIFY, the work must exist as an item in `odd/BACKLOG.md` (📥 Proposed → ✅ Approved).
+> When starting a feature, the item moves to ➡️ In Progress. When closing it, to 🏁 Done.
+> The backlog is the single work queue: nothing starts without being approved there.
+
+---
+
+## Complete Lifecycle
 
 ```
-Petición del usuario
+User Request
        │
        ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│ 1. SPECIFY                                                         │
-│    Describir la feature: QUÉ y POR QUÉ (sin tecnología).           │
-│    Criterios de aceptación claros.                                 │
-│    → odd/tasks/<feature>.md (sección "Spec")                       │
+│ 1. SPECIFY                                                          │
+│    Describe the feature: WHAT and WHY (technology-agnostic).        │
+│    Clear acceptance criteria.                                       │
+│    → odd/tasks/<feature>.md ("Spec" section)                        │
 └───────────────────────────────┬─────────────────────────────────────┘
                                 ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│ 2. CLARIFY                                                         │
-│    El agente lista ambigüedades, supuestos y preguntas.            │
-│    Se resuelven TODAS antes de seguir.                             │
-│    → odd/tasks/<feature>.md (sección "Clarify")                    │
+│ 2. CLARIFY                                                          │
+│    The agent lists ambiguities, assumptions, and questions.         │
+│    Resolve ALL of them before continuing.                           │
+│    → odd/tasks/<feature>.md ("Clarify" section)                     │
 └───────────────────────────────┬─────────────────────────────────────┘
                                 ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│ 3. PLAN                                                            │
-│    Decisiones técnicas alineadas con la constitución (ADR).        │
-│    Arquitectura, dependencias, riesgos.                            │
-│    → odd/tasks/<feature>.md (sección "Plan")                       │
-│    → docs/architecture/ssd-decisions.md (si hay ADR nuevo)         │
+│ 3. PLAN                                                             │
+│    Technical decisions aligned with the constitution (ADRs).        │
+│    Architecture, dependencies, risks.                               │
+│    → odd/tasks/<feature>.md ("Plan" section)                        │
+│    → docs/architecture/ssd-decisions.md (if a new ADR is required)  │
 └───────────────────────────────┬─────────────────────────────────────┘
                                 ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│ 4. TASKS                                                           │
-│    Lista de tareas pequeñas, cada una con:                          │
-│      - Descripción                                                 │
-│      - Verificación (test, comando, o inspección manual)           │
-│      - Estado: [ ] → [~] → [x]                                    │
-│    → odd/tasks/<feature>.md (sección "Tasks")                      │
+│ 4. TASKS                                                            │
+│    List of small tasks, each with:                                  │
+│      - Description                                                  │
+│      - Verification (test, command, or manual inspection)           │
+│      - Status: [ ] → [~] → [x]                                      │
+│    → odd/tasks/<feature>.md ("Tasks" section)                       │
 └───────────────────────────────┬─────────────────────────────────────┘
                                 ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│ 5. IMPLEMENT                                                       │
-│    Una tarea por vez. TDD si está configurado.                     │
-│    Commit por tarea. Marcar progreso en el checklist.              │
-│    → src/ (código)                                                 │
-│    → odd/tasks/<feature>.md (marcar [x] + evidencia)               │
+│ 5. IMPLEMENT                                                        │
+│    One task at a time. TDD if configured.                           │
+│    Pre-commit report; user commit per task.                         │
+│    → src/ (code)                                                    │
+│    → odd/tasks/<feature>.md (mark [x] + evidence)                   │
 └───────────────────────────────┬─────────────────────────────────────┘
                                 ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│ 6. REVIEW / VERIFY                                                 │
-│    Contrastar resultado con el spec (no con "parece que funciona").│
-│    Cada criterio de aceptación → verificado.                       │
-│    → odd/tasks/<feature>.md (sección "Verification")               │
+│ 6. REVIEW / VERIFY                                                  │
+│    Check outcome against spec (not against "it seems to work").     │
+│    Every acceptance criterion → verified.                           │
+│    → odd/tasks/<feature>.md ("Verification" section)                │
 └───────────────────────────────┬─────────────────────────────────────┘
                                 ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│ 7. CLOSE                                                           │
-│    Cerrar criterios de aceptación.                                 │
-│    Actualizar docs (specs, ADRs, modelos).                         │
-│    Dejar "siguiente paso" si hay follow-up.                        │
-│    → odd/tasks/<feature>.md (sección "Close")                      │
+│ 7. CLOSE                                                            │
+│    Close acceptance criteria.                                       │
+│    Update docs (specs, ADRs, models).                               │
+│    Leave "next step" if follow-up exists.                           │
+│    → odd/tasks/<feature>.md ("Close" section)                       │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Escalado a SDD (rama completa)
+## Escalation to SDD (Full Branch)
 
-No toda feature necesita el ciclo completo. `classify` decide:
+Not every feature requires the full lifecycle. `classify` decides:
 
-| Tamaño | Criterios | Rama |
-|--------|-----------|------|
-| **Trivial** | 1 archivo, cambio de typo, rename, config | Implement directo (sin spec) |
-| **Pequeño** | 1-2 archivos, 1 módulo, sin API pública | Spec mínima + tasks + implement |
-| **Sustancial** | Varios módulos, nueva entidad, nueva tool MCP | Spec completa + clarify + plan + tasks + implement + verify |
-| **Necesita SDD** | Cambia contrato público/API, migración de datos, seguridad, difícil de revertir, varios agentes en paralelo | SDD completo (spec.md + plan.md separados) |
+| Size | Criteria | Path |
+|------|----------|------|
+| **Trivial** | 1 file, typo fix, rename, config | Direct implementation (no spec) |
+| **Small** | 1-2 files, 1 module, no public API | Minimal spec + tasks + implementation |
+| **Substantial** | Multiple modules, new entity, new MCP tool | Full spec + clarify + plan + tasks + implement + verify |
+| **Requires SDD** | Changes public contract/API, data migration, security, hard to roll back, multiple parallel agents | Full SDD (separate `spec.md` + `plan.md`) |
 
-### Criterios de escalado a SDD (cualquiera de estos):
-- Cambia un contrato público o API (tool MCP)
-- Toca varios módulos simultáneamente
-- Los requisitos son ambiguos o hay múltiples interpretaciones
-- Afecta a seguridad o migración de datos
-- Es difícil de revertir
-- Varios agentes trabajarán en paralelo
+### SDD Escalation Criteria (Any of the following):
+- Changes a public contract or API (MCP tool)
+- Touches multiple modules simultaneously
+- Requirements are ambiguous or have multiple interpretations
+- Affects security or data migration
+- Is hard to roll back
+- Multiple agents will work in parallel
 
 ---
 
-## Estructura de archivos por feature
+## File Structure per Feature
 
 ```
 odd/
-├── BACKLOG.md                     # Cola única de trabajo (Propuesto → Aprobado → En curso → Finalizado)
+├── BACKLOG.md                     # Single work queue (Proposed → Approved → In Progress → Done)
 └── tasks/
-    └── <feature-name>.md          # Checklist único (fuente de verdad)
+    └── <feature-name>.md          # Single checklist (source of truth)
 
 specs/
 └── <feature-name>/
-    ├── spec.md                   # (solo SDD) Qué y por qué
-    └── plan.md                   # (solo SDD) Decisiones técnicas
+    ├── spec.md                   # (SDD only) What and why
+    └── plan.md                   # (SDD only) Technical decisions
 ```
 
-### Plantilla `odd/tasks/<feature>.md`
+### Template: `odd/tasks/<feature>.md`
 
 ```markdown
-# Feature: <nombre>
+# Feature: <name>
 
 ## Spec
-> Qué y por qué (sin tecnología)
+> What and why (technology-agnostic)
 
-- [ ] Criterio de aceptación 1
-- [ ] Criterio de aceptación 2
+- [ ] Acceptance criterion 1
+- [ ] Acceptance criterion 2
 
 ## Clarify
-> Ambigüedades resueltas
+> Resolved ambiguities
 
-- P: ¿...? → R: ...
+- Q: ...? → A: ...
 
 ## Plan
-> Decisiones técnicas
+> Technical decisions
 
 - D1: ...
 - D2: ...
 
 ## Tasks
-> Checklist de implementación
+> Implementation checklist
 
-- [ ] T1: <descripción> → verify: <test/comando>
-- [ ] T2: <descripción> → verify: <test/comando>
+- [ ] T1: <description> → verify: <test/command>
+- [ ] T2: <description> → verify: <test/command>
 
 ## Verification
-> Contraste con spec
+> Spec compliance verification
 
-- [x] Criterio 1: ✅ <evidencia>
-- [x] Criterio 2: ✅ <evidencia>
+- [x] Criterion 1: ✅ <evidence>
+- [x] Criterion 2: ✅ <evidence>
 
 ## Close
-> Cierre
+> Closure
 
-- Fecha: ...
-- Siguiendo paso: ...
+- Date: ...
+- Next step: ...
 ```
 
 ---
 
-## Reglas de integración
+## Integration Rules
 
-1. **Una sola fuente de progreso.** El checklist vive solo en `odd/tasks/<feature>.md`. El spec nunca guarda estado.
-2. **Criterios de escalado.** Si `classify` dice "necesita SDD" → se crean `specs/<feature>/spec.md` y `plan.md` separados.
-3. **Cambios sobre una feature con spec.** Se editan primero en `spec.md`, luego se regenera `plan.md` y se reabren las tareas afectadas en el documento ODD, con motivo.
-4. **Escalado a mitad de camino.** Si durante `implement-task` aparece complejidad inesperada, se detiene, se reclasifica y se entra en la rama SDD sin perder lo ya hecho.
-5. **Cambio solo de implementación.** No se toca el spec.
-6. **Aprobación del usuario.** Antes de `implement`, el usuario debe aprobar spec + plan + tasks.
-7. **Backlog como cola única.** El agente consulta `odd/BACKLOG.md` antes de empezar y actualiza el estado del item al arrancar (➡️ En curso) y al cerrar (🏁 Finalizados). No se arranca una feature sin item aprobado.
-
----
-
-## Skills del núcleo ODD (siempre activas)
-
-| Skill | Qué hace |
-|-------|----------|
-| `odd-protocol` | Orquestador. Impone el orden: consultar BACKLOG, autorizar, explorar, resolver incertidumbre, clasificar, registrar, implementar, cerrar. |
-| `explore` | Lee el código real, tests y ADRs relevantes antes de proponer nada. |
-| `classify` | Decide el tamaño: trivial, pequeño, sustancial o necesita spec. |
-| `track-feature` | Crea o actualiza `odd/tasks/<feature>.md` antes de la primera escritura. |
-| `implement-task` | Una tarea por vez, con TDD si está configurado, y marca progreso y evidencia. |
-| `close-feature` | Cierra criterios de aceptación, actualiza el documento, deja el siguiente paso y marca 🏁 Finalizado en `odd/BACKLOG.md`. |
-
-## Skills de la rama SDD (solo si classify escala)
-
-| Skill | Qué hace |
-|-------|----------|
-| `sdd-specify` | Escribe `specs/<feature>/spec.md`: qué y por qué, sin tecnologías. |
-| `sdd-clarify` | Lista ambigüedades y las resuelve antes de seguir. |
-| `sdd-plan` | Escribe `plan.md`: arquitectura, decisiones y riesgos, alineado con la constitución. |
-| `sdd-tasks` | Convierte el plan en checklist dentro del documento ODD, no en un tasks.md aparte. |
-| `sdd-verify` | Contrasta código contra spec. Opcional, de diagnóstico, no bloquea el cierre. |
-| `sdd-archive` | Al cerrar, marca el spec como implementado y lo mueve a su histórico. |
+1. **Single source of truth for progress.** The checklist lives exclusively in `odd/tasks/<feature>.md`. The spec never tracks state.
+2. **Escalation criteria.** If `classify` yields "requires SDD" → separate `specs/<feature>/spec.md` and `plan.md` files are created.
+3. **Modifications to an existing spec.** Edit `spec.md` first, regenerate `plan.md`, and reopen affected tasks in the ODD document with a stated reason.
+4. **Mid-flight escalation.** If unexpected complexity emerges during `implement-task`, stop, reclassify, and switch to the SDD path without discarding completed work.
+5. **Implementation-only changes.** Do not modify the spec.
+6. **User approval.** The user must approve spec + plan + tasks before `implement`.
+7. **Backlog as single queue.** The agent checks `odd/BACKLOG.md` before starting, updates the item's status at kickoff (➡️ In Progress), and marks it complete on finish (🏁 Done). No feature starts without an approved item.
+8. **Branching.** Each feature is developed on its own branch `feat/<feature-name>`, created when the feature starts. A fix to a feature is made on a `fix/<feature-name>` branch.
+9. **Pre-commit gate.** Before every commit (task, closure, or archival), the agent presents the pre-commit report (changes made, relevant tests, suggested message) and stops: the user commits, requests changes, or instructs to continue. The agent never runs `git commit` autonomously.
+10. **Language (ADR-002).** All generated project text is written in English: docs, specs, ODD, ADRs, READMEs, code comments/docstrings, test docstrings/assertion messages, SQL/script comments, and commit messages. Spanish is used only in the conversation with the user. Accented normalization fixtures (`Ñandú`, `Café`) are the documented exception.
+11. **Execution modes (fast/slow).** Every feature runs in one of two modes, decided after `classify` (default: fast). **Fast**: feature by feature, not task by task — run all tasks in the feature in a single pass (each task is still verified: tests pass, marked `[x]` with evidence), then present ONE pre-commit report covering the entire feature and propose a single commit. **Slow**: task by task within the feature — the pre-commit gate (rule 9) applies per task. Simple features use fast, complex features use slow; when complexity is ambiguous, ask the user which mode to use before implementing.
 
 ---
 
-## Cómo se conectan
+## Core ODD Skills (Always Active)
+
+| Skill | Description |
+|-------|-------------|
+| `odd-protocol` | Orchestrator. Enforces the execution order: consult BACKLOG, authorize, explore, resolve uncertainty, classify, track, implement, close. |
+| `explore` | Inspects live code, tests, and relevant ADRs before proposing any plan. |
+| `classify` | Determines the size: trivial, small, substantial, or requires spec. |
+| `track-feature` | Creates or updates `odd/tasks/<feature>.md` prior to the first write operation. |
+| `implement-task` | One task at a time, using TDD if configured, generating a pre-commit report before each commit, and recording progress and evidence. |
+| `close-feature` | Closes acceptance criteria, updates the task doc, sets the next step, produces the final pre-commit report, and marks 🏁 Done in `odd/BACKLOG.md`. |
+
+## SDD Branch Skills (Only Active when Escalated by Classify)
+
+| Skill | Description |
+|-------|-------------|
+| `sdd-specify` | Writes `specs/<feature>/spec.md`: what and why, technology-agnostic. |
+| `sdd-clarify` | Identifies ambiguities and resolves them before proceeding. |
+| `sdd-plan` | Writes `plan.md`: architecture, design decisions, and risks, aligned with project constraints. |
+| `sdd-tasks` | Translates the plan into a checklist directly inside the ODD document, rather than an isolated tasks.md. |
+| `sdd-verify` | Compares code against spec. Optional diagnostic step; does not block closure. |
+| `sdd-archive` | Upon closing, marks the spec as implemented and archives it to historical records. |
+
+---
+
+## Workflow Connection
 
 ```
-Petición → odd-protocol (consultar BACKLOG) → explore → classify
-                                │
-                                ├─ trivial/pequeño ──────────→ track-feature → implement-task → close
-                                │
-                                └─ necesita spec → sdd-specify → sdd-clarify → sdd-plan → sdd-tasks
-                                                                        │
-                                                                        ▼
-                                                            track-feature (enlaza spec y plan)
-                                                                        │
-                                                                        ▼
-                                                            implement-task → close
-                                                                        │
-                                                                        ▼
-                                                            sdd-verify (opcional) → sdd-archive
+Request → odd-protocol (check BACKLOG) → explore → classify
+                                 │
+                                 ├─ trivial/small ────────────→ track-feature → implement-task → close
+                                 │
+                                 └─ requires spec → sdd-specify → sdd-clarify → sdd-plan → sdd-tasks
+                                                                                 │
+                                                                                 ▼
+                                                               track-feature (links spec & plan)
+                                                                                 │
+                                                                                 ▼
+                                                               implement-task → close
+                                                                                 │
+                                                                                 ▼
+                                                               sdd-verify (optional) → sdd-archive
 ```
 
 ---
 
-## Planificación de tests
+## Test Planning
 
-| Versión | Scope | Herramienta |
-|---------|-------|-------------|
-| **v0** | Tests unitarios por service (CRUDs, cálculos macros, PR) + tests de integración MCP (llamar tool → verificar JSON) | `pytest` + `pytest-asyncio` |
-| **v1** | Tests e2e: simular flujo completo Hermes → MCP → DB → respuesta | `pytest` + fixture de DB temporal |
+| Version | Scope | Tooling |
+|---------|-------|---------|
+| **v0** | Unit tests per service (CRUDs, macro calculations, PR) + MCP integration tests (invoke tool → verify JSON) | `pytest` + `pytest-asyncio` |
+| **v1** | E2E tests: simulate complete flow Hermes → MCP → DB → response | `pytest` + temporary DB fixture |
 
-### Estructura tests (v0)
+### Test Structure (v0)
 
 ```
 tests/
 ├── __init__.py
-├── conftest.py              # Fixtures: DB temporal, services, MCP client
+├── conftest.py              # Fixtures: temporary DB, services, MCP client
 ├── unit/
 │   ├── test_ingredient_service.py
 │   ├── test_recipe_service.py
@@ -246,10 +250,32 @@ tests/
     └── test_mcp_exercise_tools.py
 ```
 
-### Regla TDD en implement-task
+### TDD Rule in `implement-task`
 
-1. **Antes** de implementar una tarea → escribir el test (rojo).
-2. **Implementar** la tarea (verde).
-3. **Refactorizar** si hace falta.
-4. **Commit** con mensaje: `feat(<module>): <tarea> [T#]`
-5. Marcar `[x]` en `odd/tasks/<feature>.md` con evidencia: `pytest tests/unit/test_x.py::test_y -v` → PASSED
+1. **Before** implementing a task → write the test (red).
+2. **Implement** the task (green).
+3. **Refactor** if necessary.
+4. **Pre-commit report** (mandatory before any commit):
+   - **Changes made**: modified files and exact changes made to each.
+   - **Tests (if applicable)**: tests covering the changes (new and existing) and their execution status; state explicitly if not applicable.
+   - **Suggested commit message**: `feat(<module>): <task> [T#]`
+5. **Await user decision** (see "Pre-commit report" below).
+6. Mark `[x]` in `odd/tasks/<feature>.md` with test evidence: `pytest tests/unit/test_x.py::test_y -v` → PASSED.
+
+### Pre-commit Report (Gate Before Each Commit)
+
+> The agent does not execute `git commit` autonomously nor advance to the next task without user confirmation.
+
+Report format:
+
+1. **Changes made**: modified files and specific changes in each, along with the rationale.
+2. **Tests (if applicable)**: tests verifying the changes (new and existing) and outcomes. If no tests apply, state explicitly.
+3. **Suggested commit message**: `feat(<module>): <task> [T#]` (`docs(...)` / `refactor(...)` / `chore:` depending on change type).
+
+After presenting the report, the agent pauses for the user's action:
+
+| User Decision | Agent Action |
+|---------------|--------------|
+| Commit changes (directly or by instructing the agent) | Mark `[x]` with evidence → advance to next task. |
+| Request revisions | Set task to `[~]`, apply changes, re-verify tests, and resubmit report. |
+| "Continue to next task" | Mark `[x]` with evidence → advance to next task (committing deferred to user). |

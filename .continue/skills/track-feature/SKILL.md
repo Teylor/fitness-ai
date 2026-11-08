@@ -1,62 +1,62 @@
 "# Skill: track-feature
 
-> Crea o actualiza `odd/tasks/<feature>.md` antes de la primera escritura de código.
+> Create or update `odd/tasks/<feature>.md` before the first code write.
 
-## Cuándo se activa
-Después de `classify` (o `sdd-tasks` si escaló a SDD), antes de `implement-task`.
+## When it activates
+After `classify` (or `sdd-tasks` if it escalated to SDD), before `implement-task`.
 
-## Pasos
+## Steps
 
-1. **Crear archivo** `odd/tasks/<feature-name>.md` si no existe.
-2. **Rellenar secciones**:
-   - `## Spec` → Qué y por qué (criterios de aceptación)
-   - `## Clarify` → Ambigüedades resueltas (P/R)
-   - `## Plan` → Decisiones técnicas + clasificación
-   - `## Tasks` → Checklist con verificación por tarea
-   - `## Verification` → (vacío, se rellena al cerrar)
-   - `## Close` → (vacío, se rellena al cerrar)
-3. **Enlazar** a `specs/<feature>/spec.md` y `plan.md` si existen (rama SDD).
-4. **Confirmar** al usuario: "Checklist creado. ¿Aprobado para implementar?"
+1. **Create file** `odd/tasks/<feature-name>.md` if it does not exist.
+2. **Fill in the sections**:
+   - `## Spec` → What and why (acceptance criteria)
+   - `## Clarify` → Resolved ambiguities (Q/A)
+   - `## Plan` → Technical decisions + classification
+   - `## Tasks` → Checklist with per-task verification
+   - `## Verification` → (empty, filled in at close)
+   - `## Close` → (empty, filled in at close)
+3. **Link** to `specs/<feature>/spec.md` and `plan.md` if they exist (SDD branch).
+4. **Confirm** with the user: "Checklist created. Approved to implement?"
 
-## Plantilla
+## Template
 
 ```markdown
-# Feature: <nombre>
+# Feature: <name>
 
 ## Spec
-> Qué y por qué (sin tecnología)
+> What and why (no technology)
 
-- [ ] Criterio de aceptación 1
-- [ ] Criterio de aceptación 2
+- [ ] Acceptance criterion 1
+- [ ] Acceptance criterion 2
 
 ## Clarify
-> Ambigüedades resueltas
+> Resolved ambiguities
 
-- P: ¿...? → R: ...
+- Q: ...? → A: ...
 
 ## Plan
-> Decisiones técnicas + clasificación
+> Technical decisions + classification
 
-- Clasificación: <trivial|pequeño|sustancial|SDD>
+- Classification: <trivial|small|substantial|SDD>
 - D1: ...
 - D2: ...
 
 ## Tasks
-> Checklist de implementación
+> Implementation checklist
 
-- [ ] T1: <descripción> → verify: <test/comando>
-- [ ] T2: <descripción> → verify: <test/comando>
+- [ ] T1: <description> → verify: <test/command>
+- [ ] T2: <description> → verify: <test/command>
 
 ## Verification
-> Contraste con spec (se rellena al cerrar)
+> Comparison against the spec (filled in at close)
 
 ## Close
-> Cierre (se rellena al cerrar)
+> Close (filled in at close)
 ```
 
-## Reglas
-- **Una sola fuente de progreso.** El checklist vive SOLO aquí.
-- El spec nunca guarda estado (si existe como archivo separado).
-- No se empieza `implement-task` sin este archivo.
-- Si el feature ya existe → actualizar, no crear nuevo.
+## Rules
+- **Single source of progress.** The checklist lives ONLY here.
+- The spec never stores state (if it exists as a separate file).
+- Do not start `implement-task` without this file.
+- If the feature already exists → update it, do not create a new one.
 "

@@ -1,58 +1,58 @@
 "# Skill: sdd-plan
 
-> Escribe `specs/<feature>/plan.md`: arquitectura, decisiones y riesgos, alineado con la constitución.
+> Write `specs/<feature>/plan.md`: architecture, decisions, and risks, aligned with the constitution.
 
-## Cuándo se activa
-Después de `sdd-clarify` (todas las ambigüedades resueltas).
+## When it activates
+After `sdd-clarify` (all ambiguities resolved).
 
-## Pasos
+## Steps
 
-1. **Crear** `specs/<feature>/plan.md`.
-2. **Escribir**:
-   - **Arquitectura**: Componentes afectados, nuevos, interacciones.
-   - **Decisiones técnicas**: Qué librerías, patrones, estructura.
-   - **ADR nuevos**: Si hay decisiones que afectan a todo el proyecto → registrar en `docs/architecture/ssd-decisions.md`.
-   - **Riesgos**: Qué puede salir mal y mitigación.
-   - **Dependencias**: Qué debe existir antes, qué bloquea.
-   - **Migraciones**: Si hay cambios de DB → script SQL / Peewee migration.
-3. **Alinear** con ADRs existentes (no contradecir sin justificar).
-4. **Confirmar** al usuario: "Plan escrito. ¿Aprobado?"
+1. **Create** `specs/<feature>/plan.md`.
+2. **Write**:
+   - **Architecture**: Affected components, new ones, interactions.
+   - **Technical decisions**: Which libraries, patterns, structure.
+   - **New ADRs**: If there are decisions that affect the whole project → record them in `docs/architecture/ssd-decisions.md`.
+   - **Risks**: What can go wrong and the mitigation.
+   - **Dependencies**: What must exist first, what blocks what.
+   - **Migrations**: If there are DB changes → SQL script / Peewee migration.
+3. **Align** with existing ADRs (do not contradict without justification).
+4. **Confirm** with the user: "Plan written. Approved?"
 
-## Plantilla
+## Template
 
 ```markdown
 # Plan: <feature name>
 
-## Arquitectura
-> Componentes afectados y nuevos
+## Architecture
+> Affected and new components
 
-## Decisiones técnicas
+## Technical decisions
 - D1: ...
 - D2: ...
 
-## ADRs nuevos
-- ADR-XXX: ... (o "Ninguno")
+## New ADRs
+- ADR-XXX: ... (or "None")
 
-## Riesgos
-| Riesgo | Impacto | Mitigación |
+## Risks
+| Risk | Impact | Mitigation |
 |--------|---------|-----------|
 | ... | ... | ... |
 
-## Dependencias
-- Debe existir antes: ...
-- Bloquea: ...
+## Dependencies
+- Must exist first: ...
+- Blocks: ...
 
-## Migraciones
+## Migrations
 - [ ] 00X_<name>.sql
 - [ ] peewee-migrate create <name>
 
-## Alineación con ADRs existentes
+## Alignment with existing ADRs
 - ADR-001: ✅ Compatible
-- ADR-003: ⚠️ Afecta (explicar)
+- ADR-003: ⚠️ Affected (explain)
 ```
 
-## Reglas
-- No contradecir ADRs existentes sin crear un ADR nuevo que los supere.
-- Si el plan requiere cambiar una tool MCP existente → notificar (cambia contrato público).
-- El plan es inmutable una vez aprobado (cambios → editar → re-planificar tareas afectadas).
+## Rules
+- Do not contradict existing ADRs without creating a new ADR that supersedes them.
+- If the plan requires changing an existing MCP tool → notify (it changes the public contract).
+- The plan is immutable once approved (changes → edit → re-plan affected tasks).
 "

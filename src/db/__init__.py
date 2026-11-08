@@ -1,1 +1,1 @@
-"""Capa de base de datos (SQLite)."""
+"""Database layer (SQLite)."""

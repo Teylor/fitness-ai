@@ -1,7 +1,7 @@
-# Interacciones ODD
+# ODD Interactions
 
-> Secuencias y flujos principales entre entidades.
+> Main sequences and flows between entities.
 
 ---
 
-## 1. Registrar comida (ingrediente o receta)
+## 1. Register food (ingredient or recipe)

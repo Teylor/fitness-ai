@@ -1,29 +1,29 @@
 "# Skill: sdd-clarify
 
-> Lista ambigüedades y las resuelve antes de seguir.
+> List the ambiguities and resolve them before moving on.
 
-## Cuándo se activa
-Después de `sdd-specify`, antes de `sdd-plan`.
+## When it activates
+After `sdd-specify`, before `sdd-plan`.
 
-## Pasos
+## Steps
 
-1. **Leer** `specs/<feature>/spec.md`.
-2. **Listar** todas las ambigüedades, supuestos no explícitos, preguntas sin responder:
-   - ¿Qué pasa si...?
-   - ¿Y si el usuario...?
-   - ¿Qué significa exactamente...?
-   - ¿Hay algún límite o restricción no documentada?
-3. **Presentar** al usuario en formato P/R:
+1. **Read** `specs/<feature>/spec.md`.
+2. **List** all the ambiguities, unspoken assumptions, unanswered questions:
+   - What happens if...?
+   - What if the user...?
+   - What exactly does ... mean?
+   - Is there any undocumented limit or constraint?
+3. **Present** to the user in Q/A format:
    ```
-   P1: ¿...? → R: (pendiente)
-   P2: ¿...? → R: (pendiente)
+   Q1: ...? → A: (pending)
+   Q2: ...? → A: (pending)
    ```
-4. **Resolver** cada una con el usuario.
-5. **Actualizar** `odd/tasks/<feature>.md` sección `## Clarify` con las respuestas.
-6. **Si una respuesta cambia el spec** → actualizar `spec.md` primero.
+4. **Resolve** each one with the user.
+5. **Update** the `## Clarify` section of `odd/tasks/<feature>.md` with the answers.
+6. **If an answer changes the spec** → update `spec.md` first.
 
-## Reglas
-- No pasar a `sdd-plan` con ambigüedades sin resolver.
-- Si el usuario dice "no lo sé" → proponer una opción y registrarla como supuesto.
-- Máximo 2 rondas de clarify. Si hay más de 5 preguntas → el spec está mal escrito, volver a `sdd-specify`.
+## Rules
+- Do not move to `sdd-plan` with unresolved ambiguities.
+- If the user says "I don't know" → propose an option and record it as an assumption.
+- At most 2 clarify rounds. If there are more than 5 questions → the spec is poorly written, go back to `sdd-specify`.
 "

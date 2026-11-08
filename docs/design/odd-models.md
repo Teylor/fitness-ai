@@ -1,5 +1,5 @@
-# Modelos ODD
+# ODD Models
 
-> Definición de entidades, relaciones y reglas de negocio.
+> Definition of entities, relationships, and business rules.
 
-## Visión general
+## Overview

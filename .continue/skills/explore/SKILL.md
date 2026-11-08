@@ -1,30 +1,30 @@
 "# Skill: explore
 
-> Lee el código real, tests y ADRs relevantes antes de proponer nada.
+> Read the actual code, tests, and relevant ADRs before proposing anything.
 
-## Cuándo se activa
-Después de autorizar, antes de clasificar.
+## When it activates
+After authorizing, before classifying.
 
-## Pasos
+## Steps
 
-1. **Leer código relevante**:
-   - `src/` → archivos que la feature toca o podría tocar.
-   - `tests/` → tests existentes que cubren esa zona.
-   - `docs/architecture/ssd-decisions.md` → ADRs que afectan la decisión.
-   - `docs/design/odd-models.md` → entidades existentes.
-   - `docs/specs/openspec/api-spec.md` → tools MCP existentes.
+1. **Read relevant code**:
+   - `src/` → files the feature touches or might touch.
+   - `tests/` → existing tests covering that area.
+   - `docs/architecture/ssd-decisions.md` → ADRs affecting the decision.
+   - `docs/design/odd-models.md` → existing entities.
+   - `docs/specs/openspec/api-spec.md` → existing MCP tools.
 
-2. **Identificar**:
-   - ¿Qué existe ya? (no re-inventar)
-   - ¿Qué patrones se usan? (consistencia)
-   - ¿Qué ADRs aplican? (no contradecir decisiones previas)
-   - ¿Qué tests cubren la zona? (no romper lo que funciona)
+2. **Identify**:
+   - What already exists? (do not reinvent)
+   - What patterns are used? (consistency)
+   - Which ADRs apply? (do not contradict prior decisions)
+   - Which tests cover the area? (do not break what works)
 
-3. **Resumir** al usuario:
-   - "He revisado X, Y, Z. Esto es lo que ya existe. Esto es lo que falta."
+3. **Summarize** for the user:
+   - "I reviewed X, Y, Z. This is what already exists. This is what is missing."
 
-## Reglas
-- No proponer cambios sin haber leído el código afectado.
-- Si un ADR contradice lo que se quiere hacer → detenerse y preguntar.
-- Si no hay tests → notificarlo (no bloquear, pero registrar).
+## Rules
+- Do not propose changes without having read the affected code.
+- If an ADR contradicts what is being done → stop and ask.
+- If there are no tests → report it (do not block, but record it).
 "

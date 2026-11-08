@@ -1,68 +1,69 @@
 # Backlog
 
-> Colas de trabajo del proyecto. Un item del backlog = una feature futura
-> que, cuando se apruebe, se convierte en `odd/tasks/<feature>.md` (ciclo SDD+ODD).
+> Project work queues. A backlog item = a future feature
+> that, once approved, becomes `odd/tasks/<feature>.md` (SDD+ODD cycle).
 
-## Reglas
+## Rules
 
-1. Un item = una feature (no tareas sueltas).
-2. Nada se implementa sin pasar por `odd/tasks/<feature>.md` (SPECIFY → CLARIFY → PLAN → TASKS).
-3. Los items se ordenan por prioridad: `P0` (ahora) / `P1` (próximo) / `P2` (despues) / `P3` (idea).
-4. Este archivo es el único lugar donde se propone trabajo nuevo.
-5. Al empezar una feature → el item se mueve a `odd/tasks/<feature>.md` y desaparece de Propuestos.
-6. Al cerrarla (todas las tareas ✅ + Verification rellenada en `odd/tasks/<feature>.md`) → se lista en **Finalizados** con fecha.
-7. El agente mantiene el backlog al día: al arrancar una feature su item pasa a ➡️ En curso; al cerrarla, a 🏁 Finalizados. El backlog es la cola única de trabajo: no se arranca nada que no esté aprobado aquí.
+1. One item = one feature (no loose tasks).
+2. Nothing is implemented without passing through `odd/tasks/<feature>.md` (SPECIFY → CLARIFY → PLAN → TASKS).
+3. Items are ordered by priority: `P0` (now) / `P1` (next) / `P2` (later) / `P3` (idea).
+4. This file is the only place where new work is proposed.
+5. When starting a feature → the item moves to `odd/tasks/<feature>.md` and disappears from Proposed.
+6. When closing it (all tasks ✅ + Verification filled in `odd/tasks/<feature>.md`) → it is listed in **Done** with a date.
+7. The agent keeps the backlog up to date: when a feature starts its item moves to ➡️ In progress; when it closes, to 🏁 Done. The backlog is the single work queue: nothing is started that is not approved here.
+8. Each feature is developed on its own branch `feat/<feature-name>`, created when the feature starts. A fix to a feature is made on a `fix/<feature-name>` branch.
 
-## Estados
+## States
 
-| Estado | Significado |
+| State | Meaning |
 |--------|-------------|
-| 📥 Propuesto | Pendiente de revisión con el usuario |
-| ✅ Aprobado | Revisado y aprobado; listo para SPECIFY |
-| ➡️ En curso | Ya tiene `odd/tasks/<feature>.md` |
-| 🏁 Finalizado | Cerrada: todas las tareas ✅ y Verification rellenada en `odd/tasks/<feature>.md` |
-| ❌ Descartado | Revisado y descartado (dejar nota de por qué) |
+| 📥 Proposed | Pending review with the user |
+| ✅ Approved | Reviewed and approved; ready for SPECIFY |
+| ➡️ In progress | Already has `odd/tasks/<feature>.md` |
+| 🏁 Done | Closed: all tasks ✅ and Verification filled in `odd/tasks/<feature>.md` |
+| ❌ Dropped | Reviewed and dropped (leave a note of why) |
 
 ---
 
-## 📥 Propuestos
+## 📥 Proposed
 
-> Se rellena tras revisión con el usuario. Vacío = sin pendientes.
+> Filled after review with the user. Empty = nothing pending.
 
-| # | Prioridad | Feature | Estado | Nota |
+| # | Priority | Feature | State | Note |
 |---|-----------|---------|--------|------|
-| 2 | P0 | `services-nutrition` | ✅ Aprobado | Ingredient, Recipe, Meal, Goal (provisional, cascadas, resumen diario) + tests. |
-| 3 | P0 | `services-training` | ✅ Aprobado | Exercise, Workout (sets, PRs, 1RM estimado) + tests. |
-| 4 | P0 | `mcp-server` | ✅ Aprobado | Registrar las 19 tools con schema real (SDK `mcp`), errores JSON según api-spec + tests integration. |
-| 5 | P1 | `specs-completion` | ✅ Aprobado | Rellenar `requirements.md`, `api-spec.md` (cortada en línea 21), `data-model.md` (vacía). |
-| 6 | P1 | `hermes-e2e` | ✅ Aprobado | Verificación end-to-end con cliente MCP real (Hermes). |
-| 7 | P2 | `db-robustness` | ✅ Aprobado | Rollback en `get_db()` (pendiente de cierre de db-layer). |
-| 8 | P3 | `seed-data` | ✅ Aprobado | Catálogo inicial de ingredientes/ejercicios. |
-| 9 | P2 | `odd-merge-back` | ✅ Aprobado | Al cerrar, reflujar los criterios cumplidos a `docs/specs/` globales (imita el merge de deltas de OpenSpec; cierra el punto débil del ODD). |
+| 2 | P0 | `services-nutrition` | ✅ Approved | Ingredient, Recipe, Meal, Goal (provisional, cascades, daily summary) + tests. |
+| 3 | P0 | `services-training` | ✅ Approved | Exercise, Workout (sets, PRs, estimated 1RM) + tests. |
+| 4 | P0 | `mcp-server` | ✅ Approved | Register the 19 tools with real schema (SDK `mcp`), JSON errors per api-spec + integration tests. |
+| 5 | P1 | `specs-completion` | ✅ Approved | Fill `requirements.md`, `api-spec.md` (cut off at line 21), `data-model.md` (empty). |
+| 6 | P1 | `hermes-e2e` | ✅ Approved | End-to-end verification with a real MCP client (Hermes). |
+| 7 | P2 | `db-robustness` | ✅ Approved | Rollback in `get_db()` (pending db-layer close). |
+| 8 | P3 | `seed-data` | ✅ Approved | Initial catalog of ingredients/exercises. |
+| 9 | P2 | `odd-merge-back` | ✅ Approved | When closing, reflux the met criteria to global `docs/specs/` (mimics OpenSpec's delta merge; closes the ODD's weak point). |
 
-> Orden recomendado de ejecución: 1 → 2/3 → 4 (dependencias). 5 puede ir en paralelo.
+> Recommended execution order: `translate-to-english` → 2/3 → 4 (dependencies). 5 can run in parallel.
 
 ---
 
-## ➡️ En curso
+## ➡️ In progress
 
-| Feature | Archivo |
+| Feature | File |
 |---------|---------|
-| — | — |
+| `translate-to-english` | `odd/tasks/translate-to-english.md` |
 
 ---
 
-## 🏁 Finalizados
+## 🏁 Done
 
-| Feature | Archivo | Fecha |
+| Feature | File | Date |
 |---------|---------|-------|
 | db-layer | `odd/tasks/db-layer.md` | 2026-11 |
 | utils-core | `odd/tasks/utils-core.md` | 2026-11 |
 
 ---
 
-## ❌ Descartados
+## ❌ Dropped
 
-| Feature | Motivo |
+| Feature | Reason |
 |---------|--------|
 | — | — |

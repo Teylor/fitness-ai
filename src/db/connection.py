@@ -1,4 +1,4 @@
-"""Gestión de conexión SQLite (Peewee)."""
+"""SQLite connection management (Peewee)."""
 
 import os
 from contextlib import contextmanager
@@ -10,9 +10,9 @@ from src.db.models import db, ALL_MODELS, BaseModel
 
 
 def get_db() -> Generator:
-    """Context manager que transacciona automáticamente.
+    """Context manager that automatically commits on success and rolls back on error.
 
-    Uso:
+    Usage:
         with get_db() as cursor:
             Ingredient.create(name="Pan", unit="gr", ...)
     """
@@ -28,28 +28,28 @@ def get_db() -> Generator:
             db.rollback()
             raise
         finally:
-            pass  # No cerramos: la conexión es long-lived (servidor 24/7)
+            pass  # Do not close: the connection is long-lived (server 24/7)
 
 
 def init_db() -> None:
-    """Crea el directorio de datos, conecta a la DB y crea tablas si no existen.
+    """Create the data directory, connect to the DB, and create tables if they do not exist.
 
-    Idempotente: seguro llamarlo múltiples veces.
+    Important: calling multiple times is safe (idempotent).
     """
-    # Crear directorio de datos
+    # Create the data directory
     db_path = settings.db_file
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Reasignar la DB al path correcto (la instancia global apunta a "data/fitness.db" relativo)
+    # Reassign the DB to the correct path (the global instance points to "data/fitness.db" relative)
     db.init(str(db_path))
 
-    # Conectar
+    # Connect
     if db.is_closed():
         db.connect()
 
-    # Crear tablas si no existen (idempotente)
+    # Create tables if not exists (idempotent)
     db.create_tables(ALL_MODELS, safe=True)
 
-    # Aplicar migraciones SQL pendientes (para índices, vistas, etc.)
+    # Apply pending SQL migrations (for indexes, views, etc.)
     from src.db.migrate import apply_migrations
     apply_migrations(db, settings.migrations_path)
