@@ -47,7 +47,7 @@
 
 | Feature | File |
 |---------|---------|
-| `mcp-server` | `odd/tasks/mcp-server.md` |
+| — | — |
 
 ---
 
@@ -55,6 +55,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `mcp-server` | `odd/tasks/mcp-server.md` | 2026-11 |
 | `services-nutrition` | `odd/tasks/services-nutrition.md` | 2026-11 |
 | db-layer | `odd/tasks/db-layer.md` | 2026-11 |
 | utils-core | `odd/tasks/utils-core.md` | 2026-11 |

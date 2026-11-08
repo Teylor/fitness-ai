@@ -1,6 +1,6 @@
-"""Tools MCP: entrenamiento."""
+"""MCP tools: Workout tracking operations."""
 
-from typing import Optional, List
+from typing import List, Optional
 
 
 def register_workout(
@@ -8,26 +8,26 @@ def register_workout(
     date: Optional[str] = None,
     notes: Optional[str] = None,
 ) -> dict:
-    """Registrar sesión de entrenamiento.
+    """Register workout session.
 
     Args:
         exercises: [{name, sets: [{reps, weight} | {duration} | {distance}]}]
-        date: Fecha/hora ISO. Default: ahora.
-        notes: Notas opcionales.
+        date: ISO date/time. Default: now.
+        notes: Optional notes.
     """
     ...
 
 
 def get_last_workout(exercise_name: str) -> dict:
-    """Último entrenamiento de un ejercicio."""
+    """Get the most recent workout for an exercise."""
     ...
 
 
 def get_personal_record(exercise_name: str) -> dict:
-    """Personal Record de un ejercicio."""
+    """Get personal record for an exercise."""
     ...
 
 
 def get_workouts_by_day(date: Optional[str] = None) -> dict:
-    """Todos los entrenamientos de un día."""
+    """Get all workouts for a given day."""
     ...

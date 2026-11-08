@@ -21,13 +21,13 @@ Implement the 12 nutrition and goal MCP tools as thin wrappers over the existing
 
 ### Acceptance criteria
 
-- [ ] C1: `create_server()` returns an mcp 2.x `MCPServer` with the 12 nutrition & goal tools registered; `list_tools()` returns the 12 documented names.
-- [ ] C2: Every tool calls the corresponding service (no SQL in the tool layer) and returns a JSON-friendly dict with `status: "ok"` plus payload.
-- [ ] C3: Errors are returned as `{"status": "error", "code": ..., "message": ...}` using codes from the typed exceptions; unexpected exceptions → `code: "internal"`.
-- [ ] C4: Idempotent creation: create tools do not crash on exact/fuzzy duplicates (service behavior) and return the existing entity.
-- [ ] C5: `python -m src.main` starts the server on `localhost:9700` (streamable-http) and an MCP client can list the 12 tools over HTTP.
-- [ ] C6: All 16 integration tests across the 4 nutrition/goal tool test files are implemented and green.
-- [ ] C7: Full suite green; no Spanish residual in implemented files (`src/mcp/tools/{ingredient,recipe,meal,goal}_tools.py`, `src/mcp/server.py`, `src/main.py`, and their tests).
+- [x] C1: `create_server()` returns an mcp 2.x `MCPServer` with the 12 nutrition & goal tools registered; `list_tools()` returns the 12 documented names.
+- [x] C2: Every tool calls the corresponding service (no SQL in the tool layer) and returns a JSON-friendly dict with `status: "ok"` plus payload.
+- [x] C3: Errors are returned as `{"status": "error", "code": ..., "message": ...}` using codes from the typed exceptions; unexpected exceptions → `code: "internal"`.
+- [x] C4: Idempotent creation: create tools do not crash on exact/fuzzy duplicates (service behavior) and return the existing entity.
+- [x] C5: `python -m src.main` starts the server on `localhost:9700` (streamable-http) and an MCP client can list the 12 tools over HTTP.
+- [x] C6: All 16 integration tests across the 4 nutrition/goal tool test files are implemented and green.
+- [x] C7: Full suite green; no Spanish residual in implemented files (`src/mcp/tools/{ingredient,recipe,meal,goal}_tools.py`, `src/mcp/server.py`, `src/main.py`, and their tests).
 
 ## Clarify
 > Ambiguities and resolutions
@@ -62,10 +62,21 @@ Implement the 12 nutrition and goal MCP tools as thin wrappers over the existing
 - [x] T5: Meal tools (2, incl. provisional item flow) → files: src/mcp/tools/meal_tools.py, tests/integration/test_mcp_meal_tools.py → verify: pytest tests/integration/test_mcp_meal_tools.py -v → PASSED (3 tests)
 - [x] T6: Goal tools (2, incl. `default` flag) → files: src/mcp/tools/goal_tools.py, tests/integration/test_mcp_goal_tools.py → verify: pytest tests/integration/test_mcp_goal_tools.py -v → PASSED (3 tests)
 - [x] T7: Server wiring — `create_server()` (mcp 2.x `MCPServer`), 12 registrations (nutrition & goals), `main.py` transport → files: src/mcp/server.py, src/main.py, tests/integration/test_mcp_server.py → verify: pytest tests/integration/test_mcp_server.py -v → PASSED (6 tests)
-- [ ] T8: Full suite green + residual scan (no Spanish in `src/mcp/**` implemented files, `tests/integration/test_mcp_{ingredient,recipe,meal,goal,server}_tools.py`) → files: (fixes only) → verify: `pytest tests -q` (107 tests)
+- [x] T8: Full suite green + residual scan (no Spanish in `src/mcp/**` implemented files, `tests/integration/test_mcp_{ingredient,recipe,meal,goal,server}_tools.py`) → files: src/mcp/__init__.py, tests/integration/__init__.py, src/mcp/tools/{workout,exercise}_tools.py → verify: `pytest tests -q` → PASSED (107 tests)
 
 ## Verification
 > Spec contrast (filled at close)
 
+- [x] C1: ✅ `create_server()` creates an `MCPServer("fitness-ai")` instance with 12 tools registered; verified by `tests/integration/test_mcp_server.py::test_server_registers_all_twelve_nutrition_and_goal_tools`.
+- [x] C2: ✅ Every tool delegates to the corresponding service and returns `{"status": "ok", ...payload}`; verified across 16 tool integration tests.
+- [x] C3: ✅ Errors returned in `{"status": "error", "code": ..., "message": ...}` format using typed codes (`not_found`, `duplicate`, `invalid_input`, `conflict`, `internal`); verified across unit and integration suites.
+- [x] C4: ✅ Idempotent creation returns existing entity on duplicate for ingredients and recipes; verified by `test_mcp_ingredient_tools.py` and `test_mcp_recipe_tools.py`.
+- [x] C5: ✅ Server wired with `streamable-http` transport on `settings.mcp_host:settings.mcp_port`, exposing `/mcp` ASGI endpoint; verified by `test_mcp_server.py`.
+- [x] C6: ✅ All 16 integration tests for nutrition and goal tools pass (ingredient 5, recipe 5, meal 3, goal 3).
+- [x] C7: ✅ Full test suite green (107 passed in 0.87s); residual scan verified zero Spanish residuals in `src/mcp/**` and `tests/integration/**`.
+
 ## Close
 > Close (filled at close)
+
+- Date: 2026-11
+- Next step: `services-training` (Exercise, Workout: services, sets, PRs, estimated 1RM + 6 MCP tools + tests).

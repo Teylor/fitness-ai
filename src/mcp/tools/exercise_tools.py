@@ -1,4 +1,4 @@
-"""Tools MCP: catálogo de ejercicios."""
+"""MCP tools: Exercise catalog operations."""
 
 from typing import Optional
 
@@ -9,14 +9,14 @@ def list_exercises(
     limit: int = 50,
     offset: int = 0,
 ) -> dict:
-    """Listar o buscar ejercicios."""
+    """List or search exercises."""
     ...
 
 
 def create_exercise(
     name: str,
-    muscle_group: str = "desconocido",
+    muscle_group: str = "unknown",
     type: str = "weight_reps",
 ) -> dict:
-    """Crear un ejercicio nuevo."""
+    """Create a new exercise."""
     ...
