@@ -50,7 +50,7 @@
 
 - [x] T1: Implement `IngredientService` (create / get_by_id / find_by_name / update / delete / list) → files: src/services/ingredient_service.py, tests/unit/test_ingredient_service.py → verify: `pytest tests/unit/test_ingredient_service.py -v` (17 pass)
 - [x] T2: Implement `RecipeService` (create compound/opaque, calculate_macros, update replaces items, delete cascades, list type filter) → files: src/services/recipe_service.py, tests/unit/test_recipe_service.py → verify: `pytest tests/unit/test_recipe_service.py -v` (6 pass)
-- [ ] T3: Implement `GoalService` (set_goal upsert, set_default, get_goal fallback chain) → files: src/services/goal_service.py, tests/unit/test_goal_service.py → verify: `pytest tests/unit/test_goal_service.py -v` (6 pass)
+- [x] T3: Implement `GoalService` (set_goal upsert, set_default, get_goal fallback chain) → files: src/services/goal_service.py, tests/unit/test_goal_service.py → verify: `pytest tests/unit/test_goal_service.py -v` (9 pass)
 - [ ] T4: Implement `MealService` (register with provisional, get_day_entries, get_day_summary, update, delete) → files: src/services/meal_service.py, tests/unit/test_meal_service.py → verify: `pytest tests/unit/test_meal_service.py -v` (7 pass)
 - [ ] T5: Full suite green + fix stale `YYYY-MM-DD` comments in dataclasses → files: src/models/meal_entry.py (and any other stale comments) → verify: `pytest tests -q`
 
