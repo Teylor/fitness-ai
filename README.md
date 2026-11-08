@@ -1,11 +1,11 @@
-# Proyecto
+# Project
 
-> Descripción general del proyecto.
+> General description of the project.
 
-## Índice
+## Index
 
-- [Arquitectura (SSD)](docs/architecture/)
-- [Diseño (ODD)](docs/design/)
-- [Especificación (OpenSpec)](docs/specs/)
-- [Fuente](src/)
-- [Configuración](config/)
+- [Architecture (SSD)](docs/architecture/)
+- [Design (ODD)](docs/design/)
+- [Specification (OpenSpec)](docs/specs/)
+- [Source](src/)
+- [Configuration](config/)

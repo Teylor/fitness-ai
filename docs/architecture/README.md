@@ -1,9 +1,11 @@
-# Arquitectura (SSD)
+# Architecture (SSD)
 
-> Documentación de la arquitectura del sistema.
+> System architecture documentation.
 
-## Archivos
+## Files
 
-| Archivo | Contenido |
+| File | Content |
 |---------|-----------|
-| `ssd-overview.md` | Visión
+| `ssd-overview.md` | Overall system architecture: components, flows, and dependencies |
+| `ssd-components.md` | Each component in detail: responsibilities and dependencies |
+| `ssd-decisions.md` | ADR registry (context, decision, consequences) |

@@ -1,3 +1,3 @@
-# Especificación (OpenSpec)
+# Specification (OpenSpec)
 
-> Documentación de requisitos y especificaciones funcionales.
+> Requirements and functional specification documentation.

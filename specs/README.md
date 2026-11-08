@@ -1,27 +1,27 @@
 # Specs (SDD)
 
-> Especificaciones de features que escalan a SDD. Solo se crean cuando `classify` lo decide.
+> Specifications for features that scale to SDD. Only created when `classify` decides so.
 
-## Estructura
+## Structure
 
 ```
 specs/
-├── README.md              ← este archivo
+├── README.md              ← this file
 ├── <feature-1>/
-│   ├── spec.md           # Qué y por qué (sin tecnología)
-│   └── plan.md           # Decisiones técnicas
+│   ├── spec.md           # What and why (no technology)
+│   └── plan.md           # Technical decisions
 ├── <feature-2>/
 │   ├── spec.md
 │   └── plan.md
-└── _archive/             # Specs implementados y archivados
+└── _archive/             # Implemented and archived specs
     └── <feature-old>/
         ├── spec.md
         └── plan.md
 ```
 
-## Reglas
+## Rules
 
-1. El spec NUNCA guarda estado de progreso (eso vive en `odd/tasks/<feature>.md`).
-2. El spec es inmutable una vez aprobado. Cambios → editar → regenerar plan.
-3. Al cerrar → `sdd-archive` lo mueve a `_archive/`.
-4. Si se necesita reabrir → nueva feature, no se reabre el archivado.
+1. The spec NEVER stores progress state (that lives in `odd/tasks/<feature>.md`).
+2. The spec is immutable once approved. Changes → edit → regenerate plan.
+3. On close → `sdd-archive` moves it to `_archive/`.
+4. If a reopen is needed → new feature; the archived one is not reopened.

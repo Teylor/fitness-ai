@@ -1,3 +1,3 @@
-# Configuración
+# Configuration
 
-> Archivos de configuración del proyecto.
+> Project configuration files.

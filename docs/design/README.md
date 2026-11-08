@@ -1,9 +1,11 @@
-# Diseño (ODD)
+# Design (ODD)
 
-> Documentación del diseño orientado a objetos / decisiones.
+> Object-oriented design / decisions documentation.
 
-## Archivos
+## Files
 
-| Archivo | Contenido |
+| File | Content |
 |---------|-----------|
-| `odd-models.md` | Ent
+| `odd-workflow.md` | Mandatory SDD + ODD workflow |
+| `odd-models.md` | Entities, relationships, and business rules |
+| `odd-interactions.md` | Main sequences and flows between entities |
