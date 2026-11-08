@@ -8,7 +8,7 @@ from typing import Optional
 class DailyGoal:
     """Objetivo diario de macros."""
 
-    date: str  # YYYY-MM-DD
+    date: str  # DD-MM-YYYY
     kcal: float
     protein: float
     carbs: float

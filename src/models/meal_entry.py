@@ -8,7 +8,7 @@ from typing import Optional
 class MealEntry:
     """Registro de una ingesta (polimórfico: ingrediente o receta)."""
 
-    date: str  # YYYY-MM-DD
+    date: str  # DD-MM-YYYY
     item_type: str  # 'ingredient' | 'recipe'
     item_id: int
     quantity: float

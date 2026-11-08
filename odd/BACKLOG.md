@@ -32,9 +32,8 @@
 
 | # | Priority | Feature | State | Note |
 |---|-----------|---------|--------|------|
-| 2 | P0 | `services-nutrition` | ✅ Approved | Ingredient, Recipe, Meal, Goal (provisional, cascades, daily summary) + tests. |
-| 3 | P0 | `services-training` | ✅ Approved | Exercise, Workout (sets, PRs, estimated 1RM) + tests. |
-| 4 | P0 | `mcp-server` | ✅ Approved | Register the 19 tools with real schema (SDK `mcp`), JSON errors per api-spec + integration tests. |
+| 3 | P0 | `mcp-server` | ✅ Approved | Register the 19 tools with real schema (SDK `mcp`), JSON errors per api-spec + integration tests. |
+| 4 | P1 | `services-training` | ✅ Approved | Exercise, Workout (sets, PRs, estimated 1RM) + tests. |
 | 5 | P1 | `specs-completion` | ✅ Approved | Fill `requirements.md`, `api-spec.md` (cut off at line 21), `data-model.md` (empty). |
 | 6 | P1 | `hermes-e2e` | ✅ Approved | End-to-end verification with a real MCP client (Hermes). |
 | 7 | P2 | `db-robustness` | ✅ Approved | Rollback in `get_db()` (pending db-layer close). |
@@ -49,7 +48,6 @@
 
 | Feature | File |
 |---------|---------|
-| `translate-to-english` | `odd/tasks/translate-to-english.md` |
 
 ---
 
@@ -57,8 +55,10 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `services-nutrition` | `odd/tasks/services-nutrition.md` | 2026-11 |
 | db-layer | `odd/tasks/db-layer.md` | 2026-11 |
 | utils-core | `odd/tasks/utils-core.md` | 2026-11 |
+| translate-to-english | `odd/tasks/translate-to-english.md` | 2026-11 |
 
 ---
 
