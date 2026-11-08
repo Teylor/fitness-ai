@@ -53,7 +53,7 @@ Implement the 18 MCP tools as thin wrappers over the existing services, wire the
 
 - [x] T1: Typed error hierarchy (`ToolError` + 4 subclasses) + unit tests → files: src/utils/errors.py, tests/unit/test_errors.py → verify: pytest tests/unit/test_errors.py -v → PASSED (5 tests)
 - [x] T2: Services raise typed errors (same messages; still `ValueError`) → files: src/services/*.py (6) → verify: pytest tests/unit -v → PASSED (77 tests, 101 total)
-- [ ] T3: Ingredient tools (4) → files: src/mcp/tools/ingredient_tools.py, tests/integration/test_mcp_ingredient_tools.py → verify: 5 stub tests green
+- [x] T3: Ingredient tools (4) → files: src/mcp/tools/ingredient_tools.py, tests/integration/test_mcp_ingredient_tools.py → verify: pytest tests/integration/test_mcp_ingredient_tools.py -v → PASSED (5 tests)
 - [ ] T4: Recipe tools (4) → files: src/mcp/tools/recipe_tools.py, tests/integration/test_mcp_recipe_tools.py → verify: 5 stub tests green
 - [ ] T5: Meal tools (2, incl. provisional item flow) → files: src/mcp/tools/meal_tools.py, tests/integration/test_mcp_meal_tools.py → verify: 3 stub tests green
 - [ ] T6: Goal tools (2, incl. `default` flag) → files: src/mcp/tools/goal_tools.py, tests/integration/test_mcp_goal_tools.py → verify: 3 stub tests green
