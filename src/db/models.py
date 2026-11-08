@@ -1,6 +1,6 @@
-"""Modelos Peewee (ORM) para SQLite.
+"""Peewee Models (ORM) for SQLite.
 
-Una clase por tabla. Heredan de BaseModel para compartir la instancia de DB.
+A class per table. Inherits from BaseModel to share the DB instance.
 """
 
 from peewee import (
@@ -16,19 +16,19 @@ from peewee import (
 )
 from playhouse.sqlite_ext import SqliteDatabase
 
-# Instancia global de DB (se reasigna en tests a :memory:)
+# Global instance of DB (assigned to :memory: in tests)
 db = SqliteDatabase("data/fitness.db")
 
 
 class BaseModel(Model):
-    """Base class para todos los modelos. Permite cambiar la DB en tests."""
+    """Base class for all models. Allows changing the DB in tests."""
 
     class Meta:
         database = db
 
 
 class Ingredient(BaseModel):
-    """Ingrediente con macros y precio por unidad base."""
+    """Ingredients with macros and price per unit."""
 
     name = CharField()
     unit = CharField()  # 'gr' | 'ml' | 'u'
@@ -47,7 +47,7 @@ class Ingredient(BaseModel):
 
 
 class Recipe(BaseModel):
-    """Receta (compuesta con ingredientes, o opaca con precio directo)."""
+    """Recipe (made with ingredients, or opaque with direct price)."""
 
     name = CharField(unique=True)
     price = FloatField(null=True)
@@ -64,7 +64,7 @@ class Recipe(BaseModel):
 
 
 class RecipeItem(BaseModel):
-    """Ingrediente dentro de una receta (con cantidad)."""
+    """Ingredients in a recipe (with quantity)."""
 
     recipe = ForeignKeyField(Recipe, on_delete="CASCADE")
     ingredient = ForeignKeyField(Ingredient, on_delete="RESTRICT")
@@ -76,11 +76,11 @@ class RecipeItem(BaseModel):
 
 
 class MealEntry(BaseModel):
-    """Registro de una ingesta (polimórfico: ingrediente o receta)."""
+    """Register of a meal (ingredient or recipe)."""
 
     date = CharField()  # DD-MM-YYYY
     item_type = CharField()  # 'ingredient' | 'recipe'
-    item_id = IntegerField()  # FK polimórfica (sin constraint)
+    item_id = IntegerField()  # FK polymorphic (without constraint)
     quantity = FloatField()
     unit = CharField()  # 'gr' | 'ml' | 'u'
     created_at = DateTimeField(default=SQL("datetime('now')"))
@@ -90,7 +90,7 @@ class MealEntry(BaseModel):
 
 
 class DailyGoal(BaseModel):
-    """Objetivo diario de macros."""
+    """Daily macro goal."""
 
     date = CharField(unique=True)  # DD-MM-YYYY
     kcal = FloatField()
@@ -105,10 +105,10 @@ class DailyGoal(BaseModel):
 
 
 class Exercise(BaseModel):
-    """Ejercicio del catálogo."""
+    """Exercise catalog."""
 
     name = CharField(unique=True)
-    muscle_group = CharField(default="desconocido")
+    muscle_group = CharField(default="unknown")
     type = CharField(default="weight_reps")  # 'weight_reps' | 'time' | 'distance'
     created_at = DateTimeField(default=SQL("datetime('now')"))
 
@@ -117,7 +117,7 @@ class Exercise(BaseModel):
 
 
 class WorkoutSession(BaseModel):
-    """Sesión de entrenamiento."""
+    """Workout session."""
 
     date = DateTimeField()
     notes = TextField(null=True)
@@ -128,22 +128,22 @@ class WorkoutSession(BaseModel):
 
 
 class ExerciseSet(BaseModel):
-    """Un set dentro de una sesión."""
+    """A set within a workout session."""
 
     session = ForeignKeyField(WorkoutSession, on_delete="CASCADE")
     exercise = ForeignKeyField(Exercise, on_delete="RESTRICT")
     set_number = IntegerField()
     reps = IntegerField(null=True)
     weight = FloatField(null=True)
-    duration = FloatField(null=True)  # segundos
-    distance = FloatField(null=True)  # metros
+    duration = FloatField(null=True)  # seconds
+    distance = FloatField(null=True)  # meters
 
     class Meta:
         table_name = "exercise_sets"
 
 
 class PersonalRecord(BaseModel):
-    """PR de un ejercicio (uno por ejercicio)."""
+    """PR of an exercise (one PR per exercise)."""
 
     exercise = ForeignKeyField(Exercise, on_delete="CASCADE", unique=True)
     max_weight = FloatField()
@@ -156,7 +156,7 @@ class PersonalRecord(BaseModel):
         table_name = "personal_records"
 
 
-# Lista de todos los modelos (para create_tables / migraciones)
+# List of all models
 ALL_MODELS = [
     Ingredient,
     Recipe,
