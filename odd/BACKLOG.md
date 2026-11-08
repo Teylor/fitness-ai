@@ -32,14 +32,14 @@
 
 | # | Priority | Feature | State | Note |
 |---|-----------|---------|--------|------|
-| 4 | P1 | `services-training` | ✅ Approved | Exercise, Workout (sets, PRs, estimated 1RM) + tests. |
+| 4 | P1 | `services-training` | ✅ Approved | Exercise, Workout (services, sets, PRs, estimated 1RM) + 6 MCP tools (exercise & workout) + tests. |
 | 5 | P1 | `specs-completion` | ✅ Approved | Fill `requirements.md`, `api-spec.md` (cut off at line 21), `data-model.md` (empty). |
 | 6 | P1 | `hermes-e2e` | ✅ Approved | End-to-end verification with a real MCP client (Hermes). |
 | 7 | P2 | `db-robustness` | ✅ Approved | Rollback in `get_db()` (pending db-layer close). |
 | 8 | P3 | `seed-data` | ✅ Approved | Initial catalog of ingredients/exercises. |
 | 9 | P2 | `odd-merge-back` | ✅ Approved | When closing, reflux the met criteria to global `docs/specs/` (mimics OpenSpec's delta merge; closes the ODD's weak point). |
 
-> Recommended execution order: `translate-to-english` → 2/3 → 4 (dependencies). 5 can run in parallel.
+> Recommended execution order: `mcp-server` (12 nutrition & goal tools) → `services-training` (training services + 6 MCP tools) → `hermes-e2e`. `specs-completion` can run in parallel.
 
 ---
 

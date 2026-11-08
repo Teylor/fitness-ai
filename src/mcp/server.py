@@ -1,32 +1,45 @@
-"""Setup del MCP Server."""
+"""MCP server setup and tool registration."""
 
-from src.config import settings
+from mcp.server.mcpserver import MCPServer
+
+from src.mcp.tools.goal_tools import get_daily_goal, set_daily_goal
+from src.mcp.tools.ingredient_tools import (
+    create_ingredient,
+    delete_ingredient,
+    list_ingredients,
+    update_ingredient,
+)
+from src.mcp.tools.meal_tools import get_day_summary, register_meal
+from src.mcp.tools.recipe_tools import (
+    create_recipe,
+    delete_recipe,
+    list_recipes,
+    update_recipe,
+)
 
 
-def create_server():
-    """Crea y configura el MCP server con todas las tools registradas."""
-    from mcp.server import Server  # or whatever MCP Python SDK
+def create_server() -> MCPServer:
+    """Create and configure the MCPServer instance with active nutrition and goal tools."""
+    server = MCPServer("fitness-ai")
 
-    server = Server("fitness-ai")
+    # Ingredient tools (4)
+    server.add_tool(create_ingredient, name="create_ingredient")
+    server.add_tool(update_ingredient, name="update_ingredient")
+    server.add_tool(delete_ingredient, name="delete_ingredient")
+    server.add_tool(list_ingredients, name="list_ingredients")
 
-    # Registrar tools
-    from src.mcp.tools.meal_tools import register_meal, get_day_summary
-    from src.mcp.tools.ingredient_tools import (
-        create_ingredient, update_ingredient,
-        delete_ingredient, list_ingredients,
-    )
-    from src.mcp.tools.recipe_tools import (
-        create_recipe, update_recipe,
-        delete_recipe, list_recipes,
-    )
-    from src.mcp.tools.goal_tools import set_daily_goal, get_daily_goal
-    from src.mcp.tools.workout_tools import (
-        register_workout, get_last_workout,
-        get_personal_record, get_workouts_by_day,
-    )
-    from src.mcp.tools.exercise_tools import list_exercises, create_exercise
+    # Recipe tools (4)
+    server.add_tool(create_recipe, name="create_recipe")
+    server.add_tool(update_recipe, name="update_recipe")
+    server.add_tool(delete_recipe, name="delete_recipe")
+    server.add_tool(list_recipes, name="list_recipes")
 
-    # Aquí se registran cada tool con su schema
-    # (depende del SDK MCP usado)
+    # Meal tools (2)
+    server.add_tool(register_meal, name="register_meal")
+    server.add_tool(get_day_summary, name="get_day_summary")
+
+    # Goal tools (2)
+    server.add_tool(set_daily_goal, name="set_daily_goal")
+    server.add_tool(get_daily_goal, name="get_daily_goal")
 
     return server

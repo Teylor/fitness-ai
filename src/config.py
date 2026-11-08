@@ -13,7 +13,7 @@ class Settings:
     migrations_dir: str = "src/db/migrations"
 
     # MCP Server
-    mcp_host: str = "localhost"
+    mcp_host: str = "127.0.0.1"
     mcp_port: int = 9700
 
     # Paths

@@ -8,24 +8,26 @@
 ### Context
 
 - The MCP tools are the system's public API: Hermes Agent drives all nutrition, training, and goal interactions through them.
-- 18 tools are designed (SSD) and stubbed in `src/mcp/tools/` with signatures, but every body is `...`.
-- `src/mcp/server.py` is a placeholder: it imports `mcp.server.Server` (does not exist in the installed mcp 2.x) and imports the 18 stubs without registering any of them.
+- 18 tools were initially designed (SSD) across nutrition (10), goals (2), and training (6: 4 workout, 2 exercise).
+- The 4 nutrition and goal services (`IngredientService`, `RecipeService`, `MealService`, `GoalService`) are fully implemented and unit-tested.
+- Training services (`WorkoutService`, `ExerciseService`) are still stubs awaiting feature `services-training`. Therefore, training tools are deferred to `services-training` to form a cohesive vertical feature.
+- `src/mcp/server.py` is a placeholder: it imports `mcp.server.Server` (does not exist in the installed mcp 2.x) and imports stubs without registering any of them.
 - The installed SDK is `mcp` 2.x: `FastMCP` was renamed to `MCPServer` (`mcp.server.mcpserver`), and `server.run(transport=...)` selects `stdio` / `sse` / `streamable-http`.
-- The 6 services exist and are unit-tested (91 tests) but raise bare `ValueError` — no machine-readable error codes for the api-spec error format.
+- The services raise bare `ValueError` — machine-readable error codes are needed for the api-spec error format.
 
 ### Objective
 
-Implement the 18 MCP tools as thin wrappers over the existing services, wire them into an mcp 2.x `MCPServer` started by `python -m src.main` (streamable-http on `settings.mcp_host:mcp_port`), and return JSON with the api-spec error format, so Hermes can drive the whole system.
+Implement the 12 nutrition and goal MCP tools as thin wrappers over the existing domain services, wire them into an mcp 2.x `MCPServer` started by `python -m src.main` (streamable-http on `settings.mcp_host:mcp_port`), and return JSON with the api-spec error format. Training tools (workout & exercise) are scheduled for `services-training`.
 
 ### Acceptance criteria
 
-- [ ] C1: `create_server()` returns an mcp 2.x `MCPServer` with exactly 18 tools registered; `list_tools()` returns the 18 documented names.
+- [ ] C1: `create_server()` returns an mcp 2.x `MCPServer` with the 12 nutrition & goal tools registered; `list_tools()` returns the 12 documented names.
 - [ ] C2: Every tool calls the corresponding service (no SQL in the tool layer) and returns a JSON-friendly dict with `status: "ok"` plus payload.
 - [ ] C3: Errors are returned as `{"status": "error", "code": ..., "message": ...}` using codes from the typed exceptions; unexpected exceptions → `code: "internal"`.
 - [ ] C4: Idempotent creation: create tools do not crash on exact/fuzzy duplicates (service behavior) and return the existing entity.
-- [ ] C5: `python -m src.main` starts the server on `localhost:9700` (streamable-http) and an MCP client can list the 18 tools over HTTP.
-- [ ] C6: All 24 integration test stubs (6 files) are implemented and green.
-- [ ] C7: Full suite green; no Spanish residual in `src/mcp/**` and `tests/integration/test_mcp_*.py`.
+- [ ] C5: `python -m src.main` starts the server on `localhost:9700` (streamable-http) and an MCP client can list the 12 tools over HTTP.
+- [ ] C6: All 16 integration tests across the 4 nutrition/goal tool test files are implemented and green.
+- [ ] C7: Full suite green; no Spanish residual in implemented files (`src/mcp/tools/{ingredient,recipe,meal,goal}_tools.py`, `src/mcp/server.py`, `src/main.py`, and their tests).
 
 ## Clarify
 > Ambiguities and resolutions
@@ -36,6 +38,7 @@ Implement the 18 MCP tools as thin wrappers over the existing services, wire the
 - Q4: Success envelope is unspecified (api-spec cut off) → A: `{"status": "ok", ...payload}`, consistent with the stub docstrings.
 - Q5: `set_daily_goal` stub has no way to persist the *default* goal, but `GoalService` has `set_default` + fallback chain → A: add optional `default: bool = False`; `default=True` upserts the default goal.
 - Q6: Mode? → A: fast — TDD per task (RED first), full suite + residual scan before each commit. (User can upgrade to slow.)
+- Q7: Workout and Exercise tools deferred? → A: Yes. `WorkoutService` and `ExerciseService` are stubs awaiting the `services-training` backlog feature. Implementing their MCP wrappers now without real services would violate layer dependencies. The 6 training tools are moved to `services-training` as a vertical slice (service + MCP tools + tests).
 
 ## Plan
 > Implementation plan
@@ -43,10 +46,11 @@ Implement the 18 MCP tools as thin wrappers over the existing services, wire the
 - Mode: fast — TDD per task (RED first), full suite + residual scan before each commit.
 - D1: Error layer — new `src/utils/errors.py`: `ToolError(ValueError)` with `.code`; subclasses `NotFoundError` (`not_found`), `DuplicateError` (`duplicate`), `ValidationError` (`invalid_input`), `ConflictError` (`conflict`). Subclassing `ValueError` keeps the existing 91 unit tests green.
 - D2: The 6 services replace `raise ValueError(...)` with the typed errors (same messages).
-- D3: Tool modules keep plain sync functions (tests call them directly with the `db` fixture); `server.py` registers each with explicit `name=` on `MCPServer`.
+- D3: Tool modules keep plain sync functions (tests call them directly with the `db` fixture); `server.py` registers the 12 implemented nutrition/goal tools with explicit `name=` on `MCPServer`.
 - D4: Each wrapper validates input (unit/date/item_type) → calls the service → returns `{"status": "ok", ...}`; catches `ToolError` → error envelope; catches `Exception` → `code: "internal"`.
 - D5: `main.py`: `create_server().run(transport="streamable-http", host=settings.mcp_host, port=settings.mcp_port)`.
-- D6: No SDD escalation — Substantial (~25 files) but no new public API (tools already designed in SSD) and no migration.
+- D6: Training tools (workout & exercise) deferred to `services-training` feature.
+- D7: No SDD escalation — Substantial but no new public API and no migration.
 
 ## Tasks
 > Check the box as each task is completed.
@@ -57,10 +61,8 @@ Implement the 18 MCP tools as thin wrappers over the existing services, wire the
 - [x] T4: Recipe tools (4) → files: src/mcp/tools/recipe_tools.py, tests/integration/test_mcp_recipe_tools.py → verify: pytest tests/integration/test_mcp_recipe_tools.py -v → PASSED (5 tests)
 - [x] T5: Meal tools (2, incl. provisional item flow) → files: src/mcp/tools/meal_tools.py, tests/integration/test_mcp_meal_tools.py → verify: pytest tests/integration/test_mcp_meal_tools.py -v → PASSED (3 tests)
 - [x] T6: Goal tools (2, incl. `default` flag) → files: src/mcp/tools/goal_tools.py, tests/integration/test_mcp_goal_tools.py → verify: pytest tests/integration/test_mcp_goal_tools.py -v → PASSED (3 tests)
-- [ ] T7: Workout tools (4) → files: src/mcp/tools/workout_tools.py, tests/integration/test_mcp_workout_tools.py → verify: 5 stub tests green
-- [ ] T8: Exercise tools (2) → files: src/mcp/tools/exercise_tools.py, tests/integration/test_mcp_exercise_tools.py → verify: 3 stub tests green
-- [ ] T9: Server wiring — `create_server()` (mcp 2.x `MCPServer`), 18 registrations, `main.py` transport → files: src/mcp/server.py, src/main.py, tests/integration/test_mcp_server.py → verify: `list_tools()` == 18 names; HTTP smoke (ephemeral port, list over HTTP)
-- [ ] T10: Full suite green + residual scan (no Spanish in `src/mcp/**`, `tests/integration/test_mcp_*.py`) → files: (fixes only) → verify: `pytest tests -q` (91 + 24 + new)
+- [x] T7: Server wiring — `create_server()` (mcp 2.x `MCPServer`), 12 registrations (nutrition & goals), `main.py` transport → files: src/mcp/server.py, src/main.py, tests/integration/test_mcp_server.py → verify: pytest tests/integration/test_mcp_server.py -v → PASSED (6 tests)
+- [ ] T8: Full suite green + residual scan (no Spanish in `src/mcp/**` implemented files, `tests/integration/test_mcp_{ingredient,recipe,meal,goal,server}_tools.py`) → files: (fixes only) → verify: `pytest tests -q` (107 tests)
 
 ## Verification
 > Spec contrast (filled at close)
