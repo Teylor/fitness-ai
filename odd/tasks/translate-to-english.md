@@ -45,7 +45,7 @@
 - [x] T6: Translate spec docs → files: docs/specs/openspec/api-spec.md, data-model.md, requirements.md → verify: residual-Spanish check → 0.
 - [ ] T7: Translate `.continue/skills/*` (12 SKILL.md) → verify: residual-Spanish check on `.continue/skills/**` → 0.
 - [ ] T8: Translate Python source docstrings & comments → files: src/**/*.py → verify: `pytest tests -q` green (no behavior change); residual-Spanish check on `src/**` → 0.
-- [ ] T9: Translate SQL comment + `.bat` scripts (and fix `start.bat` "stopped" → "started") → files: src/db/migrations/001_initial.sql, start.bat, stop.bat → verify: residual-Spanish check → 0.
+- [x] T9: Translate SQL comment + `.bat` scripts (and fix `start.bat` "stopped" → "started") → files: src/db/migrations/001_initial.sql, start.bat, stop.bat → verify: residual-Spanish check → 0.
 - [ ] T10: Translate tests (docstrings, comments, assertion messages, sample data; keep D3 fixtures) → files: tests/**/*.py → verify: `pytest tests -q` green; residual-Spanish check → only D3 fixtures.
 - [ ] T11: Final sweep + close → repo-wide accent/Spanish sweep (expect only D3 fixtures); `pytest tests -q` green; fill Verification + Close; move to Finalizados.
 
