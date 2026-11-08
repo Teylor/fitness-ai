@@ -169,6 +169,7 @@ specs/
 7. **Backlog como cola única.** El agente consulta `odd/BACKLOG.md` antes de empezar y actualiza el estado del item al arrancar (➡️ En curso) y al cerrar (🏁 Finalizados). No se arranca una feature sin item aprobado.
 8. **Branching.** Each feature is developed on its own branch `feat/<feature-name>`, created when the feature starts. A fix to a feature is made on a `fix/<feature-name>` branch.
 9. **Pre-commit gate.** Antes de cada commit (tarea, cierre o archivado) el agente presenta el report pre-commit (cambios hechos, tests si aplican, mensaje sugerido) y se detiene: el usuario hace el commit, pide cambios o dice que continúe. El agente no ejecuta `git commit` por su cuenta.
+10. **Language (ADR-002).** All generated project text is written in English: docs, specs, ODD, ADRs, READMEs, code comments/docstrings, test docstrings/assertion messages, SQL/script comments, and commit messages. Spanish is used only in the conversation with the user. The accented normalization fixtures (`Ñandú`, `Café`) are the documented exception.
 
 ---
 

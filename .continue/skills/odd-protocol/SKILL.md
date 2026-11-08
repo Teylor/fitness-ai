@@ -22,3 +22,4 @@ Siempre. Es el primer skill que se invoca ante cualquier petición de cambio.
 - No hay commit sin report pre-commit (cambios, tests si aplican, mensaje sugerido) y decisión del usuario.
 - El agente no ejecuta `git commit` por su cuenta.
 - Si `classify` escala a SDD → invocar rama SDD antes de `implement-task`.
+- All generated project text (docs, ODD, comments, docstrings, tests, commit messages) is written in English (ADR-002). Spanish only in the conversation with the user.

@@ -35,6 +35,7 @@ Después de `track-feature` (checklist aprobado por usuario).
 - Commit por tarea (no agrupar commits), ejecutado por el usuario tras el report pre-commit.
 - El agente no ejecuta `git commit` por su cuenta.
 - No avanzar a la siguiente tarea sin la decisión del usuario tras el report.
+- All new code text (docstrings, comments, test descriptions/assertion messages) is written in English (ADR-002).
 
 ## Formato de evidencia
 
