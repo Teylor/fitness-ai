@@ -9,17 +9,18 @@ from src.db.models import (
     RecipeItem as RecipeItemModel,
 )
 from src.models.recipe import Recipe, RecipeItem
+from src.utils.errors import DuplicateError, NotFoundError
 from src.utils.fuzzy import fuzzy_match, normalize
 from src.utils.macros import calc_recipe_macros
 
 
 class RecipeService:
-    """CRUD + cálculo de macros para recetas."""
+    """CRUD + macro calculation for recipes."""
 
     def create(self, recipe: Recipe, items: Optional[List[RecipeItem]] = None) -> Recipe:
-        """Crea receta. Si tiene items → calcula macros. Si no → usa precio directo."""
+        """Create recipe. If items are provided, calculate macros; otherwise direct price/macros."""
         if self._name_exists(recipe.name):
-            raise ValueError(f"duplicate recipe '{recipe.name}'")
+            raise DuplicateError(f"duplicate recipe '{recipe.name}'")
         with RecipeModel._meta.database.atomic():
             row = RecipeModel.create(
                 name=recipe.name,
@@ -69,7 +70,7 @@ class RecipeService:
         return None if row is None else self._to_domain(row)
 
     def find_by_name(self, name: str) -> Optional[Recipe]:
-        """Búsqueda fuzzy por nombre."""
+        """Fuzzy search by name."""
         rows = list(RecipeModel.select())
         row = next((r for r in rows if normalize(r.name) == normalize(name)), None)
         if row is None:
@@ -81,11 +82,11 @@ class RecipeService:
     def update(self, recipe_id: int, **fields) -> Recipe:
         row = RecipeModel.get_or_none(RecipeModel.id == recipe_id)
         if row is None:
-            raise ValueError(f"recipe {recipe_id} not found")
+            raise NotFoundError(f"recipe {recipe_id} not found")
         new_name = fields.get("name", row.name)
         if normalize(new_name) != normalize(row.name):
             if self._name_exists(new_name, exclude_id=recipe_id):
-                raise ValueError(f"duplicate recipe '{new_name}'")
+                raise DuplicateError(f"duplicate recipe '{new_name}'")
         items = fields.pop("items", None)
         for field, value in fields.items():
             setattr(row, field, value)
@@ -106,10 +107,10 @@ class RecipeService:
         return self._to_domain(row)
 
     def delete(self, recipe_id: int) -> int:
-        """Borra receta, sus items y sus meal entries. Devuelve nº de meals borradas."""
+        """Delete recipe, its items and meal entries. Returns count of deleted meals."""
         row = RecipeModel.get_or_none(RecipeModel.id == recipe_id)
         if row is None:
-            raise ValueError(f"recipe {recipe_id} not found")
+            raise NotFoundError(f"recipe {recipe_id} not found")
         with RecipeModel._meta.database.atomic():
             deleted = MealEntry.delete().where(
                 (MealEntry.item_type == "recipe") & (MealEntry.item_id == recipe_id)
@@ -139,10 +140,10 @@ class RecipeService:
         return [self._to_domain(r) for r in rows[offset : offset + limit]]
 
     def calculate_macros(self, recipe_id: int) -> dict:
-        """Calcula kcal, P, C, G, price sumando recipe_items × ingredients."""
+        """Calculate kcal, protein, carbs, fat, price by summing recipe_items x ingredients."""
         row = RecipeModel.get_or_none(RecipeModel.id == recipe_id)
         if row is None:
-            raise ValueError(f"recipe {recipe_id} not found")
+            raise NotFoundError(f"recipe {recipe_id} not found")
         items = list(RecipeItemModel.select().where(
             RecipeItemModel.recipe == recipe_id
         ))

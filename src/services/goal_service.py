@@ -1,22 +1,23 @@
-"""Servicio de objetivos diarios."""
+"""Daily Goal domain service."""
 
 from datetime import datetime
 
 from src.db.models import DailyGoal as DailyGoalModel
 from src.models.daily_goal import DailyGoal
+from src.utils.errors import NotFoundError, ValidationError
 
 
 class GoalService:
-    """Gestión de objetivos diarios."""
+    """Daily goal management and fallback inheritance."""
 
     @staticmethod
     def _parse_date(value: str) -> datetime:
         try:
             parsed = datetime.strptime(value, "%d-%m-%Y")
         except (TypeError, ValueError) as exc:
-            raise ValueError(f"invalid date '{value}' (expected DD-MM-YYYY)") from exc
+            raise ValidationError(f"invalid date '{value}' (expected DD-MM-YYYY)") from exc
         if parsed.strftime("%d-%m-%Y") != value:
-            raise ValueError(f"invalid date '{value}' (expected DD-MM-YYYY)")
+            raise ValidationError(f"invalid date '{value}' (expected DD-MM-YYYY)")
         return parsed
 
     @staticmethod
@@ -56,11 +57,11 @@ class GoalService:
         return self._to_domain(row)
 
     def set_goal(self, goal: DailyGoal) -> DailyGoal:
-        """Crea o actualiza el goal de un día."""
+        """Create or update a single date goal."""
         return self._save(goal, is_default=False)
 
     def get_goal(self, date: str) -> DailyGoal:
-        """Obtiene goal del día. Si no existe → hereda del anterior o default."""
+        """Get goal for a given date with fallback to closest past date or default."""
         target = self._parse_date(date)
         row = DailyGoalModel.get_or_none(DailyGoalModel.date == date)
         if row is None:
@@ -76,9 +77,9 @@ class GoalService:
             else:
                 row = DailyGoalModel.get_or_none(DailyGoalModel.is_default)
         if row is None:
-            raise ValueError(f"no goal found for '{date}'")
+            raise NotFoundError(f"no goal found for '{date}'")
         return self._to_domain(row)
 
     def set_default(self, goal: DailyGoal) -> DailyGoal:
-        """Configura el goal global por defecto."""
+        """Set or update the global default goal."""
         return self._save(goal, is_default=True)

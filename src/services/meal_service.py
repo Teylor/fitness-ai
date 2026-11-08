@@ -1,4 +1,4 @@
-"""Servicio de registro de comidas."""
+"""Meal registration domain service."""
 
 from datetime import datetime
 
@@ -9,6 +9,7 @@ from src.db.models import (
 )
 from src.models.meal_entry import MealEntry
 from src.services.goal_service import GoalService
+from src.utils.errors import NotFoundError, ValidationError
 from src.utils.macros import calc_ingredient_macros
 
 ITEM_TYPES = ("ingredient", "recipe")
@@ -16,16 +17,16 @@ MACRO_KEYS = ("kcal", "protein", "carbs", "fat")
 
 
 class MealService:
-    """Registro y consulta de ingesta diaria."""
+    """Daily food intake registration and queries."""
 
     @staticmethod
     def _parse_date(value: str) -> datetime:
         try:
             parsed = datetime.strptime(value, "%d-%m-%Y")
         except (TypeError, ValueError) as exc:
-            raise ValueError(f"invalid date '{value}' (expected DD-MM-YYYY)") from exc
+            raise ValidationError(f"invalid date '{value}' (expected DD-MM-YYYY)") from exc
         if parsed.strftime("%d-%m-%Y") != value:
-            raise ValueError(f"invalid date '{value}' (expected DD-MM-YYYY)")
+            raise ValidationError(f"invalid date '{value}' (expected DD-MM-YYYY)")
         return parsed
 
     @staticmethod
@@ -42,7 +43,7 @@ class MealService:
 
     @staticmethod
     def _ensure_item(item_type: str, item_id: int, unit: str):
-        """Crea provisional el item si no existe."""
+        """Create item as provisional if it does not exist."""
         if item_type == "ingredient":
             row = IngredientModel.get_or_none(IngredientModel.id == item_id)
             if row is None:
@@ -59,7 +60,7 @@ class MealService:
         return row
 
     def _entry_macros(self, row) -> dict:
-        """Macros y precio de una entrada: item × quantity (receta = multiplicador)."""
+        """Calculate macros and price for an entry (recipe = multiplier)."""
         if row.item_type == "ingredient":
             item = IngredientModel.get_by_id(row.item_id)
             if item is None:
@@ -76,10 +77,10 @@ class MealService:
         } | {"price": round((item.price or 0.0) * row.quantity, 2)}
 
     def register(self, entry: MealEntry) -> MealEntry:
-        """Registra una ingesta. Crea provisional si no existe el item."""
+        """Register a meal entry. Creates provisional item if missing."""
         self._parse_date(entry.date)
         if entry.item_type not in ITEM_TYPES:
-            raise ValueError(f"invalid item_type '{entry.item_type}'")
+            raise ValidationError(f"invalid item_type '{entry.item_type}'")
         with MealEntryModel._meta.database.atomic():
             self._ensure_item(entry.item_type, entry.item_id, entry.unit)
             row = MealEntryModel.create(
@@ -92,7 +93,7 @@ class MealService:
         return self._to_domain(row)
 
     def get_day_entries(self, date: str) -> list:
-        """Devuelve todas las ingesta de un día con macros calculados."""
+        """Return all entries for a given date with computed macros."""
         self._parse_date(date)
         rows = MealEntryModel.select().where(MealEntryModel.date == date)
         rows = rows.order_by(MealEntryModel.id)
@@ -104,7 +105,7 @@ class MealService:
         return meals
 
     def get_day_summary(self, date: str) -> dict:
-        """Resumen: consumed, goal, remaining, spend, meals."""
+        """Day summary: consumed, goal, remaining, spend, and individual meals."""
         meals = self.get_day_entries(date)
         consumed = {
             key: round(sum(m[key] for m in meals), 2) for key in MACRO_KEYS
@@ -128,22 +129,22 @@ class MealService:
         }
 
     def update(self, entry_id: int, **fields) -> MealEntry:
-        """Actualiza campos de una ingesta (date, item_type, item_id, quantity, unit)."""
+        """Update fields of a meal entry (date, item_type, item_id, quantity, unit)."""
         row = MealEntryModel.get_or_none(MealEntryModel.id == entry_id)
         if row is None:
-            raise ValueError(f"meal entry {entry_id} not found")
+            raise NotFoundError(f"meal entry {entry_id} not found")
         if "date" in fields:
             self._parse_date(fields["date"])
         if "item_type" in fields and fields["item_type"] not in ITEM_TYPES:
-            raise ValueError(f"invalid item_type '{fields['item_type']}'")
+            raise ValidationError(f"invalid item_type '{fields['item_type']}'")
         for field, value in fields.items():
             setattr(row, field, value)
         row.save()
         return self._to_domain(row)
 
     def delete(self, entry_id: int) -> None:
-        """Borra una ingesta."""
+        """Delete a meal entry."""
         row = MealEntryModel.get_or_none(MealEntryModel.id == entry_id)
         if row is None:
-            raise ValueError(f"meal entry {entry_id} not found")
+            raise NotFoundError(f"meal entry {entry_id} not found")
         row.delete_instance()

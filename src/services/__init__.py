@@ -1,1 +1,1 @@
-"""Capa de servicios (lógica de negocio)."""
+"""Domain service layer (business logic)."""

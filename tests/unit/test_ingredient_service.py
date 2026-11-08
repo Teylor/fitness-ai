@@ -4,6 +4,7 @@ import pytest
 
 from src.db.models import MealEntry, Recipe, RecipeItem
 from src.models.ingredient import Ingredient
+from src.utils.errors import ConflictError, DuplicateError, NotFoundError, ValidationError
 
 
 def test_create_ingredient(db, ingredient_service):
@@ -30,17 +31,21 @@ def test_create_ingredient(db, ingredient_service):
 
 def test_create_ingredient_duplicate_raises(db, ingredient_service):
     ingredient_service.create(Ingredient(name="Chicken", unit="gr"))
-    with pytest.raises(ValueError):
+    with pytest.raises(DuplicateError) as exc_info:
         ingredient_service.create(Ingredient(name="Chicken", unit="gr"))
+    assert exc_info.value.code == "duplicate"
+    assert isinstance(exc_info.value, ValueError)
 
 
 def test_create_ingredient_duplicate_case_accent_insensitive(db, ingredient_service):
     ingredient_service.create(Ingredient(name="Aguacate", unit="gr"))
-    with pytest.raises(ValueError):
+    with pytest.raises(DuplicateError) as exc_info:
         ingredient_service.create(Ingredient(name="AGUACATE", unit="gr"))
+    assert exc_info.value.code == "duplicate"
     ingredient_service.create(Ingredient(name="Cafe", unit="u"))
-    with pytest.raises(ValueError):
+    with pytest.raises(DuplicateError) as exc_info:
         ingredient_service.create(Ingredient(name="CAFÉ", unit="u"))
+    assert exc_info.value.code == "duplicate"
 
 
 def test_create_ingredient_same_name_different_unit_ok(db, ingredient_service):
@@ -50,8 +55,10 @@ def test_create_ingredient_same_name_different_unit_ok(db, ingredient_service):
 
 
 def test_create_ingredient_invalid_unit_raises(db, ingredient_service):
-    with pytest.raises(ValueError):
+    with pytest.raises(ValidationError) as exc_info:
         ingredient_service.create(Ingredient(name="X", unit="kg"))
+    assert exc_info.value.code == "invalid_input"
+    assert isinstance(exc_info.value, ValueError)
 
 
 def test_get_by_id_not_found_returns_none(db, ingredient_service):
@@ -88,15 +95,18 @@ def test_update_ingredient(db, ingredient_service):
 
 
 def test_update_ingredient_not_found_raises(db, ingredient_service):
-    with pytest.raises(ValueError):
+    with pytest.raises(NotFoundError) as exc_info:
         ingredient_service.update(999, name="X")
+    assert exc_info.value.code == "not_found"
+    assert isinstance(exc_info.value, ValueError)
 
 
 def test_update_ingredient_duplicate_raises(db, ingredient_service):
     a = ingredient_service.create(Ingredient(name="Eggs", unit="u"))
     b = ingredient_service.create(Ingredient(name="Milk", unit="u"))
-    with pytest.raises(ValueError):
+    with pytest.raises(DuplicateError) as exc_info:
         ingredient_service.update(b.id, name="Eggs")
+    assert exc_info.value.code == "duplicate"
 
 
 def test_delete_ingredient_cascades_meals(db, ingredient_service):
@@ -115,16 +125,18 @@ def test_delete_ingredient_cascades_meals(db, ingredient_service):
 
 
 def test_delete_ingredient_not_found_raises(db, ingredient_service):
-    with pytest.raises(ValueError):
+    with pytest.raises(NotFoundError) as exc_info:
         ingredient_service.delete(999)
+    assert exc_info.value.code == "not_found"
 
 
 def test_delete_ingredient_used_in_recipe_raises(db, ingredient_service):
     ing = ingredient_service.create(Ingredient(name="Flour", unit="gr"))
     recipe = Recipe.create(name="Bread")
     RecipeItem.create(recipe=recipe, ingredient=ing.id, quantity=500, unit="gr")
-    with pytest.raises(ValueError):
+    with pytest.raises(ConflictError) as exc_info:
         ingredient_service.delete(ing.id)
+    assert exc_info.value.code == "conflict"
 
 
 def test_list_ingredients_search(db, ingredient_service):

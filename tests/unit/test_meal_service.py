@@ -11,6 +11,7 @@ from src.models.daily_goal import DailyGoal
 from src.models.ingredient import Ingredient
 from src.models.meal_entry import MealEntry
 from src.models.recipe import Recipe
+from src.utils.errors import NotFoundError, ValidationError
 
 
 def make_entry(item_type, item_id, quantity, date, unit="gr"):
@@ -135,8 +136,9 @@ def test_delete_meal_entry(db, meal_service, ingredient_service):
     meal_service.delete(entry.id)
 
     assert MealEntryModel.select().count() == 0
-    with pytest.raises(ValueError, match="not found"):
+    with pytest.raises(NotFoundError) as exc_info:
         meal_service.delete(entry.id)
+    assert exc_info.value.code == "not_found"
 
 
 def test_update_meal_entry(db, meal_service, ingredient_service):
@@ -152,5 +154,6 @@ def test_update_meal_entry(db, meal_service, ingredient_service):
     assert updated.id == entry.id
     assert updated.quantity == 350
     assert MealEntryModel.get_by_id(entry.id).quantity == 350
-    with pytest.raises(ValueError, match="not found"):
+    with pytest.raises(NotFoundError) as exc_info:
         meal_service.update(999, quantity=1)
+    assert exc_info.value.code == "not_found"

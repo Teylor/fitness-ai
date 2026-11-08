@@ -4,20 +4,21 @@ from typing import List, Optional
 
 from src.db.models import Ingredient as IngredientModel, MealEntry, RecipeItem
 from src.models.ingredient import Ingredient
+from src.utils.errors import ConflictError, DuplicateError, NotFoundError, ValidationError
 from src.utils.fuzzy import fuzzy_match, normalize
 
 VALID_UNITS = ("gr", "ml", "u")
 
 
 class IngredientService:
-    """CRUD de ingredientes (src/models/ingredient.py) sobre la capa DB."""
+    """Ingredient CRUD over the database layer."""
 
     def create(self, ingredient: Ingredient) -> Ingredient:
-        """Crea un ingrediente. ValueError si (name, unit) ya existe (normalizado)."""
+        """Create an ingredient. Raises ValidationError on invalid unit, DuplicateError if (name, unit) exists."""
         if ingredient.unit not in VALID_UNITS:
-            raise ValueError(f"invalid unit '{ingredient.unit}' (expected gr/ml/u)")
+            raise ValidationError(f"invalid unit '{ingredient.unit}' (expected gr/ml/u)")
         if self._normalized_exists(ingredient.name, ingredient.unit):
-            raise ValueError(f"duplicate ingredient '{ingredient.name}' ({ingredient.unit})")
+            raise DuplicateError(f"duplicate ingredient '{ingredient.name}' ({ingredient.unit})")
         row = IngredientModel.create(
             name=ingredient.name,
             unit=ingredient.unit,
@@ -31,12 +32,12 @@ class IngredientService:
         return self._to_domain(row)
 
     def get_by_id(self, ingredient_id: int) -> Optional[Ingredient]:
-        """Devuelve el ingrediente o None si no existe."""
+        """Return the ingredient or None if it does not exist."""
         row = IngredientModel.get_or_none(IngredientModel.id == ingredient_id)
         return None if row is None else self._to_domain(row)
 
     def find_by_name(self, name: str) -> Optional[Ingredient]:
-        """Busca por nombre: primero exacto (normalizado), luego fuzzy."""
+        """Find by name: exact (normalized) match first, then fuzzy."""
         q = normalize(name)
         row = None
         for candidate in IngredientModel.select():
@@ -50,32 +51,32 @@ class IngredientService:
         return None if row is None else self._to_domain(row)
 
     def update(self, ingredient_id: int, **fields) -> Ingredient:
-        """Actualiza campos. ValueError si no existe o si (name, unit) duplica otro."""
+        """Update fields. Raises NotFoundError, ValidationError on invalid unit, or DuplicateError."""
         row = IngredientModel.get_or_none(IngredientModel.id == ingredient_id)
         if row is None:
-            raise ValueError(f"ingredient {ingredient_id} not found")
+            raise NotFoundError(f"ingredient {ingredient_id} not found")
         new_name = fields.get("name", row.name)
         new_unit = fields.get("unit", row.unit)
         if new_unit not in VALID_UNITS:
-            raise ValueError(f"invalid unit '{new_unit}' (expected gr/ml/u)")
+            raise ValidationError(f"invalid unit '{new_unit}' (expected gr/ml/u)")
         if self._normalized_exists(new_name, new_unit, exclude_id=ingredient_id):
-            raise ValueError(f"duplicate ingredient '{new_name}' ({new_unit})")
+            raise DuplicateError(f"duplicate ingredient '{new_name}' ({new_unit})")
         for field, value in fields.items():
             setattr(row, field, value)
         row.save()
         return self._to_domain(row)
 
     def delete(self, ingredient_id: int) -> int:
-        """Borra el ingrediente y sus meal entries; devuelve el nº de entries borradas.
+        """Delete ingredient and its meal entries; returns count of deleted entries.
 
-        ValueError si no existe o si lo usa alguna receta (RESTRICT).
+        Raises NotFoundError if not found, or ConflictError if used in a recipe (RESTRICT).
         """
         row = IngredientModel.get_or_none(IngredientModel.id == ingredient_id)
         if row is None:
-            raise ValueError(f"ingredient {ingredient_id} not found")
+            raise NotFoundError(f"ingredient {ingredient_id} not found")
         in_use = RecipeItem.select().where(RecipeItem.ingredient == ingredient_id).count()
         if in_use:
-            raise ValueError(
+            raise ConflictError(
                 f"ingredient '{row.name}' is used by {in_use} recipe(s); delete them first"
             )
         with IngredientModel._meta.database.atomic():
@@ -92,7 +93,7 @@ class IngredientService:
         limit: int = 50,
         offset: int = 0,
     ) -> List[Ingredient]:
-        """Lista ingredientes con filtros opcionales y paginación."""
+        """List ingredients with optional search filter and pagination."""
         rows = list(IngredientModel.select().order_by(IngredientModel.id))
         if search:
             q = normalize(search)
