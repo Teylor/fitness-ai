@@ -1,10 +1,10 @@
 @echo off
 echo === Fitness AI - Stopping ===
 
-REM Matar proceso python que corre el MCP server
+REM Kill process python that runs the MCP server
 taskkill /F /FI "WINDOWTITLE eq Fitness AI*" 2>nul
 
-REM Alternativa: buscar por puerto
+REM Alternative: search by port
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":9700" ^| findstr "LISTENING"') do (
     taskkill /F /PID %%a 2>nul
 )
