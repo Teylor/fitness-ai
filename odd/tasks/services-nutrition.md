@@ -14,7 +14,7 @@
 - [ ] C5: Meals can be registered against an ingredient or a recipe with quantity and date; an unknown item is auto-created as provisional.
 - [ ] C6: A daily summary reports consumed macros, spend, goal, remaining, and the day's entries with computed macros.
 - [ ] C7: Daily goals can be set per date (upsert) and a default goal can be set; get falls back to the closest past goal, then to the default.
-- [ ] C8: All 26 unit tests across the 4 nutrition service test files are green.
+- [ ] C8: All 39 unit tests across the 4 nutrition service test files are green.
 
 ## Clarify
 > Ambiguities resolved
@@ -35,7 +35,7 @@
 ## Plan
 > Technical decisions
 
-- **Classification**: Substantial — 4 service modules + 26 tests; no new public API, no migration → no SDD escalation.
+- **Classification**: Substantial — 4 service modules + 39 tests; no new public API, no migration → no SDD escalation.
 - D1: Stub signatures are the public API (dataclasses in/out); kept unchanged.
 - D2: Internal `_to_peewee`/`_to_dto` mapping helpers per service module; no shared new layer.
 - D3: Reuse `utils/fuzzy.py` (`fuzzy_match`, `normalize`) and `utils/macros.py` (`calc_ingredient_macros`, `calc_recipe_macros`); no duplicated math.
@@ -52,10 +52,22 @@
 - [x] T2: Implement `RecipeService` (create compound/opaque, calculate_macros, update replaces items, delete cascades, list type filter) → files: src/services/recipe_service.py, tests/unit/test_recipe_service.py → verify: `pytest tests/unit/test_recipe_service.py -v` (6 pass)
 - [x] T3: Implement `GoalService` (set_goal upsert, set_default, get_goal fallback chain) → files: src/services/goal_service.py, tests/unit/test_goal_service.py → verify: `pytest tests/unit/test_goal_service.py -v` (9 pass)
 - [x] T4: Implement `MealService` (register with provisional, get_day_entries, get_day_summary, update, delete) → files: src/services/meal_service.py, tests/unit/test_meal_service.py → verify: `pytest tests/unit/test_meal_service.py -v` (7 pass)
-- [ ] T5: Full suite green + fix stale `YYYY-MM-DD` comments in dataclasses → files: src/models/meal_entry.py (and any other stale comments) → verify: `pytest tests -q`
+- [x] T5: Full suite green + fix stale `YYYY-MM-DD` comments in nutrition dataclasses → files: src/models/meal_entry.py, src/models/daily_goal.py → verify: `pytest tests -q` (91 passed; 39 nutrition service tests collected)
 
 ## Verification
 > Spec contrast (filled at close)
 
+- [x] C1: ✅ Ingredient CRUD, exact/fuzzy search, duplicates, filtering, and pagination covered by 17 passing ingredient service tests.
+- [x] C2: ✅ Ingredient deletion cascades meal entries and rejects ingredients used by recipes; covered by ingredient service tests.
+- [x] C3: ✅ Compound/opaque recipe creation and item replacement with macro recalculation covered by 6 passing recipe service tests.
+- [x] C4: ✅ Recipe deletion cascades items and meal entries; covered by recipe service tests.
+- [x] C5: ✅ Meal registration for ingredients/recipes and provisional item creation covered by meal service tests.
+- [x] C6: ✅ Daily summary, macros, spend, goal, remaining, and entries covered by meal service tests.
+- [x] C7: ✅ Goal upsert, default, and fallback chain covered by 9 passing goal service tests.
+- [x] C8: ✅ All 39 nutrition service tests collected; full suite: `pytest tests -q` → 91 passed.
+
 ## Close
 > Close (filled at close)
+
+- Date: 2026-11
+- Next step: `mcp-server`, the next approved feature in the current BACKLOG order.
