@@ -42,7 +42,7 @@
 - [x] T3: Translate README group → files: README.md, config/README.md, specs/README.md, src/README.md, docs/architecture/README.md, docs/design/README.md, docs/specs/README.md → verify: residual-Spanish check on each → 0.
 - [x] T4: Translate architecture docs → files: docs/architecture/ssd-overview.md, ssd-components.md, ssd-decisions.md → verify: residual-Spanish check → 0.
 - [x] T5: Translate design docs → files: docs/design/odd-workflow.md, odd-models.md, odd-interactions.md → verify: residual-Spanish check → 0.
-- [ ] T6: Translate spec docs → files: docs/specs/openspec/api-spec.md, data-model.md, requirements.md → verify: residual-Spanish check → 0.
+- [x] T6: Translate spec docs → files: docs/specs/openspec/api-spec.md, data-model.md, requirements.md → verify: residual-Spanish check → 0.
 - [ ] T7: Translate `.continue/skills/*` (12 SKILL.md) → verify: residual-Spanish check on `.continue/skills/**` → 0.
 - [ ] T8: Translate Python source docstrings & comments → files: src/**/*.py → verify: `pytest tests -q` green (no behavior change); residual-Spanish check on `src/**` → 0.
 - [ ] T9: Translate SQL comment + `.bat` scripts (and fix `start.bat` "stopped" → "started") → files: src/db/migrations/001_initial.sql, start.bat, stop.bat → verify: residual-Spanish check → 0.
