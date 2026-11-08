@@ -56,7 +56,7 @@ Implement the 18 MCP tools as thin wrappers over the existing services, wire the
 - [x] T3: Ingredient tools (4) → files: src/mcp/tools/ingredient_tools.py, tests/integration/test_mcp_ingredient_tools.py → verify: pytest tests/integration/test_mcp_ingredient_tools.py -v → PASSED (5 tests)
 - [x] T4: Recipe tools (4) → files: src/mcp/tools/recipe_tools.py, tests/integration/test_mcp_recipe_tools.py → verify: pytest tests/integration/test_mcp_recipe_tools.py -v → PASSED (5 tests)
 - [x] T5: Meal tools (2, incl. provisional item flow) → files: src/mcp/tools/meal_tools.py, tests/integration/test_mcp_meal_tools.py → verify: pytest tests/integration/test_mcp_meal_tools.py -v → PASSED (3 tests)
-- [ ] T6: Goal tools (2, incl. `default` flag) → files: src/mcp/tools/goal_tools.py, tests/integration/test_mcp_goal_tools.py → verify: 3 stub tests green
+- [x] T6: Goal tools (2, incl. `default` flag) → files: src/mcp/tools/goal_tools.py, tests/integration/test_mcp_goal_tools.py → verify: pytest tests/integration/test_mcp_goal_tools.py -v → PASSED (3 tests)
 - [ ] T7: Workout tools (4) → files: src/mcp/tools/workout_tools.py, tests/integration/test_mcp_workout_tools.py → verify: 5 stub tests green
 - [ ] T8: Exercise tools (2) → files: src/mcp/tools/exercise_tools.py, tests/integration/test_mcp_exercise_tools.py → verify: 3 stub tests green
 - [ ] T9: Server wiring — `create_server()` (mcp 2.x `MCPServer`), 18 registrations, `main.py` transport → files: src/mcp/server.py, src/main.py, tests/integration/test_mcp_server.py → verify: `list_tools()` == 18 names; HTTP smoke (ephemeral port, list over HTTP)
