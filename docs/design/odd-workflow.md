@@ -170,6 +170,7 @@ specs/
 8. **Branching.** Each feature is developed on its own branch `feat/<feature-name>`, created when the feature starts. A fix to a feature is made on a `fix/<feature-name>` branch.
 9. **Pre-commit gate.** Antes de cada commit (tarea, cierre o archivado) el agente presenta el report pre-commit (cambios hechos, tests si aplican, mensaje sugerido) y se detiene: el usuario hace el commit, pide cambios o dice que continúe. El agente no ejecuta `git commit` por su cuenta.
 10. **Language (ADR-002).** All generated project text is written in English: docs, specs, ODD, ADRs, READMEs, code comments/docstrings, test docstrings/assertion messages, SQL/script comments, and commit messages. Spanish is used only in the conversation with the user. The accented normalization fixtures (`Ñandú`, `Café`) are the documented exception.
+11. **Execution modes (fast/slow).** Every feature runs in one of two modes, decided after `classify` (default: fast). **Fast**: feature by feature, not task by task — run all the feature's tasks in one pass (each task is still verified: tests pass, marked `[x]` with evidence), then present ONE pre-commit report covering the whole feature and propose a single commit. **Slow**: task by task within the feature — the pre-commit gate (rule 9) applies per task. Simple features use fast, complex features use slow; when complexity is unclear, ask the user which mode to use before implementing.
 
 ---
 
