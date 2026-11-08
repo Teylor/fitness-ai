@@ -32,7 +32,6 @@
 
 | # | Priority | Feature | State | Note |
 |---|-----------|---------|--------|------|
-| 3 | P0 | `mcp-server` | ✅ Approved | Register the 19 tools with real schema (SDK `mcp`), JSON errors per api-spec + integration tests. |
 | 4 | P1 | `services-training` | ✅ Approved | Exercise, Workout (sets, PRs, estimated 1RM) + tests. |
 | 5 | P1 | `specs-completion` | ✅ Approved | Fill `requirements.md`, `api-spec.md` (cut off at line 21), `data-model.md` (empty). |
 | 6 | P1 | `hermes-e2e` | ✅ Approved | End-to-end verification with a real MCP client (Hermes). |
@@ -48,6 +47,7 @@
 
 | Feature | File |
 |---------|---------|
+| `mcp-server` | `odd/tasks/mcp-server.md` |
 
 ---
 
