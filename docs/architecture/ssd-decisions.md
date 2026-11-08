@@ -1,29 +1,29 @@
-# Decisiones de Arquitectura (ADR)
+# Architecture Decisions (ADR)
 
-> Registro de decisiones arquitectónicas. Cada ADR: contexto, decisión, consecuencias.
+> Registry of architectural decisions. Each ADR: context, decision, consequences.
 
 ---
 
 ## ADR-001: Python + SQLite + Peewee
 
-**Fecha**: 2025-01-15
-**Estado**: Aceptado
+**Date**: 2025-01-15
+**Status**: Accepted
 
-### Contexto
-Sistema local de un solo usuario. No hay necesidad de escalabilidad. Se requiere simplicidad y mínimo overhead.
+### Context
+Single-user local system. There is no scalability requirement. Simplicity and minimal overhead are required.
 
-### Decisión
-- **Lenguaje**: Python 3.11+
-- **Base de datos**: SQLite 3 (archivo local `data/fitness.db`)
-- **ORM**: Peewee (ligero, sin dependencias pesadas como SQLAlchemy)
-- **Migraciones**: `peewee-migrate` + scripts SQL manuales
+### Decision
+- **Language**: Python 3.11+
+- **Database**: SQLite 3 (local file `data/fitness.db`)
+- **ORM**: Peewee (lightweight, no heavy dependencies like SQLAlchemy)
+- **Migrations**: `peewee-migrate` + manual SQL scripts
 
-### Consecuencias
-- ✅ Cero infraestructura externa. Un archivo `.db` es toda la persistencia.
-- ✅ Peewee es minimalista, fácil de debuguear, sin magic.
-- ✅ Migraciones simples para un solo usuario.
-- ❌ No escalable a multi-usuario (no es un requisito).
-- ❌ Sin réplicas
+### Consequences
+- ✅ Zero external infrastructure. A single `.db` file is all the persistence.
+- ✅ Peewee is minimalist, easy to debug, no magic.
+- ✅ Simple migrations for a single user.
+- ❌ Not scalable to multi-user (not a requirement).
+- ❌ No replicas
 
 ---
 

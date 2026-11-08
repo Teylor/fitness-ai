@@ -1,15 +1,15 @@
-# Componentes SSD
+# SSD Components
 
-> Detalle de cada componente, sus responsabilidades y dependencias.
+> Details of each component, its responsibilities and dependencies.
 
 ---
 
 ## 1. MCP Server (`src/mcp/`)
 
-### Responsabilidades
-- Expone las 18 tools MCP a Hermes Agent.
-- Traduce parámetros JSON → llamadas a Services.
-- Formatea respuestas JSON para Hermes.
-- Maneja errores y los devuelve como `{"status": "error", ...}`.
+### Responsibilities
+- Exposes the 18 MCP tools to the Hermes Agent.
+- Translates JSON parameters → calls to the services.
+- Formats JSON responses for Hermes.
+- Handles errors and returns them as `{"status": "error", ...}`.
 
-### Subcomponentes
+### Subcomponents

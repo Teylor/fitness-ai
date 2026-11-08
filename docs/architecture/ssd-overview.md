@@ -1,5 +1,5 @@
-# Visión General SSD
+# SSD General Overview
 
-> Arquitectura general del sistema: componentes, flujos y dependencias.
+> Overall system architecture: components, flows, and dependencies.
 
 ##
