@@ -1,30 +1,30 @@
 "# Skill: close-feature
 
-> Cierra criterios de aceptación, actualiza el documento y deja el siguiente paso.
+> Close out the acceptance criteria, update the document, and leave the next step.
 
-## Cuándo se activa
-Cuando todas las tareas del checklist están `[x]`.
+## When it activates
+When all tasks in the checklist are `[x]`.
 
-## Pasos
+## Steps
 
-1. **Verificar** que todas las tareas están `[x]` en `odd/tasks/<feature>.md`.
-2. **Rellenar sección Verification**:
-   - Para cada criterio de aceptación del spec → evidencia de que está cumplido.
-   - Ejecutar tests completos: `pytest tests/ -v`
-3. **Actualizar docs** si hace falta:
-   - `docs/design/odd-models.md` (si se añadió entidad)
-   - `docs/specs/openspec/api-spec.md` (si se añadió tool MCP)
-   - `docs/specs/openspec/data-model.md` (si se añadió tabla)
-   - `docs/architecture/ssd-decisions.md` (si hay ADR nuevo)
-4. **Rellenar sección Close**:
-   - Fecha de cierre.
-   - Resumen de lo implementado.
-   - "Siguiente paso" si hay follow-up pendiente.
-5. **Report pre-commit final**: resumen de lo implementado, resultado de `pytest tests/ -v` y mensaje sugerido `feat(<module>): close <feature> [all tasks done]`. El commit lo ejecuta el usuario (o el agente si se lo pide explícitamente).
+1. **Verify** that all tasks are `[x]` in `odd/tasks/<feature>.md`.
+2. **Fill in the Verification section**:
+   - For each acceptance criterion in the spec → evidence that it is met.
+   - Run the full test suite: `pytest tests/ -v`
+3. **Update docs** if needed:
+   - `docs/design/odd-models.md` (if an entity was added)
+   - `docs/specs/openspec/api-spec.md` (if an MCP tool was added)
+   - `docs/specs/openspec/data-model.md` (if a table was added)
+   - `docs/architecture/ssd-decisions.md` (if there is a new ADR)
+4. **Fill in the Close section**:
+   - Close date.
+   - Summary of what was implemented.
+   - "Next step" if there is pending follow-up.
+5. **Final pre-commit report**: summary of what was implemented, result of `pytest tests/ -v`, and the suggested message `feat(<module>): close <feature> [all tasks done]`. The user runs the commit (or the agent if explicitly asked).
 
-## Reglas
-- No cerrar sin verificar TODOS los criterios de aceptación.
-- Si falta algo → no cerrar, añadir tarea al checklist.
-- Si hay follow-up → documentarlo en "Siguiente paso", no bloquear el cierre.
-- Si es rama SDD → invocar `sdd-archive` después.
+## Rules
+- Do not close without verifying ALL acceptance criteria.
+- If something is missing → do not close, add a task to the checklist.
+- If there is follow-up → document it in "Next step", do not block the close.
+- If it is the SDD branch → invoke `sdd-archive` afterwards.
 "

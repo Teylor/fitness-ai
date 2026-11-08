@@ -1,36 +1,36 @@
 "# Skill: sdd-tasks
 
-> Convierte el plan en checklist dentro del documento ODD, no en un tasks.md aparte.
+> Turn the plan into a checklist inside the ODD document, not a separate tasks.md.
 
-## Cuándo se activa
-Después de `sdd-plan` (plan aprobado por usuario).
+## When it activates
+After `sdd-plan` (plan approved by the user).
 
-## Pasos
+## Steps
 
-1. **Leer** `specs/<feature>/plan.md` y `specs/<feature>/spec.md`.
-2. **Descomponer** el plan en tareas pequeñas (cada una < 30 min de trabajo).
-3. **Para cada tarea** definir:
-   - Descripción clara (qué hacer).
-   - Archivo(s) afectado(s).
-   - Verificación: test específico, comando, o inspección manual.
-   - Dependencias: qué tareas deben estar hechas antes.
-4. **Escribir** en `odd/tasks/<feature>.md` sección `## Tasks`:
+1. **Read** `specs/<feature>/plan.md` and `specs/<feature>/spec.md`.
+2. **Break down** the plan into small tasks (each < 30 min of work).
+3. **For each task** define:
+   - Clear description (what to do).
+   - Affected file(s).
+   - Verification: specific test, command, or manual inspection.
+   - Dependencies: which tasks must be done first.
+4. **Write** in the `## Tasks` section of `odd/tasks/<feature>.md`:
    ```
-   - [ ] T1: <descripción> → files: <paths> → verify: <test/comando>
-   - [ ] T2: <descripción> → files: <paths> → verify: <test/comando>
+   - [ ] T1: <description> → files: <paths> → verify: <test/command>
+   - [ ] T2: <description> → files: <paths> → verify: <test/command>
    ```
-5. **Enlazar** en el documento ODD:
+5. **Link** in the ODD document:
    ```
    > Spec: [specs/<feature>/spec.md](../../specs/<feature>/spec.md)
    > Plan: [specs/<feature>/plan.md](../../specs/<feature>/plan.md)
    ```
-6. **Confirmar** al usuario: "Checklist de N tareas creado. ¿Aprobado para implementar?"
+6. **Confirm** with the user: "Checklist of N tasks created. Approved to implement?"
 
-## Reglas
-- **No crear un tasks.md aparte.** El checklist vive en `odd/tasks/<feature>.md`.
-- Cada tarea debe ser independiente (o declarar dependencia explícita).
-- Cada tarea debe tener verificación. Sin verificación → no es una tarea válida.
-- Ordenar tareas por dependencia (lo que se usa antes va primero).
-- Si una tarea es > 30 min → descomponer más.
-- Incluir tarea final: "Ejecutar test suite completo" → verify: `pytest tests/ -v`
+## Rules
+- **Do not create a separate tasks.md.** The checklist lives in `odd/tasks/<feature>.md`.
+- Each task must be independent (or declare an explicit dependency).
+- Each task must have verification. No verification → not a valid task.
+- Order tasks by dependency (what is used first goes first).
+- If a task is > 30 min → break it down further.
+- Include a final task: "Run the full test suite" → verify: `pytest tests/ -v`
 "

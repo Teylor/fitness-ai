@@ -1,48 +1,48 @@
 "# Skill: sdd-specify
 
-> Escribe `specs/<feature>/spec.md`: qué y por qué, sin tecnologías.
+> Write `specs/<feature>/spec.md`: what and why, no technologies.
 
-## Cuándo se activa
-Cuando `classify` escala a SDD.
+## When it activates
+When `classify` escalates to SDD.
 
-## Pasos
+## Steps
 
-1. **Crear** `specs/<feature-name>/spec.md`.
-2. **Escribir**:
-   - **Problema**: ¿Qué problema resuelve?
-   - **Contexto**: ¿Por qué ahora? ¿Qué limita la solución actual?
-   - **Criterios de aceptación**: Lista checkeable (sin tecnología).
-   - **No-requirements**: Qué NO se va a hacer (para evitar scope creep).
-   - **Supuestos**: Lo que se da por cierto.
-3. **No incluir**: tecnologías, frameworks, estructura de archivos, APIs específicas.
-4. **Confirmar** al usuario: "Spec escrita. ¿Aprobado?"
+1. **Create** `specs/<feature-name>/spec.md`.
+2. **Write**:
+   - **Problem**: What problem does it solve?
+   - **Context**: Why now? What limits the current solution?
+   - **Acceptance criteria**: Checkable list (no technology).
+   - **Non-requirements**: What will NOT be done (to avoid scope creep).
+   - **Assumptions**: What is taken for granted.
+3. **Do not include**: technologies, frameworks, file structure, specific APIs.
+4. **Confirm** with the user: "Spec written. Approved?"
 
-## Plantilla
+## Template
 
 ```markdown
 # Spec: <feature name>
 
-## Problema
-> Qué problema resuelve (sin tecnología)
+## Problem
+> What problem it solves (no technology)
 
-## Contexto
-> Por qué ahora, qué limita la solución actual
+## Context
+> Why now, what limits the current solution
 
-## Criterios de aceptación
+## Acceptance criteria
 - [ ] CA1: ...
 - [ ] CA2: ...
 
-## No-requirements
-- No se va a hacer X
-- No se va a hacer Y
+## Non-requirements
+- X will not be done
+- Y will not be done
 
-## Supuestos
+## Assumptions
 - A1: ...
 - A2: ...
 ```
 
-## Reglas
-- Sin tecnología. Si mencionas "SQLite" o "Peewee" → mal.
-- El spec es inmutable una vez aprobado (cambios → editar spec → regenerar plan).
-- El spec NUNCA guarda estado de progreso.
+## Rules
+- No technology. If you mention "SQLite" or "Peewee" → wrong.
+- The spec is immutable once approved (changes → edit the spec → regenerate the plan).
+- The spec NEVER stores progress state.
 "

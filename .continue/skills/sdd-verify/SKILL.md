@@ -1,33 +1,33 @@
 "# Skill: sdd-verify
 
-> Contrasta código contra spec. Opcional, de diagnóstico, no bloquea el cierre.
+> Compare code against the spec. Optional, diagnostic, does not block the close.
 
-## Cuándo se activa
-Opcional, después de `close-feature`. Útil cuando se quiere una verificación extra antes de archivar.
+## When it activates
+Optional, after `close-feature`. Useful when an extra verification is wanted before archiving.
 
-## Pasos
+## Steps
 
-1. **Leer** `specs/<feature>/spec.md` (criterios de aceptación).
-2. **Para cada criterio**:
-   - Buscar en el código la implementación correspondiente.
-   - Ejecutar el test asociado.
-   - Verificar que el comportamiento real coincide con el spec.
-3. **Reportar**:
+1. **Read** `specs/<feature>/spec.md` (acceptance criteria).
+2. **For each criterion**:
+   - Find the corresponding implementation in the code.
+   - Run the associated test.
+   - Verify that the actual behavior matches the spec.
+3. **Report**:
    ```
-   | Criterio | Estado | Evidencia |
+   | Criterion | Status | Evidence |
    |----------|--------|-----------|
    | CA1 | ✅ | test_x.py::test_y PASSED |
    | CA2 | ✅ | Comando: `python -m src.main` → OK |
-   | CA3 | ⚠️ | Parcial: falta edge case Z |
+   | CA3 | ⚠️ | Partial: edge case Z missing |
    ```
-4. **Si hay discrepancias**:
-   - No bloquear el cierre.
-   - Documentar en `odd/tasks/<feature>.md` sección `## Verification`.
-   - Crear nueva feature para el fix si es necesario.
+4. **If there are discrepancies**:
+   - Do not block the close.
+   - Document it in the `## Verification` section of `odd/tasks/<feature>.md`.
+   - Create a new feature for the fix if necessary.
 
-## Reglas
-- **No bloquea.** Es diagnóstico, no gate.
-- Si el código no coincide con el spec → documentar, no arreglar aquí.
-- Si el spec está mal (describe algo que no se quería) → editar spec, no código.
-- Resultado se guarda en el documento ODD, no en el spec.
+## Rules
+- **Does not block.** It is diagnostic, not a gate.
+- If the code does not match the spec → document it, do not fix it here.
+- If the spec is wrong (it describes something that was not wanted) → edit the spec, not the code.
+- The result is stored in the ODD document, not in the spec.
 "
