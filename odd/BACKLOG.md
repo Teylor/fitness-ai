@@ -48,7 +48,6 @@
 
 | Feature | File |
 |---------|---------|
-| `translate-to-english` | `odd/tasks/translate-to-english.md` |
 | `services-nutrition` | `odd/tasks/services-nutrition.md` |
 
 ---
@@ -59,6 +58,7 @@
 |---------|---------|-------|
 | db-layer | `odd/tasks/db-layer.md` | 2026-11 |
 | utils-core | `odd/tasks/utils-core.md` | 2026-11 |
+| translate-to-english | `odd/tasks/translate-to-english.md` | 2026-11 |
 
 ---
 
