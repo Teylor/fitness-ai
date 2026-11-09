@@ -12,7 +12,13 @@ from pathlib import Path
 ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
-HEALTH_SCOPE = "https://www.googleapis.com/auth/health"
+HEALTH_SCOPES = [
+    "https://www.googleapis.com/auth/googlehealth.nutrition.writeonly",
+    "https://www.googleapis.com/auth/googlehealth.sleep.readonly",
+    "https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly",
+]
+HEALTH_SCOPE_STR = " ".join(HEALTH_SCOPES)
+
 
 
 def save_token_to_env(access_token: str, refresh_token: str = None) -> None:
@@ -37,7 +43,8 @@ def manual_paste_mode():
     print("   👉 https://developers.google.com/oauthplayground")
     print("\n2. En el panel izquierdo ('Step 1 Select & authorize APIs'):")
     print("   - Baja hasta la casilla 'Input your own scopes'")
-    print(f"   - Pega este scope: {HEALTH_SCOPE}")
+    print("   - Pega estos scopes (separados por espacio):")
+    print(f"     {HEALTH_SCOPE_STR}")
     print("   - Haz clic en el botón azul 'Authorize APIs'")
     print("   - Inicia sesión con tu cuenta de Google y concede los permisos")
     print("\n3. En 'Step 2 Exchange authorization code for tokens':")
@@ -79,7 +86,7 @@ def oauth_browser_flow(client_id: str, client_secret: str, port: int = 8080):
         "client_id": client_id,
         "redirect_uri": redirect_uri,
         "response_type": "code",
-        "scope": HEALTH_SCOPE,
+        "scope": HEALTH_SCOPE_STR,
         "access_type": "offline",
         "prompt": "consent",
     }
@@ -130,3 +137,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
