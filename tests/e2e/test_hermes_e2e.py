@@ -29,6 +29,11 @@ EXPECTED_18_TOOLS = {
     "create_exercise",
     # UI Artifacts (1)
     "get_ui_form",
+    # Google Health (4)
+    "sync_meals_to_google_health",
+    "fetch_google_health_sleep",
+    "fetch_google_health_weight",
+    "sync_google_health",
 }
 
 
@@ -36,7 +41,7 @@ EXPECTED_18_TOOLS = {
 async def test_hermes_protocol_handshake_and_tool_discovery(hermes_client):
     """Verify that Hermes can connect, initialize session, and discover all tools."""
     tool_names = await hermes_client.list_tool_names()
-    assert len(tool_names) == 19
+    assert len(tool_names) == 23
     assert tool_names == EXPECTED_18_TOOLS
 
     tools = await hermes_client.list_tools()
@@ -443,5 +448,95 @@ async def test_hermes_ui_artifact_flow(hermes_client):
     invalid_res = await hermes_client.call_tool("get_ui_form", form_type="invalid_view")
     assert invalid_res["status"] == "error"
     assert invalid_res["code"] == "invalid_input"
+
+
+@pytest.mark.anyio
+async def test_hermes_google_health_sync_flow(hermes_client, monkeypatch):
+    """E2E Scenario: Hermes triggers Google Health bidirectional synchronization over MCP."""
+    import httpx2
+    from src.config import settings
+    from src.services.google_health_client import GoogleHealthClient
+
+    monkeypatch.setattr(settings, "google_health_token", "test-token")
+
+    def mock_handler(request: httpx2.Request) -> httpx2.Response:
+        url_str = str(request.url)
+        if "/dataTypes/nutrition/dataPoints" in url_str:
+            return httpx2.Response(200, json={"status": "ok"})
+        elif "/dataTypes/sleep/dataPoints" in url_str:
+            return httpx2.Response(
+                200,
+                json={
+                    "dataPoints": [
+                        {
+                            "startTime": "2026-11-10T23:00:00Z",
+                            "endTime": "2026-11-11T07:00:00Z",
+                            "value": {"duration_minutes": 480.0},
+                        }
+                    ]
+                },
+            )
+        elif "/dataTypes/weight/dataPoints" in url_str:
+            return httpx2.Response(
+                200,
+                json={
+                    "dataPoints": [
+                        {
+                            "startTime": "2026-11-11T08:00:00Z",
+                            "value": {"weight_kg": 76.0},
+                        }
+                    ]
+                },
+            )
+        return httpx2.Response(404)
+
+    mock_client = httpx2.Client(transport=httpx2.MockTransport(mock_handler))
+    orig_init = GoogleHealthClient.__init__
+
+    def patched_init(self, *args, **kwargs):
+        orig_init(self, token="test-token", http_client=mock_client)
+
+    monkeypatch.setattr(GoogleHealthClient, "__init__", patched_init)
+
+    # 1. Log a meal
+    await hermes_client.call_tool(
+        "register_meal",
+        date="11-11-2026",
+        item_name="Oatmeal",
+        quantity=80.0,
+        unit="gr",
+    )
+
+    # 2. Sync meals to Google Health
+    sync_meals_res = await hermes_client.call_tool(
+        "sync_meals_to_google_health", date="11-11-2026"
+    )
+    assert sync_meals_res["status"] == "ok"
+    assert sync_meals_res["synced_count"] == 1
+
+    # 3. Fetch sleep
+    sleep_res = await hermes_client.call_tool(
+        "fetch_google_health_sleep", date="11-11-2026"
+    )
+    assert sleep_res["status"] == "ok"
+    assert sleep_res["count"] == 1
+    assert sleep_res["records"][0]["duration_minutes"] == 480.0
+
+    # 4. Fetch weight
+    weight_res = await hermes_client.call_tool(
+        "fetch_google_health_weight", date="11-11-2026"
+    )
+    assert weight_res["status"] == "ok"
+    assert weight_res["latest_weight_kg"] == 76.0
+
+    # 5. Full sync
+    full_sync = await hermes_client.call_tool(
+        "sync_google_health", date="11-11-2026"
+    )
+    assert full_sync["status"] == "ok"
+    assert full_sync["meals_synced"] == 1
+    assert full_sync["sleep_sessions_fetched"] == 1
+    assert full_sync["weight_records_fetched"] == 1
+
 
 

@@ -70,11 +70,12 @@ def test_unique_constraint_ingredient(db):
 
 
 def test_all_tables_created(db):
-    """Verify that all 9 tables exist."""
+    """Verify that all 11 tables exist."""
     expected = {
         "ingredients", "recipes", "recipe_items", "meal_entries",
         "daily_goals", "exercises", "workout_sessions",
         "exercise_sets", "personal_records",
+        "sleep_logs", "weight_logs",
     }
     cursor = db.execute_sql("SELECT name FROM sqlite_master WHERE type='table'")
     tables = {row[0] for row in cursor.fetchall()}

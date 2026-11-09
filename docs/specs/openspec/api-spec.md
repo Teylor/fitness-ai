@@ -25,7 +25,7 @@
 - **Units:** `gr` | `ml` | `u`. Macros are in grams, kcal in energy units, prices in currency **per unit** (per `gr`/`ml`/`u`).
 - **Pagination:** list tools take `limit` (default `50`) and `offset` (default `0`).
 
-## Tool index (19)
+## Tool index (23)
 
 | Domain | Tools |
 |---|---|
@@ -36,6 +36,7 @@
 | Workouts (4) | `register_workout`, `get_last_workout`, `get_personal_record`, `get_workouts_by_day` |
 | Exercises (2) | `list_exercises`, `create_exercise` |
 | UI Artifacts (1) | `get_ui_form` |
+| Google Health (4) | `sync_meals_to_google_health`, `fetch_google_health_sleep`, `fetch_google_health_weight`, `sync_google_health` |
 
 ### Common shapes
 
@@ -45,6 +46,8 @@
 - `daily_goal`: `{id, date, kcal, protein, carbs, fat, is_default, created_at}`
 - `exercise`: `{id, name, muscle_group, type, created_at}`
 - `personal_record`: `{id, exercise_id, max_weight, max_reps, estimated_1rm, date, session_id}`
+- `sleep_log`: `{id, date, start_time, end_time, duration_minutes, deep_sleep_minutes, rem_sleep_minutes, light_sleep_minutes, source}`
+- `weight_log`: `{id, date, weight_kg, bmi, body_fat_pct, source}`
 
 ---
 
@@ -404,4 +407,67 @@ Retrieve an interactive HTML artifact form for Hermes GUI or web view.
 ```
 
 Errors: `invalid_input` (unsupported form_type), `internal`.
+
+---
+
+## Google Health
+
+### `sync_meals_to_google_health`
+
+Upload meals recorded on a specific date to Google Health as nutrition dataPoints.
+
+| Arg | Type | Req | Default | Description |
+|---|---|---|---|---|
+| `date` | str | | `today` | target date in `DD-MM-YYYY` |
+
+```json
+{"status": "ok", "date": "10-11-2026", "synced_count": 2, "total_kcal": 650.0, "meals": [{"meal_id": 1, "name": "Eggs", "quantity": 3.0, "unit": "u", "kcal": 210.0, "protein": 18.0, "carbs": 1.5, "fat": 15.0}]}
+```
+
+Errors: `invalid_input` (bad date, missing credentials), `internal`.
+
+### `fetch_google_health_sleep`
+
+Fetch sleep session dataPoints from Google Health and store in local `sleep_logs`.
+
+| Arg | Type | Req | Default | Description |
+|---|---|---|---|---|
+| `date` | str | | `today` | reference date in `DD-MM-YYYY` |
+| `days` | int | | `1` | days of history |
+
+```json
+{"status": "ok", "date": "10-11-2026", "count": 1, "records": [{"id": 1, "date": "10-11-2026", "start_time": "...", "end_time": "...", "duration_minutes": 480.0, "deep_sleep_minutes": 90.0, "rem_sleep_minutes": 90.0, "light_sleep_minutes": 300.0, "source": "google_health"}]}
+```
+
+Errors: `invalid_input` (bad date, missing credentials), `internal`.
+
+### `fetch_google_health_weight`
+
+Fetch weight body measurements from Google Health and store in local `weight_logs`.
+
+| Arg | Type | Req | Default | Description |
+|---|---|---|---|---|
+| `date` | str | | `today` | reference date in `DD-MM-YYYY` |
+| `days` | int | | `7` | days of history |
+
+```json
+{"status": "ok", "date": "10-11-2026", "count": 1, "latest_weight_kg": 75.2, "records": [{"id": 1, "date": "10-11-2026", "weight_kg": 75.2, "bmi": 22.8, "body_fat_pct": null, "source": "google_health"}]}
+```
+
+Errors: `invalid_input` (bad date, missing credentials), `internal`.
+
+### `sync_google_health`
+
+Full bidirectional synchronization: push meals, pull sleep and weight metrics.
+
+| Arg | Type | Req | Default | Description |
+|---|---|---|---|---|
+| `date` | str | | `today` | reference date in `DD-MM-YYYY` |
+
+```json
+{"status": "ok", "date": "10-11-2026", "meals_synced": 2, "total_kcal_synced": 650.0, "sleep_sessions_fetched": 1, "weight_records_fetched": 1, "latest_weight_kg": 75.2}
+```
+
+Errors: `invalid_input` (bad date, missing credentials), `internal`.
+
 

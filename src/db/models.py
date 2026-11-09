@@ -156,6 +156,38 @@ class PersonalRecord(BaseModel):
         table_name = "personal_records"
 
 
+class SleepLog(BaseModel):
+    """Inbound sleep sessions from Google Health."""
+
+    date = CharField()  # DD-MM-YYYY
+    start_time = CharField()
+    end_time = CharField()
+    duration_minutes = FloatField()
+    deep_sleep_minutes = FloatField(default=0.0)
+    rem_sleep_minutes = FloatField(default=0.0)
+    light_sleep_minutes = FloatField(default=0.0)
+    source = CharField(default="google_health")
+    created_at = DateTimeField(default=SQL("datetime('now')"))
+
+    class Meta:
+        table_name = "sleep_logs"
+        indexes = ((("date", "start_time"), True),)
+
+
+class WeightLog(BaseModel):
+    """Inbound weight logs from Google Health."""
+
+    date = CharField()  # DD-MM-YYYY
+    weight_kg = FloatField()
+    bmi = FloatField(null=True)
+    body_fat_pct = FloatField(null=True)
+    source = CharField(default="google_health")
+    created_at = DateTimeField(default=SQL("datetime('now')"))
+
+    class Meta:
+        table_name = "weight_logs"
+
+
 # List of all models
 ALL_MODELS = [
     Ingredient,
@@ -167,4 +199,6 @@ ALL_MODELS = [
     WorkoutSession,
     ExerciseSet,
     PersonalRecord,
+    SleepLog,
+    WeightLog,
 ]
