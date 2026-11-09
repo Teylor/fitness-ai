@@ -18,13 +18,13 @@ Build a comprehensive end-to-end test suite (`tests/e2e/test_hermes_e2e.py`) sim
 
 ### Acceptance criteria
 
-- [ ] C1: An E2E test harness/fixture provides a real `ClientSession` connected via `streamable_http_client` to the MCP Server with clean database isolation.
-- [ ] C2: Protocol & Discovery: The client initializes, establishes protocol handshake, discovers all 18 tools with full schemas, parameter definitions, and descriptions matching `api-spec.md`.
-- [ ] C3: Nutrition & Goals E2E Workflow: Complete user journey: create ingredients -> set daily goal -> compose recipe -> register meals (direct & recipe) -> query daily summary, verifying exact macro calculations and progress against goals.
-- [ ] C4: Training & PR E2E Workflow: Complete user journey: catalog exercises -> register multi-set workouts across different dates -> verify automatic PR calculation (Epley formula and direct 1-rep attempts) -> query last workout, daily sessions, and personal records.
-- [ ] C5: Adaptive Flows (Fuzzy & Provisional): Hermes registers a meal with provisional ingredient/recipe -> resolves later; registers workouts with unknown exercise (auto-created) -> verifies responses and fuzzy search resolution.
-- [ ] C6: Error Resilience & Envelopes: Client triggers error conditions (invalid date format, missing required parameters, duplicate records, non-existent reads) and receives expected `{"status": "error", "code": ..., "message": ...}` with standard typed codes.
-- [ ] C7: Reliability & Speed: E2E test suite executes cleanly under `pytest` with zero leaks or timeouts, and full test suite remains green.
+- [x] C1: An E2E test harness/fixture provides a real `ClientSession` connected via `streamable_http_client` to the MCP Server with clean database isolation.
+- [x] C2: Protocol & Discovery: The client initializes, establishes protocol handshake, discovers all 18 tools with full schemas, parameter definitions, and descriptions matching `api-spec.md`.
+- [x] C3: Nutrition & Goals E2E Workflow: Complete user journey: create ingredients -> set daily goal -> compose recipe -> register meals (direct & recipe) -> query daily summary, verifying exact macro calculations and progress against goals.
+- [x] C4: Training & PR E2E Workflow: Complete user journey: catalog exercises -> register multi-set workouts across different dates -> verify automatic PR calculation (Epley formula and direct 1-rep attempts) -> query last workout, daily sessions, and personal records.
+- [x] C5: Adaptive Flows (Fuzzy & Provisional): Hermes registers a meal with provisional ingredient/recipe -> resolves later; registers workouts with unknown exercise (auto-created) -> verifies responses and fuzzy search resolution.
+- [x] C6: Error Resilience & Envelopes: Client triggers error conditions (invalid date format, missing required parameters, duplicate records, non-existent reads) and receives expected `{"status": "error", "code": ..., "message": ...}` with standard typed codes.
+- [x] C7: Reliability & Speed: E2E test suite executes cleanly under `pytest` with zero leaks or timeouts, and full test suite remains green.
 
 ## Clarify
 > Ambiguities and resolutions (filled interactively with the user)
@@ -47,19 +47,26 @@ Build a comprehensive end-to-end test suite (`tests/e2e/test_hermes_e2e.py`) sim
 ## Tasks
 > Check the box as each task is completed.
 
-- [ ] T1: E2E harness and client fixture (`tests/e2e/conftest.py` + discovery test)
-- [ ] T2: Nutrition & Daily Goals multi-step E2E flow
-- [ ] T3: Training & PR multi-step E2E flow
-- [ ] T4: Provisional, fuzzy matching & error handling E2E tests
-- [ ] T5: Polish, verification against spec, and full suite pass
+- [x] T1: E2E harness and client fixture (`tests/e2e/conftest.py` + discovery test)
+- [x] T2: Nutrition & Daily Goals multi-step E2E flow
+- [x] T3: Training & PR multi-step E2E flow
+- [x] T4: Provisional, fuzzy matching & error handling E2E tests
+- [x] T5: Polish, verification against spec, and full suite pass
 
 ## Verification
 > Spec contrast (filled at close)
 
-- (pending)
+- [x] C1: `tests/e2e/conftest.py` implements `HermesTestClient` and `hermes_client` fixture connecting over `httpx2.ASGITransport` + `mcp.client.streamable_http.streamable_http_client` with an isolated temporary database file per test session.
+- [x] C2: `test_hermes_protocol_handshake_and_tool_discovery` asserts discovery of all 18 tools, descriptions, and input schemas over protocol.
+- [x] C3: `test_hermes_nutrition_and_goals_workflow` completes multi-step journey (ingredients, goals, recipes, meals, day summary with remaining macros).
+- [x] C4: `test_hermes_training_and_pr_workflow` registers multi-set workouts, computes Epley estimated 1RM, exercises 1-rep attempts, verifies strict PR updates, queries last workout and daily sessions.
+- [x] C5: `test_hermes_provisional_and_fuzzy_adaptive_flows` tests auto-creation of provisional ingredients and unknown exercises, finalized updates, and fuzzy queries.
+- [x] C6: `test_hermes_error_resilience_and_typed_envelopes` tests invalid dates, units, duplicate sets, empty names, and non-existent queries, validating typed `invalid_input` and `not_found` error codes.
+- [x] C7: Full test suite green (140 passed in 1.35s). Zero leaks, zero Spanish residuals.
 
 ## Close
 > Close (filled at close)
 
-- (pending)
+- Date: 2026-11
+- Next step: Review Proposed backlog items (#11 `html-artifacts`, #7 `db-robustness`, #9 `odd-merge-back`, #10 `google-health-api`).
 

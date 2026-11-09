@@ -35,6 +35,8 @@
 | 7 | P2 | `db-robustness` | ✅ Approved | Rollback in `get_db()` (pending db-layer close). |
 | 8 | P3 | `seed-data` | ✅ Approved | Initial catalog of ingredients/exercises. |
 | 9 | P2 | `odd-merge-back` | ✅ Approved | When closing, reflux the met criteria to global `docs/specs/` (mimics OpenSpec's delta merge; closes the ODD's weak point). |
+| 10 | P2 | `google-health-api` | 📥 Proposed | Connect Google Health API to sync and add meals. |
+| 11 | P1 | `html-artifacts` | 📥 Proposed | HTML artifacts rendered in the Hermes GUI to easily add ingredients, recipes, meals and workouts. |
 
 > Recommended execution order: `mcp-server` (12 nutrition & goal tools) → `services-training` (training services + 6 MCP tools) → `hermes-e2e`. `specs-completion` can run in parallel.
 
@@ -44,7 +46,7 @@
 
 | Feature | File |
 |---------|---------|
-| `hermes-e2e` | `odd/tasks/hermes-e2e.md` |
+| — | — |
 
 ---
 
@@ -52,6 +54,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `hermes-e2e` | `odd/tasks/hermes-e2e.md` | 2026-11 |
 | `services-training` | `odd/tasks/services-training.md` | 2026-11 |
 | `mcp-server` | `odd/tasks/mcp-server.md` | 2026-11 |
 | `services-nutrition` | `odd/tasks/services-nutrition.md` | 2026-11 |
