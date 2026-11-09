@@ -15,6 +15,8 @@ from src.db.models import (
     WorkoutSession,
     ExerciseSet,
     PersonalRecord,
+    SleepLog,
+    WeightLog,
 )
 
 

@@ -184,6 +184,41 @@ A personal record (PR) per exercise — at most one row per exercise.
 - **Indexes**: `idx_pr_exercise` (`exercise_id`)
 - Deleting an exercise removes its PR; deleting the linked session nulls `session_id`.
 
+### `sleep_logs`
+
+Inbound sleep sessions from Google Health.
+
+| Field | Type | Constraints | Description |
+|---|---|---|---|
+| id | INTEGER | PK AUTOINCREMENT | |
+| date | TEXT | NOT NULL | `DD-MM-YYYY` |
+| start_time | TEXT | NOT NULL | ISO start timestamp |
+| end_time | TEXT | NOT NULL | ISO end timestamp |
+| duration_minutes | REAL | NOT NULL | Sleep duration in minutes |
+| deep_sleep_minutes | REAL | NOT NULL DEFAULT 0 | Deep sleep in minutes |
+| rem_sleep_minutes | REAL | NOT NULL DEFAULT 0 | REM sleep in minutes |
+| light_sleep_minutes | REAL | NOT NULL DEFAULT 0 | Light sleep in minutes |
+| source | TEXT | NOT NULL DEFAULT `'google_health'` | Data source |
+| created_at | TEXT | NOT NULL DEFAULT `datetime('now')` | |
+
+- **Indexes**: `idx_sleep_logs_date` (`date`); `UNIQUE (date, start_time)`
+
+### `weight_logs`
+
+Inbound body weight measurements from Google Health.
+
+| Field | Type | Constraints | Description |
+|---|---|---|---|
+| id | INTEGER | PK AUTOINCREMENT | |
+| date | TEXT | NOT NULL | `DD-MM-YYYY` |
+| weight_kg | REAL | NOT NULL | Body weight in kilograms |
+| bmi | REAL | NULL | Body Mass Index |
+| body_fat_pct | REAL | NULL | Body fat percentage |
+| source | TEXT | NOT NULL DEFAULT `'google_health'` | Data source |
+| created_at | TEXT | NOT NULL DEFAULT `datetime('now')` | |
+
+- **Indexes**: `idx_weight_logs_date` (`date`); `UNIQUE (date, created_at)`
+
 ## Enumerations
 
 | Field | Allowed values |

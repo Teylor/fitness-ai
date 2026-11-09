@@ -19,6 +19,12 @@ from src.mcp.tools.recipe_tools import (
     list_recipes,
     update_recipe,
 )
+from src.mcp.tools.health_tools import (
+    fetch_google_health_sleep,
+    fetch_google_health_weight,
+    sync_google_health,
+    sync_meals_to_google_health,
+)
 from src.mcp.tools.ui_tools import get_ui_form
 from src.mcp.tools.workout_tools import (
     get_last_workout,
@@ -65,6 +71,12 @@ def create_server() -> MCPServer:
 
     # UI tool (1)
     server.add_tool(get_ui_form, name="get_ui_form")
+
+    # Google Health tools (4)
+    server.add_tool(sync_meals_to_google_health, name="sync_meals_to_google_health")
+    server.add_tool(fetch_google_health_sleep, name="fetch_google_health_sleep")
+    server.add_tool(fetch_google_health_weight, name="fetch_google_health_weight")
+    server.add_tool(sync_google_health, name="sync_google_health")
 
     # Custom HTTP web routes for interactive artifacts
     @server.custom_route("/ui", methods=["GET"])

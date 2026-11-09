@@ -44,7 +44,7 @@
 
 | Feature | File |
 |---------|---------|
-| `google-health-api` | `odd/tasks/google-health-api.md` |
+| — | — |
 
 ---
 
@@ -52,6 +52,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `google-health-api` | `odd/tasks/google-health-api.md` | 2026-11 |
 | `html-artifacts` | `odd/tasks/html-artifacts.md` | 2026-11 |
 | `hermes-e2e` | `odd/tasks/hermes-e2e.md` | 2026-11 |
 | `services-training` | `odd/tasks/services-training.md` | 2026-11 |
