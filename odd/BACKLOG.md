@@ -32,7 +32,6 @@
 
 | # | Priority | Feature | State | Note |
 |---|-----------|---------|--------|------|
-| 4 | P1 | `services-training` | ✅ Approved | Exercise, Workout (services, sets, PRs, estimated 1RM) + 6 MCP tools (exercise & workout) + tests. |
 | 5 | P1 | `specs-completion` | ✅ Approved | Fill `requirements.md`, `api-spec.md` (cut off at line 21), `data-model.md` (empty). |
 | 6 | P1 | `hermes-e2e` | ✅ Approved | End-to-end verification with a real MCP client (Hermes). |
 | 7 | P2 | `db-robustness` | ✅ Approved | Rollback in `get_db()` (pending db-layer close). |
@@ -47,7 +46,7 @@
 
 | Feature | File |
 |---------|---------|
-| — | — |
+| `services-training` | `odd/tasks/services-training.md` |
 
 ---
 
