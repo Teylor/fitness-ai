@@ -12,7 +12,7 @@
 5. When starting a feature → the item moves to `odd/tasks/<feature>.md` and disappears from Proposed.
 6. When closing it (all tasks ✅ + Verification filled in `odd/tasks/<feature>.md`) → it is listed in **Done** with a date.
 7. The agent keeps the backlog up to date: when a feature starts its item moves to ➡️ In progress; when it closes, to 🏁 Done. The backlog is the single work queue: nothing is started that is not approved here.
-8. Each feature is developed on its own branch `feat/<feature-name>`, created when the feature starts. A fix to a feature is made on a `fix/<feature-name>` branch.
+8. Each feature is developed on its own branch `feat/<feature-name>`, created when the feature starts. A fix to a feature is made on a `fix/<feature-name>` branch. When a feature is closed, after the last commit, push the branch and create a Pull Request to `main` directly.
 
 ## States
 
