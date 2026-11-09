@@ -1,33 +1,201 @@
-"""Tests: WorkoutService."""
+"""Tests: WorkoutService.register_session."""
+
+from datetime import datetime
+
+import pytest
+
+from src.db.models import (
+    Exercise as ExerciseModel,
+    ExerciseSet as ExerciseSetModel,
+    PersonalRecord as PersonalRecordModel,
+    WorkoutSession as WorkoutSessionModel,
+)
+from src.models.exercise import Exercise
+from src.models.workout_session import WorkoutSession
+from src.utils.errors import ValidationError
 
 
-def test_register_session(db, workout_service):
-    ...
+@pytest.fixture
+def exercises(exercise_service):
+    """Bench Press (weight_reps), Plank (time), Run (distance)."""
+    return {
+        "Bench Press": exercise_service.create(Exercise(name="Bench Press")),
+        "Plank": exercise_service.create(Exercise(name="Plank", type="time")),
+        "Run": exercise_service.create(Exercise(name="Run", type="distance")),
+    }
 
 
-def test_register_session_creates_exercise_if_missing(db, workout_service):
-    ...
+def test_register_session_basic(db, workout_service, exercises):
+    exercises_input = [
+        {
+            "name": "Bench Press",
+            "sets": [
+                {"set_number": 1, "reps": 10, "weight": 80},
+                {"set_number": 2, "reps": 8, "weight": 85},
+            ],
+        },
+        {"name": "Plank", "sets": [{"set_number": 1, "duration": 60}]},
+    ]
+    result = workout_service.register_session(
+        WorkoutSession(date="15-05-2026", notes="push day"), exercises_input
+    )
+    assert result["session"]["id"] is not None
+    assert result["session"]["date"] == "15-05-2026"
+    assert result["session"]["notes"] == "push day"
+    assert len(result["sets"]) == 3
+    assert result["auto_created"] == []
+
+    assert WorkoutSessionModel.select().count() == 1
+    assert ExerciseSetModel.select().count() == 3
+    stored = WorkoutSessionModel.get()
+    assert stored.date == datetime(2026, 5, 15, 0, 0)
 
 
-def test_register_session_updates_pr(db, workout_service):
-    ...
+def test_register_session_default_date_now(db, workout_service, exercises):
+    workout_service.register_session(WorkoutSession(date=""), [
+        {"name": "Bench Press", "sets": [{"set_number": 1, "reps": 5, "weight": 60}]}
+    ])
+    stored = WorkoutSessionModel.get()
+    assert stored.date.year == datetime.now().year
+    assert len(stored.date.strftime("%d-%m-%Y")) == 10
 
 
-def test_register_session_no_pr_update(db, workout_service):
-    ...
+def test_register_session_date_with_time(db, workout_service, exercises):
+    result = workout_service.register_session(
+        WorkoutSession(date="15-05-2026 18:30"),
+        [{"name": "Bench Press", "sets": [{"set_number": 1, "reps": 5, "weight": 60}]}],
+    )
+    stored = WorkoutSessionModel.get()
+    assert (stored.date.hour, stored.date.minute) == (18, 30)
+    assert result["session"]["date"] == "15-05-2026 18:30:00"
 
 
-def test_get_last_workout(db, workout_service):
-    ...
+def test_register_session_invalid_date_raises(db, workout_service, exercises):
+    with pytest.raises(ValidationError) as exc_info:
+        workout_service.register_session(WorkoutSession(date="2026-05-15"), [
+            {"name": "Bench Press", "sets": [{"set_number": 1, "reps": 5, "weight": 60}]}
+        ])
+    assert exc_info.value.code == "invalid_input"
+    assert WorkoutSessionModel.select().count() == 0
+    assert ExerciseSetModel.select().count() == 0
 
 
-def test_get_personal_record(db, workout_service):
-    ...
+def test_register_session_auto_creates_exercises(db, workout_service):
+    result = workout_service.register_session(WorkoutSession(date="15-05-2026"), [
+        {"name": "Zombie Curl", "sets": [{"set_number": 1, "reps": 12, "weight": 10}]}
+    ])
+    assert result["auto_created"] == ["Zombie Curl"]
+    row = ExerciseModel.get(ExerciseModel.name == "Zombie Curl")
+    assert row.muscle_group == "unknown"
+    assert row.type == "weight_reps"
 
 
-def test_get_by_day_multiple_sessions(db, workout_service):
-    ...
+def test_register_session_duplicate_set_number_raises(db, workout_service, exercises):
+    with pytest.raises(ValidationError) as exc_info:
+        workout_service.register_session(WorkoutSession(date="15-05-2026"), [
+            {
+                "name": "Bench Press",
+                "sets": [
+                    {"set_number": 1, "reps": 10, "weight": 80},
+                    {"set_number": 1, "reps": 8, "weight": 85},
+                ],
+            }
+        ])
+    assert exc_info.value.code == "invalid_input"
+    assert WorkoutSessionModel.select().count() == 0
+    assert ExerciseSetModel.select().count() == 0
 
 
-def test_estimate_1rm_epley(db, workout_service):
-    ...
+def test_register_session_missing_weight_raises(db, workout_service, exercises):
+    with pytest.raises(ValidationError) as exc_info:
+        workout_service.register_session(WorkoutSession(date="15-05-2026"), [
+            {"name": "Bench Press", "sets": [{"set_number": 1, "reps": 10}]}
+        ])
+    assert exc_info.value.code == "invalid_input"
+    assert WorkoutSessionModel.select().count() == 0
+    assert ExerciseSetModel.select().count() == 0
+
+
+def test_register_session_time_exercise_requires_duration(db, workout_service, exercises):
+    with pytest.raises(ValidationError) as exc_info:
+        workout_service.register_session(WorkoutSession(date="15-05-2026"), [
+            {"name": "Plank", "sets": [{"set_number": 1, "reps": 1, "weight": 0}]}
+        ])
+    assert exc_info.value.code == "invalid_input"
+
+    result = workout_service.register_session(WorkoutSession(date="16-05-2026"), [
+        {"name": "Plank", "sets": [{"set_number": 1, "duration": 90}]}
+    ])
+    assert len(result["sets"]) == 1
+
+
+def test_register_session_distance_exercise(db, workout_service, exercises):
+    result = workout_service.register_session(WorkoutSession(date="16-05-2026"), [
+        {"name": "Run", "sets": [{"set_number": 1, "distance": 5000}]}
+    ])
+    assert len(result["sets"]) == 1
+    assert result["sets"][0]["distance"] == 5000
+
+
+def test_pr_created_on_first_session(db, workout_service, exercises):
+    workout_service.register_session(WorkoutSession(date="15-05-2026"), [
+        {
+            "name": "Bench Press",
+            "sets": [
+                {"set_number": 1, "reps": 5, "weight": 20},
+                {"set_number": 2, "reps": 3, "weight": 40},
+            ],
+        }
+    ])
+    pr = PersonalRecordModel.get(PersonalRecordModel.exercise == exercises["Bench Press"].id)
+    assert pr.max_weight == 40
+    assert pr.max_reps == 3
+    assert pr.estimated_1rm == 44.0
+    assert pr.date == "15-05-2026"
+
+
+def test_pr_updated_when_better(db, workout_service, exercises):
+    workout_service.register_session(WorkoutSession(date="15-05-2026"), [
+        {"name": "Bench Press", "sets": [{"set_number": 1, "reps": 3, "weight": 40}]}
+    ])
+    result = workout_service.register_session(WorkoutSession(date="20-05-2026"), [
+        {"name": "Bench Press", "sets": [{"set_number": 1, "reps": 2, "weight": 45}]}
+    ])
+    pr = PersonalRecordModel.get()
+    assert pr.max_weight == 45
+    assert pr.max_reps == 2
+    assert pr.estimated_1rm == 48.0
+    assert pr.date == "20-05-2026"
+    assert len(result["new_prs"]) == 1
+
+
+def test_pr_not_updated_when_worse(db, workout_service, exercises):
+    workout_service.register_session(WorkoutSession(date="15-05-2026"), [
+        {"name": "Bench Press", "sets": [{"set_number": 1, "reps": 3, "weight": 40}]}
+    ])
+    result = workout_service.register_session(WorkoutSession(date="20-05-2026"), [
+        {"name": "Bench Press", "sets": [{"set_number": 1, "reps": 10, "weight": 30}]}
+    ])
+    pr = PersonalRecordModel.get()
+    assert pr.max_weight == 40
+    assert pr.estimated_1rm == 44.0
+    assert pr.date == "15-05-2026"
+    assert result["new_prs"] == []
+
+
+def test_pr_reps_one_uses_exact_weight(db, workout_service, exercises):
+    result = workout_service.register_session(WorkoutSession(date="15-05-2026"), [
+        {"name": "Bench Press", "sets": [{"set_number": 1, "reps": 1, "weight": 100}]}
+    ])
+    pr = PersonalRecordModel.get()
+    assert pr.estimated_1rm == 100.0
+    assert pr.max_reps == 1
+    assert result["new_prs"][0]["estimated_1rm"] == 100.0
+
+
+def test_pr_not_created_for_time_or_distance(db, workout_service, exercises):
+    workout_service.register_session(WorkoutSession(date="15-05-2026"), [
+        {"name": "Plank", "sets": [{"set_number": 1, "duration": 60}]},
+        {"name": "Run", "sets": [{"set_number": 1, "distance": 5000}]},
+    ])
+    assert PersonalRecordModel.select().count() == 0
