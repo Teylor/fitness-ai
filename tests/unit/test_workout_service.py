@@ -199,3 +199,74 @@ def test_pr_not_created_for_time_or_distance(db, workout_service, exercises):
         {"name": "Run", "sets": [{"set_number": 1, "distance": 5000}]},
     ])
     assert PersonalRecordModel.select().count() == 0
+
+
+# --- Read operations ---
+
+
+def test_get_last_workout_returns_most_recent(db, workout_service, exercises):
+    workout_service.register_session(WorkoutSession(date="10-05-2026"), [
+        {"name": "Bench Press", "sets": [{"set_number": 1, "reps": 10, "weight": 80}]}
+    ])
+    workout_service.register_session(WorkoutSession(date="15-05-2026"), [
+        {"name": "Bench Press", "sets": [{"set_number": 1, "reps": 8, "weight": 85}]},
+        {"name": "Plank", "sets": [{"set_number": 1, "duration": 60}]},
+    ])
+    result = workout_service.get_last_workout("Bench Press")
+    assert result is not None
+    assert result["exercise"] == "Bench Press"
+    assert result["date"] == "15-05-2026"
+    assert len(result["sets"]) == 1
+    assert result["sets"][0]["weight"] == 85
+
+
+def test_get_last_workout_fuzzy(db, workout_service, exercises):
+    workout_service.register_session(WorkoutSession(date="15-05-2026"), [
+        {"name": "Bench Press", "sets": [{"set_number": 1, "reps": 8, "weight": 85}]}
+    ])
+    result = workout_service.get_last_workout("bench pres")
+    assert result is not None
+    assert result["exercise"] == "Bench Press"
+
+
+def test_get_last_workout_not_found_returns_none(db, workout_service, exercises):
+    assert workout_service.get_last_workout("Nonexistent") is None
+
+
+def test_get_personal_record_returns_record(db, workout_service, exercises):
+    workout_service.register_session(WorkoutSession(date="15-05-2026"), [
+        {"name": "Bench Press", "sets": [{"set_number": 1, "reps": 3, "weight": 40}]}
+    ])
+    pr = workout_service.get_personal_record("Bench Press")
+    assert pr is not None
+    assert pr.exercise_id == exercises["Bench Press"].id
+    assert pr.max_weight == 40
+    assert pr.max_reps == 3
+    assert pr.estimated_1rm == 44.0
+    assert pr.date == "15-05-2026"
+
+
+def test_get_personal_record_not_found_returns_none(db, workout_service, exercises):
+    assert workout_service.get_personal_record("Bench Press") is None
+    assert workout_service.get_personal_record("zzz") is None
+
+
+def test_get_by_day_returns_sessions(db, workout_service, exercises):
+    workout_service.register_session(WorkoutSession(date="15-05-2026"), [
+        {"name": "Bench Press", "sets": [{"set_number": 1, "reps": 10, "weight": 80}]},
+    ])
+    workout_service.register_session(WorkoutSession(date="16-05-2026"), [
+        {"name": "Plank", "sets": [{"set_number": 1, "duration": 60}]},
+    ])
+    results = workout_service.get_by_day("15-05-2026")
+    assert len(results) == 1
+    assert results[0]["date"] == "15-05-2026"
+    assert len(results[0]["sets"]) == 1
+    assert results[0]["sets"][0]["exercise"] == "Bench Press"
+    assert workout_service.get_by_day("14-05-2026") == []
+
+
+def test_get_by_day_invalid_date_raises(db, workout_service, exercises):
+    with pytest.raises(ValidationError) as exc_info:
+        workout_service.get_by_day("2026-05-15")
+    assert exc_info.value.code == "invalid_input"

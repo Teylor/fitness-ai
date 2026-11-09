@@ -1,6 +1,6 @@
 """Workout Service (session registration + PR tracking)."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
 from src.db.models import (
@@ -10,6 +10,7 @@ from src.db.models import (
     WorkoutSession as WorkoutSessionModel,
 )
 from src.models.exercise import Exercise
+from src.models.personal_record import PersonalRecord
 from src.models.workout_session import WorkoutSession
 from src.services.exercise_service import ExerciseService
 from src.utils.errors import ValidationError
@@ -106,6 +107,116 @@ class WorkoutService:
                 "new_prs": new_prs,
                 "auto_created": auto_created,
             }
+
+    def get_last_workout(self, exercise_name: str) -> Optional[dict]:
+        """Most recent session containing the exercise (fuzzy name match). None if absent."""
+        ex = self.exercises.find_by_name(exercise_name)
+        if ex is None:
+            return None
+        session = (
+            WorkoutSessionModel.select()
+            .join(ExerciseSetModel)
+            .where(ExerciseSetModel.exercise == ex.id)
+            .order_by(WorkoutSessionModel.date.desc())
+            .first()
+        )
+        if session is None:
+            return None
+        sets = (
+            ExerciseSetModel.select()
+            .where(
+                (ExerciseSetModel.session == session.id)
+                & (ExerciseSetModel.exercise == ex.id)
+            )
+            .order_by(ExerciseSetModel.set_number)
+        )
+        return {
+            "exercise": ex.name,
+            "session_id": session.id,
+            "date": self._format_datetime(session.date),
+            "sets": [
+                {
+                    "set_number": s.set_number,
+                    "reps": s.reps,
+                    "weight": s.weight,
+                    "duration": s.duration,
+                    "distance": s.distance,
+                }
+                for s in sets
+            ],
+        }
+
+    def get_personal_record(self, exercise_name: str) -> Optional[PersonalRecord]:
+        """Personal record for the exercise (fuzzy name match). None if absent."""
+        ex = self.exercises.find_by_name(exercise_name)
+        if ex is None:
+            return None
+        row = PersonalRecordModel.get_or_none(
+            PersonalRecordModel.exercise == ex.id
+        )
+        if row is None:
+            return None
+        return PersonalRecord(
+            id=row.id,
+            exercise_id=row.exercise_id,
+            max_weight=row.max_weight,
+            max_reps=row.max_reps,
+            estimated_1rm=row.estimated_1rm,
+            date=row.date,
+            session_id=row.session_id,
+        )
+
+    def get_by_day(self, date: str) -> List[dict]:
+        """All sessions of a day (DD-MM-YYYY), each with its sets. Empty list if none."""
+        day_dt, _, _ = self._parse_session_date(date)
+        start = datetime(day_dt.year, day_dt.month, day_dt.day)
+        end = start + timedelta(days=1)
+        rows = (
+            WorkoutSessionModel.select()
+            .where(
+                (WorkoutSessionModel.date >= start)
+                & (WorkoutSessionModel.date < end)
+            )
+            .order_by(WorkoutSessionModel.date)
+        )
+        return [self._session_to_dict(s) for s in rows]
+
+    def _session_to_dict(self, session_row) -> dict:
+        sets = (
+            ExerciseSetModel.select()
+            .where(ExerciseSetModel.session == session_row.id)
+        )
+        rows = list(sets)
+        names = {
+            r.id: r.name
+            for r in ExerciseModel.select().where(
+                ExerciseModel.id.in_({s.exercise_id for s in rows})
+            )
+        }
+        rows.sort(key=lambda s: (names.get(s.exercise_id, ""), s.set_number))
+        return {
+            "id": session_row.id,
+            "date": self._format_datetime(session_row.date),
+            "notes": session_row.notes,
+            "sets": [
+                {
+                    "exercise": names.get(s.exercise_id, ""),
+                    "set_number": s.set_number,
+                    "reps": s.reps,
+                    "weight": s.weight,
+                    "duration": s.duration,
+                    "distance": s.distance,
+                }
+                for s in sets
+            ],
+        }
+
+    @staticmethod
+    def _format_datetime(dt) -> str:
+        s = dt.strftime("%d-%m-%Y")
+        if dt.time() != datetime.min.time():
+            s += " " + dt.strftime("%H:%M:%S")
+        return s
 
     @staticmethod
     def _parse_session_date(value: Optional[str]) -> Tuple[datetime, str, str]:
