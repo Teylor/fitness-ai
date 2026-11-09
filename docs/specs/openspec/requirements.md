@@ -100,5 +100,5 @@ The system runs 24/7 on a local PC (server mode). An AI agent (Hermes Agent) con
 
 ## Cross-references
 
-- Tool contract (18 MCP tools): [`api-spec.md`](./api-spec.md)
+- Tool contract (19 MCP tools): [`api-spec.md`](./api-spec.md)
 - Schema (9 tables): [`data-model.md`](./data-model.md)

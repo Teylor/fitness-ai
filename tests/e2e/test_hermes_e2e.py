@@ -27,14 +27,16 @@ EXPECTED_18_TOOLS = {
     # Exercises (2)
     "list_exercises",
     "create_exercise",
+    # UI Artifacts (1)
+    "get_ui_form",
 }
 
 
 @pytest.mark.anyio
 async def test_hermes_protocol_handshake_and_tool_discovery(hermes_client):
-    """Verify that Hermes can connect, initialize session, and discover all 18 tools."""
+    """Verify that Hermes can connect, initialize session, and discover all tools."""
     tool_names = await hermes_client.list_tool_names()
-    assert len(tool_names) == 18
+    assert len(tool_names) == 19
     assert tool_names == EXPECTED_18_TOOLS
 
     tools = await hermes_client.list_tools()
@@ -419,4 +421,27 @@ async def test_hermes_error_resilience_and_typed_envelopes(hermes_client):
     )
     assert ghost_ing["status"] == "error"
     assert ghost_ing["code"] == "not_found"
+
+
+@pytest.mark.anyio
+async def test_hermes_ui_artifact_flow(hermes_client):
+    """E2E Scenario: Hermes requests interactive HTML artifacts to render in chat GUI."""
+    # Request default hub artifact
+    hub_res = await hermes_client.call_tool("get_ui_form", form_type="hub")
+    assert hub_res["status"] == "ok"
+    assert hub_res["form_type"] == "hub"
+    assert "<!DOCTYPE html>" in hub_res["html"]
+    assert "Fitness AI Hub" in hub_res["html"]
+
+    # Request focused workout form artifact
+    workout_res = await hermes_client.call_tool("get_ui_form", form_type="workout")
+    assert workout_res["status"] == "ok"
+    assert workout_res["form_type"] == "workout"
+    assert "Registrar Entrenamiento" in workout_res["html"]
+
+    # Request invalid form type -> typed error
+    invalid_res = await hermes_client.call_tool("get_ui_form", form_type="invalid_view")
+    assert invalid_res["status"] == "error"
+    assert invalid_res["code"] == "invalid_input"
+
 

@@ -1,6 +1,8 @@
 """MCP server setup and tool registration."""
 
 from mcp.server.mcpserver import MCPServer
+from starlette.requests import Request
+from starlette.responses import HTMLResponse, JSONResponse
 
 from src.mcp.tools.exercise_tools import create_exercise, list_exercises
 from src.mcp.tools.goal_tools import get_daily_goal, set_daily_goal
@@ -17,12 +19,14 @@ from src.mcp.tools.recipe_tools import (
     list_recipes,
     update_recipe,
 )
+from src.mcp.tools.ui_tools import get_ui_form
 from src.mcp.tools.workout_tools import (
     get_last_workout,
     get_personal_record,
     get_workouts_by_day,
     register_workout,
 )
+from src.ui.html_generator import generate_html
 
 
 def create_server() -> MCPServer:
@@ -58,5 +62,51 @@ def create_server() -> MCPServer:
     # Exercise tools (2)
     server.add_tool(list_exercises, name="list_exercises")
     server.add_tool(create_exercise, name="create_exercise")
+
+    # UI tool (1)
+    server.add_tool(get_ui_form, name="get_ui_form")
+
+    # Custom HTTP web routes for interactive artifacts
+    @server.custom_route("/ui", methods=["GET"])
+    async def ui_hub_handler(request: Request) -> HTMLResponse:
+        form_type = request.query_params.get("form", "hub")
+        return HTMLResponse(generate_html(form_type))
+
+    @server.custom_route("/ui/{form_type}", methods=["GET"])
+    async def ui_form_handler(request: Request) -> HTMLResponse:
+        form_type = request.path_params.get("form_type", "hub")
+        return HTMLResponse(generate_html(form_type))
+
+    @server.custom_route("/api/{tool_name}", methods=["GET", "POST"])
+    async def api_dispatch_handler(request: Request) -> JSONResponse:
+        tool_name = request.path_params.get("tool_name")
+        tool = server._tool_manager.get_tool(tool_name)
+        if not tool:
+            return JSONResponse(
+                {
+                    "status": "error",
+                    "code": "not_found",
+                    "message": f"unknown tool or endpoint '{tool_name}'",
+                },
+                status_code=404,
+            )
+
+        kwargs = {}
+        if request.method == "POST":
+            try:
+                kwargs = await request.json()
+            except Exception:
+                kwargs = {}
+        else:
+            kwargs = dict(request.query_params)
+
+        try:
+            result = tool.fn(**kwargs)
+            return JSONResponse(result)
+        except Exception as exc:
+            return JSONResponse(
+                {"status": "error", "code": "internal", "message": str(exc)},
+                status_code=500,
+            )
 
     return server

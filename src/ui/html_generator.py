@@ -1,0 +1,763 @@
+"""Generate self-contained interactive HTML artifacts for Hermes GUI and web routes."""
+
+from typing import Optional
+
+VALID_FORM_TYPES = ("hub", "meal", "recipe", "ingredient", "workout", "summary")
+
+
+def generate_html(form_type: Optional[str] = "hub") -> str:
+    """Generate self-contained interactive HTML artifact.
+
+    Args:
+        form_type: One of 'hub', 'meal', 'recipe', 'ingredient', 'workout', 'summary'.
+                   Defaults to 'hub'. If a specific form type is chosen, that tab is activated.
+
+    Returns:
+        Full HTML5 document string with embedded CSS and vanilla JS.
+    """
+    active_tab = form_type.lower() if form_type and form_type.lower() in VALID_FORM_TYPES else "hub"
+    if active_tab == "hub":
+        active_tab = "meal"
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fitness AI - Hermes Hub</title>
+  <style>
+    :root {{
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #10b981;
+      --primary-hover: #059669;
+      --cyan: #06b6d4;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --input-bg: #0f172a;
+      --radius: 10px;
+    }}
+
+    * {{
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }}
+
+    body {{
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }}
+
+    .container {{
+      width: 100%;
+      max-width: 820px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }}
+
+    header {{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 18px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }}
+
+    .brand {{
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--primary);
+    }}
+
+    .nav-tabs {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      background: var(--card-bg);
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }}
+
+    .tab-btn {{
+      flex: 1 1 auto;
+      min-width: 110px;
+      padding: 10px 14px;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }}
+
+    .tab-btn:hover {{
+      color: var(--text);
+      background: #33415555;
+    }}
+
+    .tab-btn.active {{
+      background: var(--primary);
+      color: #042f2e;
+    }}
+
+    .tab-content {{
+      display: none;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }}
+
+    .tab-content.active {{
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }}
+
+    h2 {{
+      font-size: 1.25rem;
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }}
+
+    .form-grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }}
+
+    .form-group {{
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }}
+
+    label {{
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }}
+
+    input, select, textarea {{
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      outline: none;
+    }}
+
+    input:focus, select:focus, textarea:focus {{
+      border-color: var(--primary);
+    }}
+
+    .btn {{
+      padding: 11px 18px;
+      background: var(--primary);
+      color: #042f2e;
+      border: none;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }}
+
+    .btn:hover {{
+      background: var(--primary-hover);
+    }}
+
+    .btn-secondary {{
+      background: #334155;
+      color: var(--text);
+    }}
+
+    .btn-secondary:hover {{
+      background: #475569;
+    }}
+
+    .btn-danger {{
+      background: var(--danger);
+      color: #fff;
+    }}
+
+    .btn-sm {{
+      padding: 6px 10px;
+      font-size: 0.8rem;
+    }}
+
+    .table-container {{
+      overflow-x: auto;
+      margin-top: 8px;
+    }}
+
+    table {{
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }}
+
+    th, td {{
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }}
+
+    th {{
+      color: var(--text-muted);
+      font-weight: 600;
+    }}
+
+    .badge {{
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }}
+
+    .badge-ok {{ background: #064e3b; color: #6ee7b7; }}
+    .badge-info {{ background: #164e63; color: #67e8f9; }}
+
+    .macro-preview {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 8px;
+      background: var(--input-bg);
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }}
+
+    .macro-stat {{
+      text-align: center;
+    }}
+
+    .macro-val {{
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--primary);
+    }}
+
+    .macro-lbl {{
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }}
+
+    .result-box {{
+      display: none;
+      padding: 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #022c22;
+      color: #a7f3d0;
+      font-size: 0.9rem;
+      flex-direction: column;
+      gap: 8px;
+    }}
+
+    .copy-area {{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0f172a;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #94a3b8;
+      overflow-x: auto;
+    }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <span>⚡</span> Fitness AI Hub
+      </div>
+      <div style="font-size: 0.85rem; color: var(--text-muted);">
+        Hermes GUI Artifact
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs" role="tablist">
+      <button class="tab-btn {'active' if active_tab == 'meal' else ''}" onclick="switchTab('meal')">🥗 Comidas</button>
+      <button class="tab-btn {'active' if active_tab == 'recipe' else ''}" onclick="switchTab('recipe')">🍲 Recetas</button>
+      <button class="tab-btn {'active' if active_tab == 'ingredient' else ''}" onclick="switchTab('ingredient')">🥑 Ingredientes</button>
+      <button class="tab-btn {'active' if active_tab == 'workout' else ''}" onclick="switchTab('workout')">🏋️ Entrenamientos</button>
+      <button class="tab-btn {'active' if active_tab == 'summary' else ''}" onclick="switchTab('summary')">📊 Resumen</button>
+    </nav>
+
+    <!-- TAB 1: MEAL LOGGER -->
+    <section id="tab-meal" class="tab-content {'active' if active_tab == 'meal' else ''}">
+      <h2>🥗 Registrar Comida</h2>
+      <form id="form-meal" onsubmit="submitMeal(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="meal-date">Fecha (DD-MM-YYYY)</label>
+            <input type="text" id="meal-date" required placeholder="DD-MM-YYYY">
+          </div>
+          <div class="form-group">
+            <label for="meal-type">Tipo de Alimento</label>
+            <select id="meal-type">
+              <option value="ingredient">Ingrediente</option>
+              <option value="recipe">Receta</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="meal-item">Nombre (ej: Arroz, Pechuga, Bowl)</label>
+            <input type="text" id="meal-item" required placeholder="Nombre del alimento...">
+          </div>
+          <div class="form-group">
+            <label for="meal-qty">Cantidad</label>
+            <input type="number" id="meal-qty" step="any" min="0.1" required placeholder="100">
+          </div>
+          <div class="form-group">
+            <label for="meal-unit">Unidad</label>
+            <select id="meal-unit">
+              <option value="gr">Gramos (gr)</option>
+              <option value="ml">Mililitros (ml)</option>
+              <option value="u">Unidades (u)</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top: 14px; display: flex; gap: 8px;">
+          <button type="submit" class="btn">Registrar Ingesta</button>
+        </div>
+      </form>
+      <div id="meal-result" class="result-box"></div>
+    </section>
+
+    <!-- TAB 2: RECIPE BUILDER -->
+    <section id="tab-recipe" class="tab-content {'active' if active_tab == 'recipe' else ''}">
+      <h2>🍲 Constructor de Recetas</h2>
+      <form id="form-recipe" onsubmit="submitRecipe(event)">
+        <div class="form-grid">
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label for="recipe-name">Nombre de la Receta</label>
+            <input type="text" id="recipe-name" required placeholder="Ej: Bowl de Pollo y Arroz...">
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+          <label>Ingredientes de la Receta</label>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="addRecipeRow()">+ Añadir Ingrediente</button>
+        </div>
+
+        <div class="table-container">
+          <table id="recipe-items-table">
+            <thead>
+              <tr>
+                <th>Ingrediente</th>
+                <th style="width: 130px;">Cantidad</th>
+                <th style="width: 120px;">Unidad</th>
+                <th style="width: 50px;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Dynamic rows -->
+            </tbody>
+          </table>
+        </div>
+
+        <div style="margin-top: 14px; display: flex; gap: 8px;">
+          <button type="submit" class="btn">Guardar Receta</button>
+        </div>
+      </form>
+      <div id="recipe-result" class="result-box"></div>
+    </section>
+
+    <!-- TAB 3: INGREDIENT MANAGER -->
+    <section id="tab-ingredient" class="tab-content {'active' if active_tab == 'ingredient' else ''}">
+      <h2>🥑 Crear / Editar Ingrediente</h2>
+      <form id="form-ingredient" onsubmit="submitIngredient(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="ing-name">Nombre del Ingrediente</label>
+            <input type="text" id="ing-name" required placeholder="Ej: Avena, Huevo, Aceite...">
+          </div>
+          <div class="form-group">
+            <label for="ing-unit">Unidad Base</label>
+            <select id="ing-unit">
+              <option value="gr">100 Gramos (gr)</option>
+              <option value="ml">100 Mililitros (ml)</option>
+              <option value="u">1 Unidad (u)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="ing-kcal">Calorías (kcal)</label>
+            <input type="number" id="ing-kcal" step="any" min="0" required placeholder="0">
+          </div>
+          <div class="form-group">
+            <label for="ing-protein">Proteína (g)</label>
+            <input type="number" id="ing-protein" step="any" min="0" required placeholder="0">
+          </div>
+          <div class="form-group">
+            <label for="ing-carbs">Carbohidratos (g)</label>
+            <input type="number" id="ing-carbs" step="any" min="0" required placeholder="0">
+          </div>
+          <div class="form-group">
+            <label for="ing-fat">Grasas (g)</label>
+            <input type="number" id="ing-fat" step="any" min="0" required placeholder="0">
+          </div>
+          <div class="form-group">
+            <label for="ing-price">Precio (€ por unidad base)</label>
+            <input type="number" id="ing-price" step="any" min="0" placeholder="0.0">
+          </div>
+        </div>
+        <div style="margin-top: 14px; display: flex; gap: 8px;">
+          <button type="submit" class="btn">Guardar Ingrediente</button>
+        </div>
+      </form>
+      <div id="ingredient-result" class="result-box"></div>
+    </section>
+
+    <!-- TAB 4: WORKOUT LOGGER -->
+    <section id="tab-workout" class="tab-content {'active' if active_tab == 'workout' else ''}">
+      <h2>🏋️ Registrar Entrenamiento</h2>
+      <form id="form-workout" onsubmit="submitWorkout(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="workout-date">Fecha y Hora (opcional)</label>
+            <input type="text" id="workout-date" placeholder="DD-MM-YYYY HH:MM">
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label for="workout-notes">Notas de la sesión</label>
+            <input type="text" id="workout-notes" placeholder="Ej: Push day enfocado en fuerza...">
+          </div>
+        </div>
+
+        <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 12px;" id="workout-exercises-container">
+          <!-- Exercise blocks added dynamically -->
+        </div>
+
+        <div style="margin-top: 8px;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="addExerciseBlock()">+ Añadir Ejercicio</button>
+        </div>
+
+        <div style="margin-top: 14px; display: flex; gap: 8px;">
+          <button type="submit" class="btn">Registrar Sesión</button>
+        </div>
+      </form>
+      <div id="workout-result" class="result-box"></div>
+    </section>
+
+    <!-- TAB 5: DAILY SUMMARY -->
+    <section id="tab-summary" class="tab-content {'active' if active_tab == 'summary' else ''}">
+      <h2>📊 Resumen Diario</h2>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="summary-date">Fecha</label>
+          <input type="text" id="summary-date" placeholder="DD-MM-YYYY">
+        </div>
+        <div class="form-group" style="justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" onclick="fetchSummary()">Consultar Resumen</button>
+        </div>
+      </div>
+      <div id="summary-cards" style="margin-top: 12px; display: none;">
+        <div class="macro-preview" id="summary-macros"></div>
+        <div class="table-container" style="margin-top: 12px;">
+          <table id="summary-meals-table">
+            <thead><tr><th>Comida</th><th>Cantidad</th><th>Kcal</th><th>P / C / G</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="summary-result" class="result-box"></div>
+    </section>
+  </div>
+
+  <script>
+    // Tab switching
+    function switchTab(tabName) {{
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.textContent.toLowerCase().includes(tabName));
+      if (activeBtn) activeBtn.classList.add('active');
+      const target = document.getElementById('tab-' + tabName);
+      if (target) target.classList.add('active');
+    }}
+
+    // Default dates to today
+    function formatToday(withTime = false) {{
+      const d = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const dateStr = `${{pad(d.getDate())}}-${{pad(d.getMonth() + 1)}}-${{d.getFullYear()}}`;
+      if (withTime) {{
+        return `${{dateStr}} ${{pad(d.getHours())}}:${{pad(d.getMinutes())}}`;
+      }}
+      return dateStr;
+    }}
+
+    document.getElementById('meal-date').value = formatToday(false);
+    document.getElementById('workout-date').value = formatToday(true);
+    document.getElementById('summary-date').value = formatToday(false);
+
+    // Dynamic Recipe Rows
+    function addRecipeRow(name = '', qty = 100, unit = 'gr') {{
+      const tbody = document.querySelector('#recipe-items-table tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text" class="rec-item-name" required value="${{name}}" placeholder="Ingrediente..."></td>
+        <td><input type="number" class="rec-item-qty" required value="${{qty}}" min="0.1" step="any"></td>
+        <td>
+          <select class="rec-item-unit">
+            <option value="gr" ${{unit === 'gr' ? 'selected' : ''}}>gr</option>
+            <option value="ml" ${{unit === 'ml' ? 'selected' : ''}}>ml</option>
+            <option value="u" ${{unit === 'u' ? 'selected' : ''}}>u</option>
+          </select>
+        </td>
+        <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()">×</button></td>
+      `;
+      tbody.appendChild(tr);
+    }}
+    addRecipeRow('Pechuga de Pollo', 200, 'gr');
+    addRecipeRow('Arroz', 100, 'gr');
+
+    // Dynamic Workout Exercises & Sets
+    let exerciseCount = 0;
+    function addExerciseBlock(name = 'Press de Banca') {{
+      exerciseCount++;
+      const id = 'ex-' + exerciseCount;
+      const container = document.getElementById('workout-exercises-container');
+      const div = document.createElement('div');
+      div.id = id;
+      div.style.cssText = 'background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px;';
+      div.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <input type="text" class="ex-name" required value="${{name}}" style="font-weight: 700; width: 60%;" placeholder="Nombre del ejercicio...">
+          <button type="button" class="btn btn-danger btn-sm" onclick="document.getElementById('${{id}}').remove()">Eliminar Ejercicio</button>
+        </div>
+        <div class="table-container">
+          <table class="sets-table">
+            <thead><tr><th style="width: 50px;">Set</th><th>Reps</th><th>Peso (kg)</th><th>1RM Est.</th><th style="width: 40px;"></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" style="align-self: flex-start;" onclick="addSetRow('${{id}}')">+ Añadir Serie</button>
+      `;
+      container.appendChild(div);
+      addSetRow(id, 1, 10, 60);
+      addSetRow(id, 2, 8, 70);
+    }}
+
+    function addSetRow(exBlockId, setNum, reps = 10, weight = 50) {{
+      const tbody = document.querySelector(`#${{exBlockId}} .sets-table tbody`);
+      const rowCount = tbody.children.length + 1;
+      const num = setNum || rowCount;
+      const tr = document.createElement('tr');
+      const calc1rm = (w, r) => r === 1 ? w : Math.round(w * (1 + r / 30) * 100) / 100;
+      const initial1rm = calc1rm(weight, reps);
+
+      tr.innerHTML = `
+        <td><span class="badge badge-info set-num">${{num}}</span></td>
+        <td><input type="number" class="set-reps" value="${{reps}}" min="1" style="width: 80px;" oninput="updateSet1RM(this)"></td>
+        <td><input type="number" class="set-weight" value="${{weight}}" step="any" min="0" style="width: 90px;" oninput="updateSet1RM(this)"></td>
+        <td><span class="set-1rm" style="color: var(--primary); font-weight: 700;">${{initial1rm}} kg</span></td>
+        <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove(); renumberSets('${{exBlockId}}');">×</button></td>
+      `;
+      tbody.appendChild(tr);
+    }}
+
+    function updateSet1RM(input) {{
+      const tr = input.closest('tr');
+      const reps = parseFloat(tr.querySelector('.set-reps').value) || 0;
+      const weight = parseFloat(tr.querySelector('.set-weight').value) || 0;
+      const est1rm = reps === 1 ? weight : Math.round(weight * (1 + reps / 30) * 100) / 100;
+      tr.querySelector('.set-1rm').textContent = `${{est1rm}} kg`;
+    }}
+
+    function renumberSets(exBlockId) {{
+      const tbody = document.querySelector(`#${{exBlockId}} .sets-table tbody`);
+      Array.from(tbody.children).forEach((tr, idx) => {{
+        tr.querySelector('.set-num').textContent = idx + 1;
+      }});
+    }}
+    addExerciseBlock('Press de Banca');
+
+    // Universal Dispatch & Result Display
+    async function executeAction(toolName, payload, resultElementId, promptDescription) {{
+      const resEl = document.getElementById(resultElementId);
+      resEl.style.display = 'flex';
+      resEl.style.background = '#022c22';
+      resEl.style.color = '#a7f3d0';
+      resEl.innerHTML = `⏳ Enviando a Fitness AI...`;
+
+      try {{
+        const resp = await fetch(`/api/${{toolName}}`, {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify(payload)
+        }});
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+
+        if (data.status === 'ok') {{
+          resEl.innerHTML = `
+            <strong>✅ Operación completada con éxito</strong>
+            <div>${{JSON.stringify(data, null, 2)}}</div>
+          `;
+        }} else {{
+          throw new Error(data.message || data.code || 'Error desconocido');
+        }}
+      }} catch (err) {{
+        // Fallback / Offline Hermes prompt copy mode
+        resEl.style.background = '#3b1d04';
+        resEl.style.color = '#fed7aa';
+        resEl.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong>ℹ️ Modo Asistente / Hermes Prompt</strong>
+            <span class="badge" style="background: #9a3412; color: #ffedd5;">Directo / Copiar</span>
+          </div>
+          <p style="font-size: 0.85rem;">${{err.message.includes('fetch') ? 'Servidor local no detectado por CORS/Red directa. Puedes copiar el comando para Hermes:' : err.message}}</p>
+          <div class="copy-area">
+            <span>${{promptDescription}}</span>
+            <button class="btn btn-sm" onclick="navigator.clipboard.writeText('${{promptDescription.replace(/'/g, "\\\\'")}}'); this.textContent = '¡Copiado!';">Copiar</button>
+          </div>
+        `;
+      }}
+    }}
+
+    // Form handlers
+    function submitMeal(e) {{
+      e.preventDefault();
+      const payload = {{
+        date: document.getElementById('meal-date').value,
+        item_name: document.getElementById('meal-item').value,
+        item_type: document.getElementById('meal-type').value,
+        quantity: parseFloat(document.getElementById('meal-qty').value),
+        unit: document.getElementById('meal-unit').value
+      }};
+      const prompt = `Registra una comida de ${{payload.quantity}} ${{payload.unit}} de ${{payload.item_name}} para la fecha ${{payload.date}}`;
+      executeAction('register_meal', payload, 'meal-result', prompt);
+    }}
+
+    function submitIngredient(e) {{
+      e.preventDefault();
+      const payload = {{
+        name: document.getElementById('ing-name').value,
+        unit: document.getElementById('ing-unit').value,
+        kcal: parseFloat(document.getElementById('ing-kcal').value) || 0,
+        protein: parseFloat(document.getElementById('ing-protein').value) || 0,
+        carbs: parseFloat(document.getElementById('ing-carbs').value) || 0,
+        fat: parseFloat(document.getElementById('ing-fat').value) || 0,
+        price: parseFloat(document.getElementById('ing-price').value) || 0
+      }};
+      const prompt = `Crea el ingrediente ${{payload.name}} (${{payload.unit}}): ${{payload.kcal}} kcal, ${{payload.protein}}g P, ${{payload.carbs}}g C, ${{payload.fat}}g G`;
+      executeAction('create_ingredient', payload, 'ingredient-result', prompt);
+    }}
+
+    function submitRecipe(e) {{
+      e.preventDefault();
+      const items = [];
+      document.querySelectorAll('#recipe-items-table tbody tr').forEach(tr => {{
+        items.push({{
+          name: tr.querySelector('.rec-item-name').value,
+          quantity: parseFloat(tr.querySelector('.rec-item-qty').value) || 0,
+          unit: tr.querySelector('.rec-item-unit').value
+        }});
+      }});
+      const payload = {{
+        name: document.getElementById('recipe-name').value,
+        ingredients: items
+      }};
+      const prompt = `Crea la receta ${{payload.name}} con ingredientes: ` + items.map(i => `${{i.quantity}} ${{i.unit}} de ${{i.name}}`).join(', ');
+      executeAction('create_recipe', payload, 'recipe-result', prompt);
+    }}
+
+    function submitWorkout(e) {{
+      e.preventDefault();
+      const exercises = [];
+      document.querySelectorAll('#workout-exercises-container > div').forEach(div => {{
+        const exName = div.querySelector('.ex-name').value;
+        const sets = [];
+        div.querySelectorAll('.sets-table tbody tr').forEach((tr, i) => {{
+          sets.push({{
+            set_number: i + 1,
+            reps: parseInt(tr.querySelector('.set-reps').value) || 1,
+            weight: parseFloat(tr.querySelector('.set-weight').value) || 0
+          }});
+        }});
+        exercises.push({{ name: exName, sets }});
+      }});
+      const payload = {{
+        date: document.getElementById('workout-date').value || undefined,
+        notes: document.getElementById('workout-notes').value || undefined,
+        exercises
+      }};
+      const prompt = `Registra entrenamiento: ` + exercises.map(e => `${{e.name}} (${{e.sets.length}} series)`).join(', ');
+      executeAction('register_workout', payload, 'workout-result', prompt);
+    }}
+
+    async function fetchSummary() {{
+      const date = document.getElementById('summary-date').value || formatToday(false);
+      const resEl = document.getElementById('summary-result');
+      const cardsEl = document.getElementById('summary-cards');
+      try {{
+        const resp = await fetch(`/api/get_day_summary?date=${{date}}`);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        if (data.status === 'ok') {{
+          cardsEl.style.display = 'block';
+          resEl.style.display = 'none';
+          const c = data.consumed || {{ kcal: 0, protein: 0, carbs: 0, fat: 0 }};
+          const g = data.goal || {{ kcal: 0, protein: 0, carbs: 0, fat: 0 }};
+          document.getElementById('summary-macros').innerHTML = `
+            <div class="macro-stat"><div class="macro-val">${{c.kcal}}</div><div class="macro-lbl">Kcal (${{g.kcal ? 'Meta ' + g.kcal : 'Sin meta'}})</div></div>
+            <div class="macro-stat"><div class="macro-val">${{c.protein}}g</div><div class="macro-lbl">Proteína (${{g.protein}}g)</div></div>
+            <div class="macro-stat"><div class="macro-val">${{c.carbs}}g</div><div class="macro-lbl">Carbos (${{g.carbs}}g)</div></div>
+            <div class="macro-stat"><div class="macro-val">${{c.fat}}g</div><div class="macro-lbl">Grasas (${{g.fat}}g)</div></div>
+          `;
+          const tbody = document.querySelector('#summary-meals-table tbody');
+          tbody.innerHTML = '';
+          (data.meals || []).forEach(m => {{
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${{m.name || m.item_type}}</td><td>${{m.quantity}} ${{m.unit}}</td><td>${{m.kcal}}</td><td>${{m.protein}}g / ${{m.carbs}}g / ${{m.fat}}g</td>`;
+            tbody.appendChild(tr);
+          }});
+        }} else {{
+          throw new Error(data.message || 'No se pudo cargar el resumen');
+        }}
+      }} catch (err) {{
+        resEl.style.display = 'flex';
+        resEl.style.background = '#3b1d04';
+        resEl.style.color = '#fed7aa';
+        resEl.innerHTML = `ℹ️ Consulta con Hermes: <code>Dame el resumen del día ${{date}}</code>`;
+      }}
+    }}
+  </script>
+</body>
+</html>
+"""
