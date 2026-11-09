@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS daily_goals (
 CREATE TABLE IF NOT EXISTS exercises (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     name          TEXT    NOT NULL UNIQUE,
-    muscle_group  TEXT    NOT NULL DEFAULT 'desconocido',
+    muscle_group  TEXT    NOT NULL DEFAULT 'unknown',
     type          TEXT    NOT NULL DEFAULT 'weight_reps' CHECK (type IN ('weight_reps', 'time', 'distance')),
     created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
 );

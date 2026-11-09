@@ -1,4 +1,4 @@
-"""Modelo Exercise."""
+"""Exercise domain model."""
 
 from dataclasses import dataclass
 from typing import Optional
@@ -6,7 +6,7 @@ from typing import Optional
 
 @dataclass
 class Exercise:
-    """Ejercicio del catálogo."""
+    """Exercise in the catalog."""
 
     name: str
     muscle_group: str = "unknown"

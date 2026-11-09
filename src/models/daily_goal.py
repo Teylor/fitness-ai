@@ -1,4 +1,4 @@
-"""Modelo DailyGoal."""
+"""DailyGoal domain model."""
 
 from dataclasses import dataclass
 from typing import Optional
@@ -6,7 +6,7 @@ from typing import Optional
 
 @dataclass
 class DailyGoal:
-    """Objetivo diario de macros."""
+    """Daily macro goal."""
 
     date: str  # DD-MM-YYYY
     kcal: float

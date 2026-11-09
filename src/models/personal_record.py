@@ -1,4 +1,4 @@
-"""Modelo PersonalRecord."""
+"""PersonalRecord domain model."""
 
 from dataclasses import dataclass
 from typing import Optional
@@ -6,7 +6,7 @@ from typing import Optional
 
 @dataclass
 class PersonalRecord:
-    """PR de un ejercicio."""
+    """Personal record of an exercise."""
 
     exercise_id: int
     max_weight: float
