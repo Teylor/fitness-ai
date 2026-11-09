@@ -16,7 +16,7 @@ class GoogleHealthClient:
         base_url: Optional[str] = None,
         http_client: Optional[httpx2.Client] = None,
     ):
-        self.token = token or settings.google_health_token
+        self.token = token if token is not None else settings.google_health_token
         self.base_url = (base_url or settings.google_health_api_url).rstrip("/")
         self._http_client = http_client
 
