@@ -31,3 +31,4 @@ class WeightRecord:
     source: str = "google_health"
     id: Optional[int] = None
     created_at: Optional[str] = None
+

@@ -131,3 +131,4 @@ def test_fetch_weight_persists_records(db):
     db_row = WeightLog.get()
     assert db_row.weight_kg == 78.5
     assert db_row.bmi == 23.4
+

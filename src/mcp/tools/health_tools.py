@@ -78,3 +78,4 @@ def sync_google_health(date: Optional[str] = None) -> dict:
         return err.to_dict()
     except Exception as exc:
         return {"status": "error", "code": "internal", "message": str(exc)}
+

@@ -29,3 +29,4 @@ CREATE TABLE IF NOT EXISTS weight_logs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_weight_logs_date ON weight_logs(date);
+

@@ -106,3 +106,4 @@ class GoogleHealthClient:
             )
         data = resp.json()
         return data.get("dataPoints", []) if isinstance(data, dict) else data
+
