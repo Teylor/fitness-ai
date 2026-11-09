@@ -32,7 +32,6 @@
 
 | # | Priority | Feature | State | Note |
 |---|-----------|---------|--------|------|
-| 6 | P1 | `hermes-e2e` | ✅ Approved | End-to-end verification with a real MCP client (Hermes). |
 | 7 | P2 | `db-robustness` | ✅ Approved | Rollback in `get_db()` (pending db-layer close). |
 | 8 | P3 | `seed-data` | ✅ Approved | Initial catalog of ingredients/exercises. |
 | 9 | P2 | `odd-merge-back` | ✅ Approved | When closing, reflux the met criteria to global `docs/specs/` (mimics OpenSpec's delta merge; closes the ODD's weak point). |
@@ -45,7 +44,7 @@
 
 | Feature | File |
 |---------|---------|
-| — | — |
+| `hermes-e2e` | `odd/tasks/hermes-e2e.md` |
 
 ---
 
