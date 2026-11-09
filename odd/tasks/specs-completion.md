@@ -47,13 +47,22 @@ Complete the OpenSpec documentation so the three files in `docs/specs/openspec/`
 ## Tasks
 > Check the box as each task is completed.
 
-- [ ] T1: Complete `docs/specs/openspec/requirements.md` (goals, actors, FR1–FR6, NFRs)
-- [ ] T2: Complete `docs/specs/openspec/api-spec.md` (conventions + 18 tools)
-- [ ] T3: Align `docs/specs/openspec/data-model.md` with migration + Peewee models
-- [ ] T4: Cross-consistency verification (tools/errors/format vs code) + full test suite
+- [x] T1: Complete `docs/specs/openspec/requirements.md` (goals, actors, FR1–FR6, NFRs)
+- [x] T2: Complete `docs/specs/openspec/api-spec.md` (conventions + 18 tools)
+- [x] T3: Align `docs/specs/openspec/data-model.md` with migration + Peewee models
+- [x] T4: Cross-consistency verification (tools/errors/format vs code) + full test suite
 
 ## Verification
 > Spec contrast (filled at close)
 
+- C1 `requirements.md`: goals, non-goals, actors, FR1–FR6 (nutrition, meals, goals + fallback, training, workouts, PRs with Epley/reps=1 rule), NFR1–NFR6. Behavior claims re-verified in code: recipe macros × quantity (`meal_service.py`), goal fallback chain + default-clear (`goal_service.py`), strict-greater PR update (`workout_service.py`). ✔
+- C2 `api-spec.md`: 18 documented tools == 18 registered tools (`server.py`, checked programmatically); every signature/arg/default matches `inspect.signature` of `src/mcp/tools/*.py` (checked programmatically); error codes match `src/utils/errors.py` (`not_found`, `duplicate`, `invalid_input`, `conflict`, `internal`); date convention fixed to `DD-MM-YYYY[ HH:MM[:SS]]`. ✔
+- C3 `data-model.md`: `muscle_group` default `'unknown'`; `workout_sessions.date` documented as stored datetime exception; every table/index/constraint matches `001_initial.sql`. ✔
+- C4: No Spanish residuals in the three files (accent/word scan clean); full test suite green: **135 passed**.
+
 ## Close
 > Close (filled at close)
+
+- **Date:** 2026-11
+- **Commits:** `552dce2` (T1) · `6a285ec` (T2) · `1cc012f` (T3)
+- **Next:** PR to `main`; no code was changed, so merge order vs `feat/services-training` is irrelevant for code (this branch already contains the training code, so it merges cleanly on top).

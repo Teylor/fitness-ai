@@ -45,7 +45,7 @@
 
 | Feature | File |
 |---------|---------|
-| `specs-completion` | `odd/tasks/specs-completion.md` |
+| — | — |
 
 ---
 
@@ -56,6 +56,7 @@
 | `services-training` | `odd/tasks/services-training.md` | 2026-11 |
 | `mcp-server` | `odd/tasks/mcp-server.md` | 2026-11 |
 | `services-nutrition` | `odd/tasks/services-nutrition.md` | 2026-11 |
+| `specs-completion` | `odd/tasks/specs-completion.md` | 2026-11 |
 | db-layer | `odd/tasks/db-layer.md` | 2026-11 |
 | utils-core | `odd/tasks/utils-core.md` | 2026-11 |
 | translate-to-english | `odd/tasks/translate-to-english.md` | 2026-11 |
