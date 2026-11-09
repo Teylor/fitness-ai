@@ -25,6 +25,7 @@ EXPECTED_TOOLS = {
     "get_workouts_by_day",
     "list_exercises",
     "create_exercise",
+    "get_ui_form",
 }
 
 
@@ -34,21 +35,24 @@ def test_create_server_returns_configured_mcp_server():
     assert server.name == "fitness-ai"
 
 
-def test_server_registers_all_eighteen_tools():
+def test_server_registers_all_nineteen_tools():
     server = create_server()
     tools = server._tool_manager.list_tools()
     tool_names = {t.name for t in tools}
 
-    assert len(tools) == 18
+    assert len(tools) == 19
     assert tool_names == EXPECTED_TOOLS
 
 
-def test_streamable_http_app_exposes_mcp_route():
+def test_streamable_http_app_exposes_mcp_and_ui_routes():
     server = create_server()
     app = server.streamable_http_app()
     route_paths = [r.path for r in app.routes]
 
     assert "/mcp" in route_paths
+    assert "/ui" in route_paths
+    assert "/ui/{form_type}" in route_paths
+    assert "/api/{tool_name}" in route_paths
 
 
 def test_registered_tools_have_descriptions_and_parameters():

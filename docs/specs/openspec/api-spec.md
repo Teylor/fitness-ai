@@ -25,7 +25,7 @@
 - **Units:** `gr` | `ml` | `u`. Macros are in grams, kcal in energy units, prices in currency **per unit** (per `gr`/`ml`/`u`).
 - **Pagination:** list tools take `limit` (default `50`) and `offset` (default `0`).
 
-## Tool index (18)
+## Tool index (19)
 
 | Domain | Tools |
 |---|---|
@@ -35,6 +35,7 @@
 | Goals (2) | `set_daily_goal`, `get_daily_goal` |
 | Workouts (4) | `register_workout`, `get_last_workout`, `get_personal_record`, `get_workouts_by_day` |
 | Exercises (2) | `list_exercises`, `create_exercise` |
+| UI Artifacts (1) | `get_ui_form` |
 
 ### Common shapes
 
@@ -385,3 +386,22 @@ Create an exercise; idempotent — an exact or normalized duplicate returns the 
 ```
 
 Errors: `invalid_input` (empty name, bad type), `internal`.
+
+---
+
+## UI Artifacts
+
+### `get_ui_form`
+
+Retrieve an interactive HTML artifact form for Hermes GUI or web view.
+
+| Arg | Type | Req | Default | Description |
+|---|---|---|---|---|
+| `form_type` | str | | `"hub"` | View type: `"hub"`, `"meal"`, `"recipe"`, `"ingredient"`, `"workout"`, or `"summary"` |
+
+```json
+{"status": "ok", "form_type": "hub", "html": "<!DOCTYPE html>...", "supported_types": ["hub", "meal", "recipe", "ingredient", "workout", "summary"]}
+```
+
+Errors: `invalid_input` (unsupported form_type), `internal`.
+
