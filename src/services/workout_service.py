@@ -61,7 +61,11 @@ class WorkoutService:
                     ex = self.exercises.find_exact(name)
                     if ex is None:
                         ex = self.exercises.create(
-                            Exercise(name=name, muscle_group="unknown")
+                            Exercise(
+                                name=name,
+                                muscle_group="unknown",
+                                type=self._infer_type(item.get("sets")),
+                            )
                         )
                         auto_created.append(name)
                     resolved[name] = ex
@@ -241,6 +245,23 @@ class WorkoutService:
             )
         public = dt.strftime("%d-%m-%Y") + (dt.strftime(" %H:%M:%S") if has_time else "")
         return dt, public, dt.strftime("%d-%m-%Y")
+
+    @staticmethod
+    def _infer_type(sets: Optional[List[dict]]) -> str:
+        """Infer the exercise type from a set payload (auto-created exercises).
+
+        weight_reps: any set with reps/weight · time: duration · distance: distance.
+        """
+        for set_input in sets or []:
+            if set_input.get("reps") is not None or set_input.get("weight") is not None:
+                return "weight_reps"
+        for set_input in sets or []:
+            if set_input.get("duration") is not None:
+                return "time"
+        for set_input in sets or []:
+            if set_input.get("distance") is not None:
+                return "distance"
+        return "weight_reps"
 
     @staticmethod
     def _validate_set(ex: Exercise, set_input: dict, seen: Dict[str, set]) -> None:

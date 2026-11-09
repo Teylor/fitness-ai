@@ -19,6 +19,12 @@ EXPECTED_TOOLS = {
     "get_day_summary",
     "set_daily_goal",
     "get_daily_goal",
+    "register_workout",
+    "get_last_workout",
+    "get_personal_record",
+    "get_workouts_by_day",
+    "list_exercises",
+    "create_exercise",
 }
 
 
@@ -28,12 +34,12 @@ def test_create_server_returns_configured_mcp_server():
     assert server.name == "fitness-ai"
 
 
-def test_server_registers_all_twelve_nutrition_and_goal_tools():
+def test_server_registers_all_eighteen_tools():
     server = create_server()
     tools = server._tool_manager.list_tools()
     tool_names = {t.name for t in tools}
 
-    assert len(tools) == 12
+    assert len(tools) == 18
     assert tool_names == EXPECTED_TOOLS
 
 

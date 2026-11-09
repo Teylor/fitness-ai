@@ -55,7 +55,7 @@ Implement `ExerciseService` and `WorkoutService` as the training domain layer ov
 - [x] T1: Implement `ExerciseService` (idempotent create, get_by_id, fuzzy find_by_name, list) — `tests/unit/test_exercise_service.py`
 - [x] T2: Implement `WorkoutService.register_session` (transactional, auto-create exercises, set validation, PR upsert)
 - [x] T3: Implement WorkoutService reads (`get_last_workout`, `get_personal_record`, `get_by_day`)
-- [ ] T4: Implement the 6 training MCP tools + register in `server.py` (18 tools)
+- [x] T4: Implement the 6 training MCP tools + register in `server.py` (18 tools)
 - [ ] T5: English translation of training dataclasses/utils + `unknown` default in `001_initial.sql` + residual scan + full suite
 
 ## Verification
