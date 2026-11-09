@@ -46,7 +46,7 @@
 
 | Feature | File |
 |---------|---------|
-| `services-training` | `odd/tasks/services-training.md` |
+| — | — |
 
 ---
 
@@ -54,6 +54,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `services-training` | `odd/tasks/services-training.md` | 2026-11 |
 | `mcp-server` | `odd/tasks/mcp-server.md` | 2026-11 |
 | `services-nutrition` | `odd/tasks/services-nutrition.md` | 2026-11 |
 | db-layer | `odd/tasks/db-layer.md` | 2026-11 |

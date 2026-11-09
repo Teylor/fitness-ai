@@ -20,13 +20,13 @@ Implement `ExerciseService` and `WorkoutService` as the training domain layer ov
 
 ### Acceptance criteria
 
-- [ ] C1: `ExerciseService` implemented: `create` (idempotent — exact/normalized-name duplicates return the existing exercise, no crash), `get_by_id`, `find_by_name` (fuzzy, reusing `utils/fuzzy`), `list` (search + muscle_group filter, limit/offset). Typed errors only (`not_found`, `invalid_input`, `duplicate`).
-- [ ] C2: `WorkoutService.register_session` creates the session + all sets in a single transaction, resolves exercise names (auto-creating missing ones per CLARIFY), computes per-set estimated 1RM (Epley) for `weight_reps` sets, and upserts the exercise PR only when the new estimated 1RM is strictly greater than the stored one. Returns the session + the list of created/updated PRs.
-- [ ] C3: `WorkoutService` read operations implemented: `get_last_workout(exercise_name)` (most recent session + its sets for the exercise), `get_personal_record(exercise_name)` (PR or `not_found`), `get_by_day(date)` (all sessions of the day with their sets).
-- [ ] C4: The 6 training tools are implemented as thin wrappers over the services (no SQL in the tool layer) and registered in `server.py` → `list_tools()` returns the full 18-tool set.
-- [ ] C5: Tool envelopes consistent with the nutrition tools: `{"status": "ok", ...payload}` on success, `{"status": "error", "code": ..., "message": ...}` on typed errors, unexpected exceptions → `code: "internal"`.
-- [ ] C6: Unit tests for both services + integration tests for the 6 tools (following the patterns of `tests/unit/test_*service*.py` and `tests/integration/test_mcp_*_tools.py`); full test suite green.
-- [ ] C7: No Spanish residuals in the training files this feature touches (`src/services/exercise_service.py`, `src/services/workout_service.py`, `src/models/exercise.py`, `src/models/workout_session.py`, `src/models/exercise_set.py`, `src/models/personal_record.py`, `src/mcp/tools/workout_tools.py`, `src/mcp/tools/exercise_tools.py`, `src/utils/macros.py`, `src/utils/fuzzy.py`, and their tests); the `exercises.muscle_group` default is aligned between migration and Peewee model (value decided in CLARIFY).
+- [x] C1: `ExerciseService` implemented: `create` (idempotent — exact/normalized-name duplicates return the existing exercise, no crash), `get_by_id`, `find_by_name` (fuzzy, reusing `utils/fuzzy`), `list` (search + muscle_group filter, limit/offset). Typed errors only (`not_found`, `invalid_input`, `duplicate`).
+- [x] C2: `WorkoutService.register_session` creates the session + all sets in a single transaction, resolves exercise names (auto-creating missing ones per CLARIFY), computes per-set estimated 1RM (Epley) for `weight_reps` sets, and upserts the exercise PR only when the new estimated 1RM is strictly greater than the stored one. Returns the session + the list of created/updated PRs.
+- [x] C3: `WorkoutService` read operations implemented: `get_last_workout(exercise_name)` (most recent session + its sets for the exercise), `get_personal_record(exercise_name)` (PR or `not_found`), `get_by_day(date)` (all sessions of the day with their sets).
+- [x] C4: The 6 training tools are implemented as thin wrappers over the services (no SQL in the tool layer) and registered in `server.py` → `list_tools()` returns the full 18-tool set.
+- [x] C5: Tool envelopes consistent with the nutrition tools: `{"status": "ok", ...payload}` on success, `{"status": "error", "code": ..., "message": ...}` on typed errors, unexpected exceptions → `code: "internal"`.
+- [x] C6: Unit tests for both services + integration tests for the 6 tools (following the patterns of `tests/unit/test_*service*.py` and `tests/integration/test_mcp_*_tools.py`); full test suite green.
+- [x] C7: No Spanish residuals in the training files this feature touches (`src/services/exercise_service.py`, `src/services/workout_service.py`, `src/models/exercise.py`, `src/models/workout_session.py`, `src/models/exercise_set.py`, `src/models/personal_record.py`, `src/mcp/tools/workout_tools.py`, `src/mcp/tools/exercise_tools.py`, `src/utils/macros.py`, `src/utils/fuzzy.py`, and their tests); the `exercises.muscle_group` default is aligned between migration and Peewee model (value decided in CLARIFY).
 
 ## Clarify
 > Ambiguities and resolutions (filled interactively with the user)
@@ -56,14 +56,21 @@ Implement `ExerciseService` and `WorkoutService` as the training domain layer ov
 - [x] T2: Implement `WorkoutService.register_session` (transactional, auto-create exercises, set validation, PR upsert)
 - [x] T3: Implement WorkoutService reads (`get_last_workout`, `get_personal_record`, `get_by_day`)
 - [x] T4: Implement the 6 training MCP tools + register in `server.py` (18 tools)
-- [ ] T5: English translation of training dataclasses/utils + `unknown` default in `001_initial.sql` + residual scan + full suite
+- [x] T5: English translation of training dataclasses/utils + `unknown` default in `001_initial.sql` + residual scan + full suite
 
 ## Verification
 > Spec contrast (filled at close)
 
-- (pending)
+- [x] C1: ✅ `ExerciseService` fully implemented with idempotent create, fuzzy name search and filters; verified by `tests/unit/test_exercise_service.py` (14 tests).
+- [x] C2: ✅ `WorkoutService.register_session` creates session + sets atomically, auto-creates missing exercises, validates sets and computes/upserts PRs via estimated 1RM; verified by `tests/unit/test_workout_service.py`.
+- [x] C3: ✅ Read operations implemented (`get_last_workout`, `get_personal_record`, `get_by_day`); verified by unit tests in `test_workout_service.py`.
+- [x] C4: ✅ 6 MCP tools (`register_workout`, `get_last_workout`, `get_personal_record`, `get_workouts_by_day`, `create_exercise`, `list_exercises`) registered in `server.py` totaling 18 tools; verified by `tests/integration/test_mcp_server.py`.
+- [x] C5: ✅ Tool envelopes return consistent `status: ok` and `status: error` with typed error codes; verified by `test_mcp_exercise_tools.py` and `test_mcp_workout_tools.py`.
+- [x] C6: ✅ Full test suite green (135 tests passing in ~0.8s).
+- [x] C7: ✅ Spanish residuals cleared across models, utils, migration default, and tests; verified via repository grep scan.
 
 ## Close
 > Close (filled at close)
 
-- (pending)
+- Date: 2026-11
+- Next step: `specs-completion` (P1) or `hermes-e2e` (P1).
