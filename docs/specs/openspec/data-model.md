@@ -10,6 +10,7 @@
 - **Primary keys**: `INTEGER PRIMARY KEY AUTOINCREMENT`, aliased `id`.
 - **Timestamps**: `created_at` / `updated_at` stored as `TEXT` via `datetime('now')` (UTC).
 - **User dates**: stored as `TEXT` in `DD-MM-YYYY` form.
+- **`workout_sessions.date` exception**: stored as a full datetime (Peewee `DateTimeField`; SQLite renders it as `YYYY-MM-DD HH:MM:SS.SSS` text). The public API accepts/exposes it as `DD-MM-YYYY` or `DD-MM-YYYY HH:MM[:SS]`.
 - **Units**: `gr` | `ml` | `u`.
 - **Macros**: `kcal` (energy), `protein`, `carbs`, `fat` (grams).
 - **Booleans**: stored as `INTEGER` (0/1).
@@ -58,7 +59,7 @@ A food item with macros and price, expressed per base unit.
 
 ### `recipes`
 
-A named recipe. Two shapes: **composed** (built from `recipe_items`, macros/price computed) or **opaque** (direct `price` and, optionally, direct macros).
+A named recipe. Two shapes: **compound** (built from `recipe_items`, macros/price computed) or **opaque** (direct `price` and, optionally, direct macros).
 
 | Field | Type | Constraints | Description |
 |---|---|---|---|
@@ -129,7 +130,7 @@ Catalog of exercises.
 |---|---|---|---|
 | id | INTEGER | PK AUTOINCREMENT | |
 | name | TEXT | NOT NULL, UNIQUE | |
-| muscle_group | TEXT | NOT NULL DEFAULT `'desconocido'` | Free text |
+| muscle_group | TEXT | NOT NULL DEFAULT `'unknown'` | Free text |
 | type | TEXT | NOT NULL DEFAULT `'weight_reps'`, `CHECK (type IN ('weight_reps','time','distance'))` | Drives which `exercise_sets` columns apply |
 | created_at | TEXT | NOT NULL DEFAULT `datetime('now')` | |
 
@@ -142,7 +143,7 @@ A training session.
 | Field | Type | Constraints | Description |
 |---|---|---|---|
 | id | INTEGER | PK AUTOINCREMENT | |
-| date | TEXT | NOT NULL | |
+| date | TEXT | NOT NULL | Stored datetime (see Conventions — the only non-`DD-MM-YYYY` user date) |
 | notes | TEXT | NULL | |
 | created_at | TEXT | NOT NULL DEFAULT `datetime('now')` | |
 
