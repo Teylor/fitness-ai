@@ -32,7 +32,6 @@
 
 | # | Priority | Feature | State | Note |
 |---|-----------|---------|--------|------|
-| 5 | P1 | `specs-completion` | ✅ Approved | Fill `requirements.md`, `api-spec.md` (cut off at line 21), `data-model.md` (empty). |
 | 6 | P1 | `hermes-e2e` | ✅ Approved | End-to-end verification with a real MCP client (Hermes). |
 | 7 | P2 | `db-robustness` | ✅ Approved | Rollback in `get_db()` (pending db-layer close). |
 | 8 | P3 | `seed-data` | ✅ Approved | Initial catalog of ingredients/exercises. |
@@ -46,7 +45,7 @@
 
 | Feature | File |
 |---------|---------|
-| — | — |
+| `specs-completion` | `odd/tasks/specs-completion.md` |
 
 ---
 
