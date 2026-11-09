@@ -1,7 +1,10 @@
 """Tests: RecipeService."""
 
+import pytest
+
 from src.models.ingredient import Ingredient
 from src.models.recipe import Recipe, RecipeItem
+from src.utils.errors import DuplicateError, NotFoundError
 
 
 def _mk_ingredient(service, name, unit="gr", kcal=100.0, protein=10.0, carbs=80.0, fat=0.0, price=1.0):
@@ -107,3 +110,37 @@ def test_list_recipes_by_type(db, recipe_service, ingredient_service):
     opaque = recipe_service.list(type="opaque")
     assert {r.name for r in compounds} == {"Compound A", "Compound B"}
     assert {r.name for r in opaque} == {"Opaque A", "Opaque B"}
+
+
+def test_create_recipe_duplicate_raises(db, recipe_service):
+    recipe_service.create(Recipe(name="Pancake"))
+    with pytest.raises(DuplicateError) as exc_info:
+        recipe_service.create(Recipe(name="Pancake"))
+    assert exc_info.value.code == "duplicate"
+    assert isinstance(exc_info.value, ValueError)
+
+
+def test_update_recipe_not_found_raises(db, recipe_service):
+    with pytest.raises(NotFoundError) as exc_info:
+        recipe_service.update(999, name="Missing")
+    assert exc_info.value.code == "not_found"
+
+
+def test_update_recipe_duplicate_raises(db, recipe_service):
+    a = recipe_service.create(Recipe(name="Soup"))
+    b = recipe_service.create(Recipe(name="Salad"))
+    with pytest.raises(DuplicateError) as exc_info:
+        recipe_service.update(b.id, name="Soup")
+    assert exc_info.value.code == "duplicate"
+
+
+def test_delete_recipe_not_found_raises(db, recipe_service):
+    with pytest.raises(NotFoundError) as exc_info:
+        recipe_service.delete(999)
+    assert exc_info.value.code == "not_found"
+
+
+def test_calculate_macros_not_found_raises(db, recipe_service):
+    with pytest.raises(NotFoundError) as exc_info:
+        recipe_service.calculate_macros(999)
+    assert exc_info.value.code == "not_found"

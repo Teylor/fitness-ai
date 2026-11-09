@@ -71,10 +71,11 @@ User Request
                                 ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │ 7. CLOSE                                                            │
-│    Close acceptance criteria.                                       │
-│    Update docs (specs, ADRs, models).                               │
-│    Leave "next step" if follow-up exists.                           │
+│    Close acceptance criteria & update docs.                         │
+│    Final commit & push branch to origin.                            │
+│    Create Pull Request to main directly (python scripts/create_pr.py)│
 │    → odd/tasks/<feature>.md ("Close" section)                       │
+│    → Pull Request: feat/<name> → main                               │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -167,7 +168,7 @@ specs/
 5. **Implementation-only changes.** Do not modify the spec.
 6. **User approval.** The user must approve spec + plan + tasks before `implement`.
 7. **Backlog as single queue.** The agent checks `odd/BACKLOG.md` before starting, updates the item's status at kickoff (➡️ In Progress), and marks it complete on finish (🏁 Done). No feature starts without an approved item.
-8. **Branching.** Each feature is developed on its own branch `feat/<feature-name>`, created when the feature starts. A fix to a feature is made on a `fix/<feature-name>` branch.
+8. **Branching and Pull Requests.** Each feature is developed on its own branch `feat/<feature-name>`, created when the feature starts. A fix to a feature is made on a `fix/<feature-name>` branch. When a feature closes (all tasks verified, final commit made), the branch is pushed to origin and a Pull Request to `main` is created automatically via `python scripts/create_pr.py`.
 9. **Pre-commit gate.** Before every commit (task, closure, or archival), the agent presents the pre-commit report (changes made, relevant tests, suggested message) and stops: the user commits, requests changes, or instructs to continue. The agent never runs `git commit` autonomously.
 10. **Language (ADR-002).** All generated project text is written in English: docs, specs, ODD, ADRs, READMEs, code comments/docstrings, test docstrings/assertion messages, SQL/script comments, and commit messages. Spanish is used only in the conversation with the user. Accented normalization fixtures (`Ñandú`, `Café`) are the documented exception.
 11. **Execution modes (fast/slow).** Every feature runs in one of two modes, decided after `classify` (default: fast). **Fast**: feature by feature, not task by task — run all tasks in the feature in a single pass (each task is still verified: tests pass, marked `[x]` with evidence), then present ONE pre-commit report covering the entire feature and propose a single commit. **Slow**: task by task within the feature — the pre-commit gate (rule 9) applies per task. Simple features use fast, complex features use slow; when complexity is ambiguous, ask the user which mode to use before implementing.
@@ -183,7 +184,7 @@ specs/
 | `classify` | Determines the size: trivial, small, substantial, or requires spec. |
 | `track-feature` | Creates or updates `odd/tasks/<feature>.md` prior to the first write operation. |
 | `implement-task` | One task at a time, using TDD if configured, generating a pre-commit report before each commit, and recording progress and evidence. |
-| `close-feature` | Closes acceptance criteria, updates the task doc, sets the next step, produces the final pre-commit report, and marks 🏁 Done in `odd/BACKLOG.md`. |
+| `close-feature` | Closes acceptance criteria, updates the task doc, sets the next step, produces the final pre-commit report, marks 🏁 Done in `odd/BACKLOG.md`, pushes the branch, and creates the Pull Request to `main`. |
 
 ## SDD Branch Skills (Only Active when Escalated by Classify)
 

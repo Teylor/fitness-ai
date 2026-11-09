@@ -1,1 +1,1 @@
-"""MCP Server - puente entre Hermes Agent y el sistema."""
+"""MCP Server - bridge between Hermes Agent and the system."""

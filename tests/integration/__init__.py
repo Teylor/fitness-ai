@@ -1,1 +1,1 @@
-"""Integration tests: MCP tools con DB temporal."""
+"""Integration tests: MCP tools with temporary DB."""

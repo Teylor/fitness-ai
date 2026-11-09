@@ -1,4 +1,4 @@
-"""Servicio de ejercicios."""
+"""Exercise domain service."""
 
 from typing import List, Optional
 
@@ -6,7 +6,7 @@ from src.models.exercise import Exercise
 
 
 class ExerciseService:
-    """CRUD + búsqueda de ejercicios."""
+    """CRUD + search for exercises."""
 
     def create(self, exercise: Exercise) -> Exercise:
         ...
@@ -15,7 +15,7 @@ class ExerciseService:
         ...
 
     def find_by_name(self, name: str) -> Optional[Exercise]:
-        """Búsqueda fuzzy por nombre."""
+        """Fuzzy search by name."""
         ...
 
     def list(self, search: str = None, muscle_group: str = None,

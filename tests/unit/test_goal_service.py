@@ -4,6 +4,7 @@ import pytest
 
 from src.db.models import DailyGoal as DailyGoalModel
 from src.models.daily_goal import DailyGoal
+from src.utils.errors import NotFoundError, ValidationError
 
 
 def make_goal(date, kcal=2000, protein=120, carbs=220, fat=60, is_default=False):
@@ -84,10 +85,14 @@ def test_update_goal_same_day(db, goal_service):
 
 
 def test_get_goal_without_matching_or_default_raises(db, goal_service):
-    with pytest.raises(ValueError, match="no goal found"):
+    with pytest.raises(NotFoundError) as exc_info:
         goal_service.get_goal("10-05-2026")
+    assert exc_info.value.code == "not_found"
+    assert "no goal found" in str(exc_info.value)
 
 
 def test_invalid_goal_date_raises(db, goal_service):
-    with pytest.raises(ValueError, match="invalid date"):
+    with pytest.raises(ValidationError) as exc_info:
         goal_service.set_goal(make_goal("2026-05-10"))
+    assert exc_info.value.code == "invalid_input"
+    assert "invalid date" in str(exc_info.value)
