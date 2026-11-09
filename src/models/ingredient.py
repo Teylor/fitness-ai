@@ -1,4 +1,4 @@
-"""Modelo Ingredient."""
+"""Ingredient domain model."""
 
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -7,7 +7,7 @@ from typing import Optional
 
 @dataclass
 class Ingredient:
-    """Ingrediente con macros y precio por unidad base."""
+    """Ingredient with macros and price per base unit."""
 
     name: str
     unit: str  # 'gr' | 'ml' | 'u'

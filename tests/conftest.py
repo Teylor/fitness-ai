@@ -1,4 +1,4 @@
-"""Fixtures compartidos para tests."""
+"""Shared test fixtures."""
 
 import pytest
 from peewee import SqliteDatabase
@@ -20,22 +20,22 @@ from src.db.models import (
 
 @pytest.fixture
 def db():
-    """DB SQLite in-memory para tests.
+    """In-memory SQLite DB for tests.
 
-    Reasigna la DB global a :memory: y crea todas las tablas.
+    Rebinds global DB to :memory: and creates all tables.
     """
-    # Guardar la DB original
+    # Save original DB
     original_db = db
 
-    # Crear DB in-memory
+    # Create in-memory DB
     test_db = SqliteDatabase(":memory:")
     test_db.connect()
 
-    # Reasignar la DB en todos los modelos
+    # Rebind DB on all models
     for model in ALL_MODELS:
         model._meta.database = test_db
 
-    # Crear tablas
+    # Create tables
     test_db.create_tables(ALL_MODELS)
 
     yield test_db
@@ -43,7 +43,7 @@ def db():
     # Cleanup
     test_db.close()
 
-    # Restaurar DB original
+    # Restore original DB
     for model in ALL_MODELS:
         model._meta.database = original_db
 

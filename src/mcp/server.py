@@ -2,6 +2,7 @@
 
 from mcp.server.mcpserver import MCPServer
 
+from src.mcp.tools.exercise_tools import create_exercise, list_exercises
 from src.mcp.tools.goal_tools import get_daily_goal, set_daily_goal
 from src.mcp.tools.ingredient_tools import (
     create_ingredient,
@@ -16,10 +17,16 @@ from src.mcp.tools.recipe_tools import (
     list_recipes,
     update_recipe,
 )
+from src.mcp.tools.workout_tools import (
+    get_last_workout,
+    get_personal_record,
+    get_workouts_by_day,
+    register_workout,
+)
 
 
 def create_server() -> MCPServer:
-    """Create and configure the MCPServer instance with active nutrition and goal tools."""
+    """Create and configure the MCPServer instance with active tools."""
     server = MCPServer("fitness-ai")
 
     # Ingredient tools (4)
@@ -41,5 +48,15 @@ def create_server() -> MCPServer:
     # Goal tools (2)
     server.add_tool(set_daily_goal, name="set_daily_goal")
     server.add_tool(get_daily_goal, name="get_daily_goal")
+
+    # Workout tools (4)
+    server.add_tool(register_workout, name="register_workout")
+    server.add_tool(get_last_workout, name="get_last_workout")
+    server.add_tool(get_personal_record, name="get_personal_record")
+    server.add_tool(get_workouts_by_day, name="get_workouts_by_day")
+
+    # Exercise tools (2)
+    server.add_tool(list_exercises, name="list_exercises")
+    server.add_tool(create_exercise, name="create_exercise")
 
     return server

@@ -1,4 +1,4 @@
-"""Modelo Recipe."""
+"""Recipe domain model."""
 
 from dataclasses import dataclass
 from typing import Optional, List
@@ -6,7 +6,7 @@ from typing import Optional, List
 
 @dataclass
 class Recipe:
-    """Receta (compuesta con ingredientes, o opaca con precio directo)."""
+    """Recipe (composite with ingredients, or opaque with direct price)."""
 
     name: str
     price: Optional[float] = None
@@ -23,7 +23,7 @@ class Recipe:
 
 @dataclass
 class RecipeItem:
-    """Ingrediente dentro de una receta."""
+    """Ingredient item within a recipe."""
 
     ingredient_id: int
     quantity: float

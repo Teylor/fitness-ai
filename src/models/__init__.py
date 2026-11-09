@@ -1,1 +1,1 @@
-"""Modelos de dominio (dataclasses)."""
+"""Domain models (dataclasses)."""

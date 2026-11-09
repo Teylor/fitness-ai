@@ -1,4 +1,4 @@
-"""Modelo WorkoutSession."""
+"""WorkoutSession domain model."""
 
 from dataclasses import dataclass
 from typing import Optional, List
@@ -6,7 +6,7 @@ from typing import Optional, List
 
 @dataclass
 class WorkoutSession:
-    """Sesión de entrenamiento."""
+    """Workout session."""
 
     date: str  # YYYY-MM-DDTHH:MM:SS
     notes: Optional[str] = None

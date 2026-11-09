@@ -1,4 +1,4 @@
-"""Modelo MealEntry."""
+"""MealEntry domain model."""
 
 from dataclasses import dataclass
 from typing import Optional
@@ -6,7 +6,7 @@ from typing import Optional
 
 @dataclass
 class MealEntry:
-    """Registro de una ingesta (polimórfico: ingrediente o receta)."""
+    """Record of a meal entry (polymorphic: ingredient or recipe)."""
 
     date: str  # DD-MM-YYYY
     item_type: str  # 'ingredient' | 'recipe'

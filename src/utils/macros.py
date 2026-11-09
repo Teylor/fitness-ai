@@ -1,12 +1,12 @@
-"""Cálculo de macros y precios."""
+"""Macro and price calculation utilities."""
 
 
 def calc_ingredient_macros(ingredient, quantity: float) -> dict:
-    """Calcula macros para una cantidad de ingrediente.
+    """Calculate macros for a quantity of an ingredient.
 
     Args:
-        ingredient: Objeto Ingredient (valores por unidad base).
-        quantity: Cantidad consumida (en la unidad del ingrediente).
+        ingredient: Ingredient object (values per base unit).
+        quantity: Consumed quantity (in ingredient's unit).
 
     Returns:
         {"kcal": float, "protein": float, "carbs": float, "fat": float, "price": float}
@@ -24,10 +24,10 @@ def calc_ingredient_macros(ingredient, quantity: float) -> dict:
 
 
 def calc_recipe_macros(recipe_items: list, ingredients: dict) -> dict:
-    """Calcula macros totales de una receta compuesta.
+    """Calculate total macros of a composite recipe.
 
     Args:
-        recipe_items: Lista de RecipeItem.
+        recipe_items: List of RecipeItem instances.
         ingredients: Dict {ingredient_id: Ingredient}.
 
     Returns:
@@ -42,5 +42,5 @@ def calc_recipe_macros(recipe_items: list, ingredients: dict) -> dict:
 
 
 def estimate_1rm(weight: float, reps: int) -> float:
-    """Fórmula de Epley: weight × (1 + reps/30)."""
+    """Epley formula: weight × (1 + reps/30)."""
     return round(weight * (1 + reps / 30.0), 2)

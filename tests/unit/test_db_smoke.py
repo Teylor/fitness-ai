@@ -4,7 +4,7 @@ from src.db.models import Ingredient, MealEntry, Exercise
 
 
 def test_insert_and_select_ingredient(db):
-    """Insert un ingrediente y selecciónalo."""
+    """Insert an ingredient and select it."""
     ing = Ingredient.create(
         name="Pan",
         unit="gr",
@@ -24,7 +24,7 @@ def test_insert_and_select_ingredient(db):
 
 
 def test_insert_and_select_meal_entry(db):
-    """Insert un meal_entry y selecciónalo."""
+    """Insert a meal_entry and select it."""
     ing = Ingredient.create(
         name="Kiwi", unit="u", kcal=49, protein=0.8,
         carbs=11.5, fat=0.5, price=0.15,
@@ -44,33 +44,33 @@ def test_insert_and_select_meal_entry(db):
 
 
 def test_insert_and_select_exercise(db):
-    """Insert un ejercicio y selecciónalo."""
+    """Insert an exercise and select it."""
     ex = Exercise.create(
-        name="Press de banca",
-        muscle_group="Pecho",
+        name="Bench Press",
+        muscle_group="Chest",
         type="weight_reps",
     )
     assert ex.id is not None
 
     fetched = Exercise.get_by_id(ex.id)
-    assert fetched.name == "Press de banca"
-    assert fetched.muscle_group == "Pecho"
+    assert fetched.name == "Bench Press"
+    assert fetched.muscle_group == "Chest"
 
 
 def test_unique_constraint_ingredient(db):
-    """No se puede crear dos ingredientes con mismo name+unit."""
+    """Cannot create two ingredients with the same name+unit."""
     from peewee import IntegrityError
 
     Ingredient.create(name="Pan", unit="gr", kcal=2.2)
     try:
         Ingredient.create(name="Pan", unit="gr", kcal=3.0)
-        assert False, "Debería lanzar IntegrityError"
+        assert False, "Should raise IntegrityError"
     except IntegrityError:
-        pass  # Esperado
+        pass  # Expected
 
 
 def test_all_tables_created(db):
-    """Verificar que las 9 tablas existen."""
+    """Verify that all 9 tables exist."""
     expected = {
         "ingredients", "recipes", "recipe_items", "meal_entries",
         "daily_goals", "exercises", "workout_sessions",
@@ -78,4 +78,4 @@ def test_all_tables_created(db):
     }
     cursor = db.execute_sql("SELECT name FROM sqlite_master WHERE type='table'")
     tables = {row[0] for row in cursor.fetchall()}
-    assert expected.issubset(tables), f"Faltan tablas: {expected - tables}"
+    assert expected.issubset(tables), f"Missing tables: {expected - tables}"
