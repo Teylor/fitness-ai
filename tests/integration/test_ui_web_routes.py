@@ -147,3 +147,46 @@ async def test_ui_catalogs_and_editing_flow(db):
         assert updated_rec_data["name"] == "Power Porridge"
         assert updated_rec_data["items"][0]["quantity"] == 100.0
 
+
+@pytest.mark.anyio
+async def test_ui_new_features_elements_and_interactions(db):
+    server = create_server()
+    app = server.streamable_http_app()
+    transport = httpx2.ASGITransport(app=app)
+
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
+        # 1. Meal tab: date is type="date", meal-item has datalist
+        meal_res = await client.get("/ui/meal")
+        assert meal_res.status_code == 200
+        html = meal_res.text
+        assert '<input type="date" id="meal-date"' in html
+        assert 'list="meal-items-datalist"' in html
+        assert '<datalist id="meal-items-datalist">' in html
+        assert 'showPicker' in html
+
+        # 2. Recipe tab: ingredient datalist, clean rows (no hardcoded chicken/rice)
+        rec_res = await client.get("/ui/recipe")
+        assert rec_res.status_code == 200
+        rec_html = rec_res.text
+        assert '<datalist id="recipe-ingredients-datalist">' in html
+        assert 'list="recipe-ingredients-datalist"' in rec_html
+        # Verify default chicken and rice are removed from initial row setup
+        assert "addRecipeRow('Pechuga de Pollo', 200, 'gr');" not in rec_html
+        assert "addRecipeRow('Arroz', 100, 'gr');" not in rec_html
+        assert "addRecipeRow('', 100, 'gr');" in rec_html
+
+        # 3. Workout tab: datetime-local picker
+        wo_res = await client.get("/ui/workout")
+        assert wo_res.status_code == 200
+        wo_html = wo_res.text
+        assert '<input type="datetime-local" id="workout-date"' in wo_html
+        assert 'toBackendDateTime' in wo_html
+
+        # 4. Summary tab: date picker
+        sum_res = await client.get("/ui/summary")
+        assert sum_res.status_code == 200
+        sum_html = sum_res.text
+        assert '<input type="date" id="summary-date"' in sum_html
+        assert 'toBackendDate' in sum_html
+
+

@@ -52,6 +52,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `ui-new-features` | `odd/tasks/ui-new-features.md` | 2026-11 |
 | `ui-catalog-and-edit` | `odd/tasks/ui-catalog-and-edit.md` | 2026-11 |
 | `google-health-api` | `odd/tasks/google-health-api.md` | 2026-11 |
 | `html-artifacts` | `odd/tasks/html-artifacts.md` | 2026-11 |

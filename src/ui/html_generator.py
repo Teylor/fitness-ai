@@ -326,19 +326,20 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       <form id="form-meal" onsubmit="submitMeal(event)">
         <div class="form-grid">
           <div class="form-group">
-            <label for="meal-date">Fecha (DD-MM-YYYY)</label>
-            <input type="text" id="meal-date" required placeholder="DD-MM-YYYY">
+            <label for="meal-date">Fecha</label>
+            <input type="date" id="meal-date" required onclick="this.showPicker && this.showPicker()">
           </div>
           <div class="form-group">
             <label for="meal-type">Tipo de Alimento</label>
-            <select id="meal-type">
+            <select id="meal-type" onchange="updateMealDatalist()">
               <option value="ingredient">Ingrediente</option>
               <option value="recipe">Receta</option>
             </select>
           </div>
           <div class="form-group">
             <label for="meal-item">Nombre (ej: Arroz, Pechuga, Bowl)</label>
-            <input type="text" id="meal-item" required placeholder="Nombre del alimento...">
+            <input type="text" id="meal-item" list="meal-items-datalist" required placeholder="Buscar o escribir alimento..." oninput="onMealItemInput()">
+            <datalist id="meal-items-datalist"></datalist>
           </div>
           <div class="form-group">
             <label for="meal-qty">Cantidad</label>
@@ -396,6 +397,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             </tbody>
           </table>
         </div>
+        <datalist id="recipe-ingredients-datalist"></datalist>
 
         <div style="margin-top: 14px; display: flex; gap: 8px;">
           <button type="submit" id="btn-submit-recipe" class="btn">Guardar Receta</button>
@@ -524,7 +526,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         <div class="form-grid">
           <div class="form-group">
             <label for="workout-date">Fecha y Hora (opcional)</label>
-            <input type="text" id="workout-date" placeholder="DD-MM-YYYY HH:MM">
+            <input type="datetime-local" id="workout-date" onclick="this.showPicker && this.showPicker()">
           </div>
           <div class="form-group" style="grid-column: 1 / -1;">
             <label for="workout-notes">Notas de la sesión</label>
@@ -553,7 +555,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       <div class="form-grid">
         <div class="form-group">
           <label for="summary-date">Fecha</label>
-          <input type="text" id="summary-date" placeholder="DD-MM-YYYY">
+          <input type="date" id="summary-date" onclick="this.showPicker && this.showPicker()">
         </div>
         <div class="form-group" style="justify-content: flex-end;">
           <button type="button" class="btn btn-secondary" onclick="fetchSummary()">Consultar Resumen</button>
@@ -585,27 +587,46 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (tabName === 'recipe') fetchRecipesList();
     }}
 
-    // Default dates to today
-    function formatToday(withTime = false) {{
+    // Date helpers (ISO for inputs, DD-MM-YYYY for backend)
+    function formatTodayIso(withTime = false) {{
       const d = new Date();
       const pad = n => String(n).padStart(2, '0');
-      const dateStr = `${{pad(d.getDate())}}-${{pad(d.getMonth() + 1)}}-${{d.getFullYear()}}`;
+      const datePart = `${{d.getFullYear()}}-${{pad(d.getMonth() + 1)}}-${{pad(d.getDate())}}`;
       if (withTime) {{
-        return `${{dateStr}} ${{pad(d.getHours())}}:${{pad(d.getMinutes())}}`;
+        return `${{datePart}}T${{pad(d.getHours())}}:${{pad(d.getMinutes())}}`;
       }}
-      return dateStr;
+      return datePart;
     }}
 
-    document.getElementById('meal-date').value = formatToday(false);
-    document.getElementById('workout-date').value = formatToday(true);
-    document.getElementById('summary-date').value = formatToday(false);
+    function toBackendDate(val) {{
+      if (!val) return '';
+      if (/^\\d{{2}}-\\d{{2}}-\\d{{4}}/.test(val)) return val;
+      if (/^\\d{{4}}-\\d{{2}}-\\d{{2}}/.test(val)) {{
+        const parts = val.split('-');
+        return `${{parts[2]}}-${{parts[1]}}-${{parts[0]}}`;
+      }}
+      return val;
+    }}
+
+    function toBackendDateTime(val) {{
+      if (!val) return undefined;
+      if (val.includes('T')) {{
+        const [d, t] = val.split('T');
+        return `${{toBackendDate(d)}} ${{t}}`;
+      }}
+      return toBackendDate(val);
+    }}
+
+    document.getElementById('meal-date').value = formatTodayIso(false);
+    document.getElementById('workout-date').value = formatTodayIso(true);
+    document.getElementById('summary-date').value = formatTodayIso(false);
 
     // Dynamic Recipe Rows
     function addRecipeRow(name = '', qty = 100, unit = 'gr') {{
       const tbody = document.querySelector('#recipe-items-table tbody');
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><input type="text" class="rec-item-name" required value="${{name}}" placeholder="Ingrediente..."></td>
+        <td><input type="text" class="rec-item-name" list="recipe-ingredients-datalist" required value="${{name}}" placeholder="Buscar ingrediente..." oninput="onRecipeItemInput(this)"></td>
         <td><input type="number" class="rec-item-qty" required value="${{qty}}" min="0.1" step="any"></td>
         <td>
           <select class="rec-item-unit">
@@ -618,8 +639,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       `;
       tbody.appendChild(tr);
     }}
-    addRecipeRow('Pechuga de Pollo', 200, 'gr');
-    addRecipeRow('Arroz', 100, 'gr');
+    // Start with 1 clean empty row instead of hardcoded chicken and rice
+    addRecipeRow('', 100, 'gr');
 
     // Dynamic Workout Exercises & Sets
     let exerciseCount = 0;
@@ -742,6 +763,63 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         .replace(/"/g, '&quot;');
     }}
 
+    function updateMealDatalist() {{
+      const type = document.getElementById('meal-type').value;
+      const datalist = document.getElementById('meal-items-datalist');
+      if (!datalist) return;
+      datalist.innerHTML = '';
+      if (type === 'ingredient') {{
+        allIngredients.forEach(i => {{
+          const opt = document.createElement('option');
+          opt.value = i.name;
+          opt.label = `${{i.unit}} | ${{i.kcal || 0}} kcal`;
+          datalist.appendChild(opt);
+        }});
+      }} else {{
+        allRecipes.forEach(r => {{
+          const opt = document.createElement('option');
+          opt.value = r.name;
+          opt.label = `${{r.kcal || 0}} kcal`;
+          datalist.appendChild(opt);
+        }});
+      }}
+    }}
+
+    function onMealItemInput() {{
+      const val = (document.getElementById('meal-item').value || '').trim().toLowerCase();
+      const type = document.getElementById('meal-type').value;
+      if (type === 'ingredient') {{
+        const matched = allIngredients.find(i => (i.name || '').toLowerCase() === val);
+        if (matched && matched.unit) {{
+          document.getElementById('meal-unit').value = matched.unit;
+        }}
+      }}
+    }}
+
+    function updateRecipeDatalist() {{
+      const datalist = document.getElementById('recipe-ingredients-datalist');
+      if (!datalist) return;
+      datalist.innerHTML = '';
+      allIngredients.forEach(i => {{
+        const opt = document.createElement('option');
+        opt.value = i.name;
+        opt.label = `${{i.unit}} | ${{i.kcal || 0}} kcal`;
+        datalist.appendChild(opt);
+      }});
+    }}
+
+    function onRecipeItemInput(input) {{
+      const val = (input.value || '').trim().toLowerCase();
+      const matched = allIngredients.find(i => (i.name || '').toLowerCase() === val);
+      if (matched && matched.unit) {{
+        const tr = input.closest('tr');
+        if (tr) {{
+          const unitSelect = tr.querySelector('.rec-item-unit');
+          if (unitSelect) unitSelect.value = matched.unit;
+        }}
+      }}
+    }}
+
     // INGREDIENTS CATALOG & EDIT
     async function fetchIngredientsList() {{
       const tbody = document.getElementById('ingredients-catalog-body');
@@ -754,6 +832,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         if (data.status === 'ok') {{
           allIngredients = data.ingredients || [];
           renderIngredientsTable(allIngredients);
+          updateRecipeDatalist();
+          updateMealDatalist();
         }}
       }} catch (err) {{
         tbody.innerHTML = `<tr><td colspan="9" style="color: var(--text-muted); text-align: center;">No se pudo conectar con el catálogo de ingredientes (${{err.message}}).</td></tr>`;
@@ -837,6 +917,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         if (data.status === 'ok') {{
           allRecipes = data.recipes || [];
           renderRecipesTable(allRecipes);
+          updateMealDatalist();
         }}
       }} catch (err) {{
         tbody.innerHTML = `<tr><td colspan="6" style="color: var(--text-muted); text-align: center;">No se pudo conectar con el catálogo de recetas (${{err.message}}).</td></tr>`;
@@ -912,8 +993,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       document.getElementById('form-recipe').reset();
       const tbody = document.querySelector('#recipe-items-table tbody');
       tbody.innerHTML = '';
-      addRecipeRow('Pechuga de Pollo', 200, 'gr');
-      addRecipeRow('Arroz', 100, 'gr');
+      addRecipeRow('', 100, 'gr');
       document.getElementById('recipe-edit-banner').style.display = 'none';
       document.getElementById('btn-submit-recipe').textContent = 'Guardar Receta';
       document.getElementById('btn-cancel-recipe').style.display = 'none';
@@ -922,8 +1002,10 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     // Form handlers
     function submitMeal(e) {{
       e.preventDefault();
+      const rawDate = document.getElementById('meal-date').value;
+      const formattedDate = toBackendDate(rawDate);
       const payload = {{
-        date: document.getElementById('meal-date').value,
+        date: formattedDate,
         item_name: document.getElementById('meal-item').value,
         item_type: document.getElementById('meal-type').value,
         quantity: parseFloat(document.getElementById('meal-qty').value),
@@ -1007,8 +1089,10 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         }});
         exercises.push({{ name: exName, sets }});
       }});
+      const rawDate = document.getElementById('workout-date').value;
+      const formattedDate = rawDate ? toBackendDateTime(rawDate) : undefined;
       const payload = {{
-        date: document.getElementById('workout-date').value || undefined,
+        date: formattedDate,
         notes: document.getElementById('workout-notes').value || undefined,
         exercises
       }};
@@ -1017,7 +1101,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     }}
 
     async function fetchSummary() {{
-      const date = document.getElementById('summary-date').value || formatToday(false);
+      const rawDate = document.getElementById('summary-date').value;
+      const date = toBackendDate(rawDate) || toBackendDate(formatTodayIso(false));
       const resEl = document.getElementById('summary-result');
       const cardsEl = document.getElementById('summary-cards');
       try {{
