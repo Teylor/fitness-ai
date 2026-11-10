@@ -19,8 +19,18 @@ def register_meal(
     unit: str,
     item_type: Optional[str] = None,
     date: Optional[str] = None,
+    meal_type: Optional[str] = "tentempie",
 ) -> dict:
-    """Register a food intake; auto-creates provisional item if missing."""
+    """Register a food intake; auto-creates provisional item if missing.
+
+    Args:
+        item_name: Name of ingredient or recipe.
+        quantity: Amount consumed.
+        unit: Unit ('gr', 'ml', 'u').
+        item_type: 'ingredient' | 'recipe' (optional).
+        date: Date in DD-MM-YYYY format (default: today).
+        meal_type: 'desayuno' | 'comida' | 'merienda' | 'cena' | 'tentempie' (default: 'tentempie').
+    """
     meal_service = MealService()
     ingredient_service = IngredientService()
     recipe_service = RecipeService()
@@ -71,6 +81,7 @@ def register_meal(
                 item_id=item_id,
                 quantity=quantity,
                 unit=unit,
+                meal_type=meal_type or "tentempie",
             )
         )
 
@@ -101,6 +112,7 @@ def register_meal(
         return {
             "status": "ok",
             "entry_id": entry.id,
+            "meal_type": entry.meal_type,
             "macros": macros,
             "price": price,
             "day_summary": day_summary,

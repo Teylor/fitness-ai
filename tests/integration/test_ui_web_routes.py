@@ -210,7 +210,10 @@ async def test_ui_full_daily_summary_dashboard(db):
         html = res.text
         assert "summary-health" in html
         assert "summary-workouts-container" in html
+        assert "summary-meals-container" in html
         assert "summary-meals-body" in html
+        assert "meal-eating-type" in html
+        assert "MEAL_TYPE_SECTIONS" in html
         assert "quick-steps-input" not in html
         assert "fetchSummary" in html
         assert "renderSummaryNutrition" in html

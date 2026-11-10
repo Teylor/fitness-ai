@@ -15,6 +15,7 @@ from src.utils.macros import calc_ingredient_macros
 
 ITEM_TYPES = ("ingredient", "recipe")
 MACRO_KEYS = ("kcal", "protein", "carbs", "fat")
+ALLOWED_MEAL_TYPES = ("desayuno", "comida", "merienda", "cena", "tentempie")
 
 
 class MealService:
@@ -39,6 +40,7 @@ class MealService:
             item_id=row.item_id,
             quantity=row.quantity,
             unit=row.unit,
+            meal_type=getattr(row, "meal_type", "tentempie") or "tentempie",
             created_at=str(row.created_at) if row.created_at is not None else None,
         )
 
@@ -86,6 +88,16 @@ class MealService:
         self._parse_date(entry.date)
         if entry.item_type not in ITEM_TYPES:
             raise ValidationError(f"invalid item_type '{entry.item_type}'")
+
+        meal_type = (entry.meal_type or "tentempie").lower().strip()
+        if meal_type == "tentempié":
+            meal_type = "tentempie"
+        if meal_type not in ALLOWED_MEAL_TYPES:
+            raise ValidationError(
+                f"invalid meal_type '{entry.meal_type}', must be one of {ALLOWED_MEAL_TYPES}"
+            )
+        entry.meal_type = meal_type
+
         with MealEntryModel._meta.database.atomic():
             self._ensure_item(entry.item_type, entry.item_id, entry.unit)
             row = MealEntryModel.create(
@@ -94,6 +106,7 @@ class MealService:
                 item_id=entry.item_id,
                 quantity=entry.quantity,
                 unit=entry.unit,
+                meal_type=entry.meal_type,
             )
         return self._to_domain(row)
 
@@ -106,16 +119,45 @@ class MealService:
         for row in rows:
             item = self._to_domain(row)
             macros = self._entry_macros(row)
-            meals.append({"entry": asdict(item), **macros})
+            meals.append({"entry": asdict(item), "meal_type": item.meal_type, **macros})
         return meals
 
     def get_day_summary(self, date: str) -> dict:
-        """Day summary: consumed, goal, remaining, spend, and individual meals."""
+        """Day summary: consumed, goal, remaining, spend, individual meals, and meals by type."""
         meals = self.get_day_entries(date)
         consumed = {
             key: round(sum(m[key] for m in meals), 2) for key in MACRO_KEYS
         }
         spend = round(sum(m["price"] for m in meals), 2)
+
+        # Categorize meals by meal_type
+        meals_by_type = {
+            mt: {
+                "meals": [],
+                "kcal": 0.0,
+                "protein": 0.0,
+                "carbs": 0.0,
+                "fat": 0.0,
+                "spend": 0.0,
+            }
+            for mt in ALLOWED_MEAL_TYPES
+        }
+        for m in meals:
+            mt = m.get("meal_type") or m["entry"].get("meal_type", "tentempie")
+            if mt not in meals_by_type:
+                meals_by_type[mt] = {
+                    "meals": [],
+                    "kcal": 0.0,
+                    "protein": 0.0,
+                    "carbs": 0.0,
+                    "fat": 0.0,
+                    "spend": 0.0,
+                }
+            meals_by_type[mt]["meals"].append(m)
+            for key in MACRO_KEYS:
+                meals_by_type[mt][key] = round(meals_by_type[mt][key] + m[key], 2)
+            meals_by_type[mt]["spend"] = round(meals_by_type[mt]["spend"] + m.get("price", 0.0), 2)
+
         goal_row = GoalService().get_goal(date)
         goal = {
             "date": goal_row.date,
@@ -131,6 +173,7 @@ class MealService:
             "goal": goal,
             "remaining": remaining,
             "meals": meals,
+            "meals_by_type": meals_by_type,
         }
 
     def update(self, entry_id: int, **fields) -> MealEntry:

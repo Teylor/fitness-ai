@@ -332,8 +332,18 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             <input type="date" id="meal-date" required onclick="this.showPicker && this.showPicker()">
           </div>
           <div class="form-group">
-            <label for="meal-type">Tipo de Alimento</label>
-            <select id="meal-type" onchange="updateMealDatalist()">
+            <label for="meal-eating-type">Tipo de Comida</label>
+            <select id="meal-eating-type">
+              <option value="tentempie" selected>🥪 Tentempié</option>
+              <option value="desayuno">☕ Desayuno</option>
+              <option value="comida">🍲 Comida</option>
+              <option value="merienda">🍎 Merienda</option>
+              <option value="cena">🥗 Cena</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="meal-item-type">Tipo de Alimento</label>
+            <select id="meal-item-type" onchange="updateMealDatalist()">
               <option value="ingredient">Ingrediente</option>
               <option value="recipe">Receta</option>
             </select>
@@ -584,21 +594,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             <h3 style="font-size: 0.95rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">🥗 Comidas del Día</h3>
             <span id="summary-spend-badge" class="badge badge-info" style="font-size: 0.8rem;">Gasto: 0.00 €</span>
           </div>
-          <div class="table-container">
-            <table id="summary-meals-table">
-              <thead>
-                <tr>
-                  <th>Alimento</th>
-                  <th>Cantidad</th>
-                  <th>Kcal</th>
-                  <th>P / C / G</th>
-                  <th>Precio</th>
-                  <th>Acción</th>
-                </tr>
-              </thead>
-              <tbody id="summary-meals-body"></tbody>
-            </table>
-          </div>
+          <div id="summary-meals-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
+          <table style="display: none;"><tbody id="summary-meals-body"></tbody></table>
           <div id="summary-meals-empty" style="display: none; color: var(--text-muted); padding: 12px; text-align: center;">No hay comidas registradas para este día.</div>
         </div>
 
@@ -870,7 +867,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     }}
 
     function updateMealDatalist() {{
-      const type = document.getElementById('meal-type').value;
+      const type = document.getElementById('meal-item-type').value;
       const datalist = document.getElementById('meal-items-datalist');
       if (!datalist) return;
       datalist.innerHTML = '';
@@ -893,7 +890,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
     function onMealItemInput() {{
       const val = (document.getElementById('meal-item').value || '').trim().toLowerCase();
-      const type = document.getElementById('meal-type').value;
+      const type = document.getElementById('meal-item-type').value;
       if (type === 'ingredient') {{
         const matched = allIngredients.find(i => (i.name || '').toLowerCase() === val);
         if (matched && matched.unit) {{
@@ -1164,11 +1161,12 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const payload = {{
         date: formattedDate,
         item_name: document.getElementById('meal-item').value,
-        item_type: document.getElementById('meal-type').value,
+        item_type: document.getElementById('meal-item-type').value,
+        meal_type: document.getElementById('meal-eating-type').value,
         quantity: parseFloat(document.getElementById('meal-qty').value),
         unit: document.getElementById('meal-unit').value
       }};
-      const prompt = `Registra una comida de ${{payload.quantity}} ${{payload.unit}} de ${{payload.item_name}} para la fecha ${{payload.date}}`;
+      const prompt = `Registra una comida (${{payload.meal_type}}) de ${{payload.quantity}} ${{payload.unit}} de ${{payload.item_name}} para la fecha ${{payload.date}}`;
       executeAction('register_meal', payload, 'meal-result', prompt);
     }}
 
@@ -1405,39 +1403,107 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       `;
     }}
 
+    const MEAL_TYPE_SECTIONS = [
+      {{ key: 'desayuno', label: 'Desayuno', icon: '☕' }},
+      {{ key: 'tentempie', label: 'Tentempié', icon: '🥪' }},
+      {{ key: 'comida', label: 'Comida', icon: '🍲' }},
+      {{ key: 'merienda', label: 'Merienda', icon: '🍎' }},
+      {{ key: 'cena', label: 'Cena', icon: '🥗' }}
+    ];
+
     function renderSummaryMeals(meals, spend) {{
-      const tbody = document.getElementById('summary-meals-body');
+      const container = document.getElementById('summary-meals-container');
       const emptyMsg = document.getElementById('summary-meals-empty');
       const spendBadge = document.getElementById('summary-spend-badge');
-      if (!tbody) return;
-      tbody.innerHTML = '';
       if (spendBadge) {{
         spendBadge.textContent = `Gasto: ${{parseFloat(spend || 0).toFixed(2)}} €`;
       }}
+      if (!container) return;
+      container.innerHTML = '';
+
       if (!meals || meals.length === 0) {{
         if (emptyMsg) emptyMsg.style.display = 'block';
         return;
       }}
       if (emptyMsg) emptyMsg.style.display = 'none';
-      meals.forEach(m => {{
-        const tr = document.createElement('tr');
-        const entryId = m.entry ? m.entry.id : m.id;
-        const name = m.name || (m.entry && (m.entry.item_name || m.entry.item_type)) || 'Alimento';
-        const qty = m.quantity || (m.entry && m.entry.quantity) || 0;
-        const unit = m.unit || (m.entry && m.entry.unit) || 'gr';
-        const price = m.price ? `${{parseFloat(m.price).toFixed(2)}} €` : '-';
-        const deleteBtn = entryId
-          ? `<button type="button" class="btn btn-secondary btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3);" onclick="deleteMeal(${{entryId}}, '${{escapeHtml(name)}}')">🗑️ Eliminar</button>`
-          : '-';
-        tr.innerHTML = `
-          <td><strong>${{escapeHtml(name)}}</strong></td>
-          <td>${{qty}} ${{escapeHtml(unit)}}</td>
-          <td>${{m.kcal || 0}}</td>
-          <td>${{m.protein || 0}}g / ${{m.carbs || 0}}g / ${{m.fat || 0}}g</td>
-          <td>${{price}}</td>
-          <td>${{deleteBtn}}</td>
+
+      MEAL_TYPE_SECTIONS.forEach(sec => {{
+        const typeMeals = meals.filter(m => {{
+          const mt = (m.meal_type || (m.entry && m.entry.meal_type) || 'tentempie').toLowerCase();
+          return mt === sec.key;
+        }});
+
+        if (typeMeals.length === 0) return;
+
+        let totalKcal = 0;
+        let totalP = 0;
+        let totalC = 0;
+        let totalF = 0;
+        let totalSpend = 0;
+        let rowsHtml = '';
+
+        typeMeals.forEach(m => {{
+          const entryId = m.entry ? m.entry.id : m.id;
+          const name = m.name || (m.entry && (m.entry.item_name || m.entry.item_type)) || 'Alimento';
+          const qty = m.quantity || (m.entry && m.entry.quantity) || 0;
+          const unit = m.unit || (m.entry && m.entry.unit) || 'gr';
+          const price = m.price ? `${{parseFloat(m.price).toFixed(2)}} €` : '-';
+          const kcal = m.kcal || 0;
+          const p = m.protein || 0;
+          const c = m.carbs || 0;
+          const f = m.fat || 0;
+
+          totalKcal += kcal;
+          totalP += p;
+          totalC += c;
+          totalF += f;
+          if (m.price) totalSpend += parseFloat(m.price);
+
+          const deleteBtn = entryId
+            ? `<button type="button" class="btn btn-secondary btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3);" onclick="deleteMeal(${{entryId}}, '${{escapeHtml(name)}}')">🗑️ Eliminar</button>`
+            : '-';
+
+          rowsHtml += `
+            <tr>
+              <td><strong>${{escapeHtml(name)}}</strong></td>
+              <td>${{qty}} ${{escapeHtml(unit)}}</td>
+              <td>${{kcal}}</td>
+              <td>${{p}}g / ${{c}}g / ${{f}}g</td>
+              <td>${{price}}</td>
+              <td>${{deleteBtn}}</td>
+            </tr>
+          `;
+        }});
+
+        const spendStr = totalSpend > 0 ? ` • ${{totalSpend.toFixed(2)}} €` : '';
+        const block = document.createElement('div');
+        block.style.cssText = 'background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px;';
+        block.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
+            <div style="font-weight: 700; color: var(--cyan); font-size: 0.95rem;">${{sec.icon}} ${{sec.label}} <span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">(${{typeMeals.length}})</span></div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">
+              <span style="color: var(--primary); font-weight: 700;">${{Math.round(totalKcal * 10) / 10}} kcal</span> • P: ${{Math.round(totalP * 10) / 10}}g | C: ${{Math.round(totalC * 10) / 10}}g | G: ${{Math.round(totalF * 10) / 10}}g${{spendStr}}
+            </div>
+          </div>
+          <div class="table-container" style="margin-top: 4px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Alimento</th>
+                  <th>Cantidad</th>
+                  <th>Kcal</th>
+                  <th>P / C / G</th>
+                  <th>Precio</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${{rowsHtml}}
+              </tbody>
+            </table>
+          </div>
         `;
-        tbody.appendChild(tr);
+        container.appendChild(block);
       }});
     }}
 

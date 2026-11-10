@@ -42,8 +42,15 @@ def apply_migrations(db, migrations_dir: Path) -> None:
     pending = get_pending_migrations(db, migrations_dir)
     for migration_file in pending:
         sql_content = migration_file.read_text(encoding="utf-8")
-        # Execute the SQL (can contain multiple statements)
-        db.connection().executescript(sql_content)
+        # Execute each statement; gracefully handle idempotent column additions
+        statements = [stmt.strip() for stmt in sql_content.split(";") if stmt.strip()]
+        for stmt in statements:
+            try:
+                db.execute_sql(stmt)
+            except Exception as exc:
+                if "duplicate column name" in str(exc).lower():
+                    continue
+                raise
         # Register
         db.execute_sql(
             "INSERT INTO _migrations (filename) VALUES (?)",
