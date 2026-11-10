@@ -1,5 +1,6 @@
 """Meal registration domain service."""
 
+from dataclasses import asdict
 from datetime import datetime
 
 from src.db.models import (
@@ -101,7 +102,7 @@ class MealService:
         for row in rows:
             item = self._to_domain(row)
             macros = self._entry_macros(row)
-            meals.append({"entry": item, **macros})
+            meals.append({"entry": asdict(item), **macros})
         return meals
 
     def get_day_summary(self, date: str) -> dict:

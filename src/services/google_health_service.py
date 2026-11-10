@@ -44,7 +44,13 @@ class GoogleHealthService:
         return dt.strftime("%Y-%m-%d")
 
     def sync_meals(self, date: Optional[str] = None) -> Dict[str, Any]:
-        """Upload meals recorded on a specific date to Google Health as nutrition dataPoints."""
+        """Upload meals recorded on a specific date to Google Health as nutrition dataPoints.
+
+        Note: Google Health API v4 only exposes a read-only `food` data type,
+        so pushing custom nutrition data points is not supported. This method
+        currently raises a `sync_unsupported` ValidationError when there are
+        meals to sync.
+        """
         self.client._ensure_authenticated()
         valid_date = self._parse_date(date)
         iso_date = self._date_to_iso(valid_date)
@@ -119,29 +125,38 @@ class GoogleHealthService:
         """Fetch sleep sessions from Google Health and store them in sleep_logs."""
         self.client._ensure_authenticated()
         valid_date = self._parse_date(date)
-        dt = datetime.strptime(valid_date, "%d-%m-%Y")
-        start_iso = (dt - timedelta(days=days - 1)).strftime("%Y-%m-%dT00:00:00Z")
-        end_iso = dt.strftime("%Y-%m-%dT23:59:59Z")
 
-        raw_points = self.client.get_sleep_datapoints(start_time=start_iso, end_time=end_iso)
+        raw_points = self.client.get_sleep_datapoints()
         saved_records: List[SleepRecord] = []
 
         for pt in raw_points:
-            st = pt.get("startTime", f"{self._date_to_iso(valid_date)}T23:00:00Z")
-            et = pt.get("endTime", f"{self._date_to_iso(valid_date)}T07:00:00Z")
-            val = pt.get("value", {})
-            duration = val.get("duration_minutes")
-            if duration is None:
+            sleep = pt.get("sleep", {}) if isinstance(pt, dict) else {}
+            interval = sleep.get("interval", {}) or {}
+            st = interval.get("startTime", f"{self._date_to_iso(valid_date)}T23:00:00Z")
+            et = interval.get("endTime", f"{self._date_to_iso(valid_date)}T07:00:00Z")
+
+            deep = rem = light = 0.0
+            duration: Optional[float] = None
+            for stage in (sleep.get("summary") or {}).get("stagesSummary") or []:
+                minutes = float(stage.get("minutes", 0) or 0)
+                stage_type = (stage.get("type") or "").upper()
+                if stage_type == "DEEP":
+                    deep += minutes
+                elif stage_type == "REM":
+                    rem += minutes
+                elif stage_type == "LIGHT":
+                    light += minutes
+
+            summary = sleep.get("summary") or {}
+            if summary:
+                duration = float(summary.get("minutesAsleep", 0) or 0)
+            if duration is None or duration <= 0:
                 try:
                     s_dt = datetime.fromisoformat(st.replace("Z", "+00:00"))
                     e_dt = datetime.fromisoformat(et.replace("Z", "+00:00"))
                     duration = round((e_dt - s_dt).total_seconds() / 60.0, 1)
                 except Exception:
                     duration = 480.0
-
-            deep = float(val.get("deep_sleep_minutes", 0.0))
-            rem = float(val.get("rem_sleep_minutes", 0.0))
-            light = float(val.get("light_sleep_minutes", 0.0))
 
             log_date = valid_date
             try:
@@ -162,6 +177,11 @@ class GoogleHealthService:
                     "source": "google_health",
                 },
             )
+            row.duration_minutes = duration
+            row.deep_sleep_minutes = deep
+            row.rem_sleep_minutes = rem
+            row.light_sleep_minutes = light
+            row.save()
             saved_records.append(
                 SleepRecord(
                     id=row.id,
@@ -187,19 +207,17 @@ class GoogleHealthService:
         """Fetch weight measurements from Google Health and store them in weight_logs."""
         self.client._ensure_authenticated()
         valid_date = self._parse_date(date)
-        dt = datetime.strptime(valid_date, "%d-%m-%Y")
-        start_iso = (dt - timedelta(days=days - 1)).strftime("%Y-%m-%dT00:00:00Z")
-        end_iso = dt.strftime("%Y-%m-%dT23:59:59Z")
 
-        raw_points = self.client.get_weight_datapoints(start_time=start_iso, end_time=end_iso)
+        raw_points = self.client.get_weight_datapoints()
         saved_records: List[WeightRecord] = []
 
         for pt in raw_points:
-            ts = pt.get("startTime", f"{self._date_to_iso(valid_date)}T08:00:00Z")
-            val = pt.get("value", {})
-            weight_kg = float(val.get("weight_kg", val.get("value", 70.0)))
-            bmi = val.get("bmi")
-            body_fat = val.get("body_fat_pct")
+            weight = pt.get("weight", {}) if isinstance(pt, dict) else {}
+            sample = weight.get("sampleTime") or {}
+            ts = sample.get("physicalTime") or f"{self._date_to_iso(valid_date)}T08:00:00Z"
+            weight_kg = round(float(weight.get("weightGrams", 0) or 0) / 1000.0, 2)
+            bmi = None
+            body_fat = None
 
             log_date = valid_date
             try:
@@ -207,6 +225,12 @@ class GoogleHealthService:
                 log_date = log_dt.strftime("%d-%m-%Y")
             except Exception:
                 pass
+
+            exists = WeightLog.get_or_none(
+                (WeightLog.date == log_date) & (WeightLog.source == "google_health")
+            )
+            if exists is not None:
+                continue
 
             row = WeightLog.create(
                 date=log_date,
@@ -237,17 +261,22 @@ class GoogleHealthService:
         }
 
     def sync_all(self, date: Optional[str] = None) -> Dict[str, Any]:
-        """Perform full bidirectional synchronization (push meals, pull sleep and weight)."""
+        """Perform full bidirectional synchronization (push meals, pull sleep and weight).
+
+        Note: the meal push step is currently unsupported by the Google Health
+        API v4 (`food` data type is read-only), so it is skipped and reported
+        as such in the result.
+        """
         valid_date = self._parse_date(date)
-        meals_res = self.sync_meals(valid_date)
         sleep_res = self.fetch_sleep(valid_date)
         weight_res = self.fetch_weight(valid_date)
 
         return {
             "status": "ok",
             "date": valid_date,
-            "meals_synced": meals_res["synced_count"],
-            "total_kcal_synced": meals_res["total_kcal"],
+            "meals_synced": 0,
+            "meals_sync_status": "sync_unsupported",
+            "total_kcal_synced": 0.0,
             "sleep_sessions_fetched": sleep_res["count"],
             "weight_records_fetched": weight_res["count"],
             "latest_weight_kg": weight_res["latest_weight_kg"],

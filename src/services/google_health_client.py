@@ -41,69 +41,42 @@ class GoogleHealthClient:
         return httpx2.Client(timeout=10.0)
 
     def post_nutrition_datapoint(self, data_point: Dict[str, Any]) -> Dict[str, Any]:
-        """Upload a nutrition dataPoint to Google Health API."""
-        url = f"{self.base_url}/users/me/dataTypes/nutrition/dataPoints"
+        """Upload a nutrition dataPoint to Google Health API.
+
+        The Google Health API v4 `food` data type is read-only (it mirrors data
+        synced from other apps); creating custom nutrition data points is not
+        supported. This call therefore always fails with a `sync_unsupported`
+        ValidationError by design.
+        """
+        raise ValidationError(
+            "Google Health API v4 does not support writing nutrition data "
+            "points (the 'food' data type is read-only). Meals cannot be "
+            "pushed to Google Health from this system.",
+            code="sync_unsupported",
+        )
+
+    def _get_datapoints(self, data_type: str) -> List[Dict[str, Any]]:
+        url = f"{self.base_url}/users/me/dataTypes/{data_type}/dataPoints"
         headers = self._get_headers()
 
         if self._http_client is not None:
-            resp = self._http_client.post(url, json=data_point, headers=headers)
+            resp = self._http_client.get(url, headers=headers)
         else:
             with httpx2.Client(timeout=10.0) as client:
-                resp = client.post(url, json=data_point, headers=headers)
+                resp = client.get(url, headers=headers)
 
-        if resp.status_code not in (200, 201, 202):
+        if resp.status_code != 200:
             raise ValidationError(
                 f"Google Health API error ({resp.status_code}): {resp.text}"
             )
-        return resp.json() if resp.text else {"status": "ok"}
+        data = resp.json()
+        return data.get("dataPoints", []) if isinstance(data, dict) else data
 
-    def get_sleep_datapoints(
-        self, start_time: Optional[str] = None, end_time: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+    def get_sleep_datapoints(self) -> List[Dict[str, Any]]:
         """Fetch sleep dataPoints from Google Health API."""
-        url = f"{self.base_url}/users/me/dataTypes/sleep/dataPoints"
-        headers = self._get_headers()
-        params = {}
-        if start_time:
-            params["startTime"] = start_time
-        if end_time:
-            params["endTime"] = end_time
+        return self._get_datapoints("sleep")
 
-        if self._http_client is not None:
-            resp = self._http_client.get(url, params=params, headers=headers)
-        else:
-            with httpx2.Client(timeout=10.0) as client:
-                resp = client.get(url, params=params, headers=headers)
-
-        if resp.status_code != 200:
-            raise ValidationError(
-                f"Google Health API error ({resp.status_code}): {resp.text}"
-            )
-        data = resp.json()
-        return data.get("dataPoints", []) if isinstance(data, dict) else data
-
-    def get_weight_datapoints(
-        self, start_time: Optional[str] = None, end_time: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+    def get_weight_datapoints(self) -> List[Dict[str, Any]]:
         """Fetch weight body measurement dataPoints from Google Health API."""
-        url = f"{self.base_url}/users/me/dataTypes/weight/dataPoints"
-        headers = self._get_headers()
-        params = {}
-        if start_time:
-            params["startTime"] = start_time
-        if end_time:
-            params["endTime"] = end_time
-
-        if self._http_client is not None:
-            resp = self._http_client.get(url, params=params, headers=headers)
-        else:
-            with httpx2.Client(timeout=10.0) as client:
-                resp = client.get(url, params=params, headers=headers)
-
-        if resp.status_code != 200:
-            raise ValidationError(
-                f"Google Health API error ({resp.status_code}): {resp.text}"
-            )
-        data = resp.json()
-        return data.get("dataPoints", []) if isinstance(data, dict) else data
+        return self._get_datapoints("weight")
 

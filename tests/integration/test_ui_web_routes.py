@@ -190,3 +190,145 @@ async def test_ui_new_features_elements_and_interactions(db):
         assert 'toBackendDate' in sum_html
 
 
+@pytest.mark.anyio
+async def test_ui_full_daily_summary_dashboard(db):
+    from datetime import datetime
+    from src.db.models import SleepLog, WeightLog
+
+    server = create_server()
+    app = server.streamable_http_app()
+    transport = httpx2.ASGITransport(app=app)
+
+    today_str = datetime.now().strftime("%d-%m-%Y")
+
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
+        # 1. UI rendering assertions for the full daily summary dashboard
+        res = await client.get("/ui/summary")
+        assert res.status_code == 200
+        html = res.text
+        assert "summary-health" in html
+        assert "summary-workouts-container" in html
+        assert "summary-meals-body" in html
+        assert "quickLogSteps" in html
+        assert "fetchSummary" in html
+        assert "renderSummaryNutrition" in html
+        assert "renderSummaryHealth" in html
+
+        # 2. Set daily goal via API
+        goal_res = await client.post(
+            "/api/set_daily_goal",
+            json={
+                "date": today_str,
+                "kcal": 2200.0,
+                "protein": 160.0,
+                "carbs": 240.0,
+                "fat": 65.0,
+            },
+        )
+        assert goal_res.status_code == 200
+        assert goal_res.json()["status"] == "ok"
+
+        # 3. Log steps via API
+        step_res = await client.post(
+            "/api/log_steps",
+            json={"steps": 9450, "date": today_str, "distance_km": 6.8},
+        )
+        assert step_res.status_code == 200
+        assert step_res.json()["status"] == "ok"
+        assert step_res.json()["steps"] == 9450
+
+        # 4. Populate sleep & weight logs
+        SleepLog.create(
+            date=today_str,
+            start_time="2026-11-09T23:00:00Z",
+            end_time="2026-11-10T07:00:00Z",
+            duration_minutes=468.0,
+            deep_sleep_minutes=90.0,
+            rem_sleep_minutes=95.0,
+            light_sleep_minutes=283.0,
+            source="manual",
+        )
+        WeightLog.create(
+            date=today_str,
+            weight_kg=74.2,
+            bmi=22.4,
+            body_fat_pct=15.2,
+            source="manual",
+        )
+
+        # 5. Verify get_health_metrics returns steps, sleep and weight
+        metrics_res = await client.get(f"/api/get_health_metrics?date={today_str}")
+        assert metrics_res.status_code == 200
+        m_data = metrics_res.json()
+        assert m_data["status"] == "ok"
+        assert m_data["steps"]["steps"] == 9450
+        assert m_data["sleep"]["duration_hours"] == 7.8
+        assert m_data["weight"]["weight_kg"] == 74.2
+
+        # 6. Create ingredient and register a meal
+        ing_res = await client.post(
+            "/api/create_ingredient",
+            json={
+                "name": "Pechuga de Pollo",
+                "unit": "gr",
+                "kcal": 120.0,
+                "protein": 22.0,
+                "carbs": 0.0,
+                "fat": 2.5,
+                "price": 0.80,
+            },
+        )
+        assert ing_res.status_code == 200
+
+        meal_res = await client.post(
+            "/api/register_meal",
+            json={
+                "item_name": "Pechuga de Pollo",
+                "quantity": 250,
+                "unit": "gr",
+                "item_type": "ingredient",
+                "date": today_str,
+            },
+        )
+        assert meal_res.status_code == 200
+        assert meal_res.json()["status"] == "ok"
+
+        # 7. Register a workout
+        wo_res = await client.post(
+            "/api/register_workout",
+            json={
+                "date": f"{today_str} 10:30",
+                "notes": "Torso Hipertrofia",
+                "exercises": [
+                    {
+                        "name": "Press Banca",
+                        "sets": [
+                            {"set_number": 1, "reps": 8, "weight": 80.0}
+                        ],
+                    }
+                ],
+            },
+        )
+        assert wo_res.status_code == 200
+        assert wo_res.json()["status"] == "ok"
+
+        # 8. Check day summary API (consumed vs goal vs remaining)
+        summary_res = await client.get(f"/api/get_day_summary?date={today_str}")
+        assert summary_res.status_code == 200
+        s_data = summary_res.json()
+        assert s_data["status"] == "ok"
+        assert s_data["consumed"]["kcal"] == 300.0
+        assert s_data["goal"]["kcal"] == 2200.0
+        assert s_data["remaining"]["kcal"] == 1900.0
+        assert len(s_data["meals"]) >= 1
+
+        # 9. Check workouts by day API
+        wos_res = await client.get(f"/api/get_workouts_by_day?date={today_str}")
+        assert wos_res.status_code == 200
+        wos_data = wos_res.json()
+        assert wos_data["status"] == "ok"
+        assert len(wos_data["sessions"]) >= 1
+        assert wos_data["sessions"][0]["notes"] == "Torso Hipertrofia"
+
+
+

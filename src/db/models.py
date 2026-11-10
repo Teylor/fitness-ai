@@ -188,6 +188,20 @@ class WeightLog(BaseModel):
         table_name = "weight_logs"
 
 
+class StepLog(BaseModel):
+    """Daily step count activity tracking."""
+
+    date = CharField(unique=True)  # DD-MM-YYYY
+    steps = IntegerField(default=0)
+    distance_km = FloatField(null=True)
+    source = CharField(default="manual")
+    created_at = DateTimeField(default=SQL("datetime('now')"))
+    updated_at = DateTimeField(default=SQL("datetime('now')"))
+
+    class Meta:
+        table_name = "step_logs"
+
+
 # List of all models
 ALL_MODELS = [
     Ingredient,
@@ -201,4 +215,5 @@ ALL_MODELS = [
     PersonalRecord,
     SleepLog,
     WeightLog,
+    StepLog,
 ]

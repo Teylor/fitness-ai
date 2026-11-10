@@ -247,6 +247,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
     .badge-ok {{ background: #064e3b; color: #6ee7b7; }}
     .badge-info {{ background: #164e63; color: #67e8f9; }}
+    .badge-danger {{ background: #7f1d1d; color: #fca5a5; }}
+    .badge-warning {{ background: #78350f; color: #fde68a; }}
 
     .macro-preview {{
       display: grid;
@@ -551,25 +553,61 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
     <!-- TAB 5: DAILY SUMMARY -->
     <section id="tab-summary" class="tab-content {'active' if active_tab == 'summary' else ''}">
-      <h2>📊 Resumen Diario</h2>
-      <div class="form-grid">
-        <div class="form-group">
-          <label for="summary-date">Fecha</label>
-          <input type="date" id="summary-date" onclick="this.showPicker && this.showPicker()">
-        </div>
-        <div class="form-group" style="justify-content: flex-end;">
-          <button type="button" class="btn btn-secondary" onclick="fetchSummary()">Consultar Resumen</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;">
+        <h2>📊 Resumen Diario</h2>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="date" id="summary-date" style="padding: 6px 10px; width: 160px;" onchange="fetchSummary()" onclick="this.showPicker && this.showPicker()">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="fetchSummary()">🔄 Actualizar</button>
         </div>
       </div>
-      <div id="summary-cards" style="margin-top: 12px; display: none;">
-        <div class="macro-preview" id="summary-macros"></div>
-        <div class="table-container" style="margin-top: 12px;">
-          <table id="summary-meals-table">
-            <thead><tr><th>Comida</th><th>Cantidad</th><th>Kcal</th><th>P / C / G</th></tr></thead>
-            <tbody></tbody>
-          </table>
+
+      <div id="summary-cards" style="display: flex; flex-direction: column; gap: 20px;">
+        <!-- 1. Macro Goals, Consumed & Remaining -->
+        <div>
+          <h3 style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">🎯 Objetivos vs Consumido vs Restante</h3>
+          <div class="macro-preview" id="summary-macros" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));"></div>
+        </div>
+
+        <!-- 2. Health & Activity Metrics (Steps, Sleep, Weight) -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h3 style="font-size: 0.95rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">👟 Actividad y Salud</h3>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Métricas del día</span>
+          </div>
+          <div class="macro-preview" id="summary-health" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));"></div>
+        </div>
+
+        <!-- 3. Day's Meals -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h3 style="font-size: 0.95rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">🥗 Comidas del Día</h3>
+            <span id="summary-spend-badge" class="badge badge-info" style="font-size: 0.8rem;">Gasto: 0.00 €</span>
+          </div>
+          <div class="table-container">
+            <table id="summary-meals-table">
+              <thead>
+                <tr>
+                  <th>Alimento</th>
+                  <th>Cantidad</th>
+                  <th>Kcal</th>
+                  <th>P / C / G</th>
+                  <th>Precio</th>
+                </tr>
+              </thead>
+              <tbody id="summary-meals-body"></tbody>
+            </table>
+          </div>
+          <div id="summary-meals-empty" style="display: none; color: var(--text-muted); padding: 12px; text-align: center;">No hay comidas registradas para este día.</div>
+        </div>
+
+        <!-- 4. Day's Workouts -->
+        <div>
+          <h3 style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">🏋️ Entrenamientos Realizados</h3>
+          <div id="summary-workouts-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
+          <div id="summary-workouts-empty" style="display: none; color: var(--text-muted); padding: 12px; text-align: center;">No hay entrenamientos registrados para este día.</div>
         </div>
       </div>
+
       <div id="summary-result" class="result-box"></div>
     </section>
   </div>
@@ -585,6 +623,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (target) target.classList.add('active');
       if (tabName === 'ingredient') fetchIngredientsList();
       if (tabName === 'recipe') fetchRecipesList();
+      if (tabName === 'summary') fetchSummary();
     }}
 
     // Date helpers (ISO for inputs, DD-MM-YYYY for backend)
@@ -1104,43 +1143,264 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const rawDate = document.getElementById('summary-date').value;
       const date = toBackendDate(rawDate) || toBackendDate(formatTodayIso(false));
       const resEl = document.getElementById('summary-result');
-      const cardsEl = document.getElementById('summary-cards');
+
       try {{
-        const resp = await fetch(`/api/get_day_summary?date=${{date}}`);
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const data = await resp.json();
-        if (data.status === 'ok') {{
-          cardsEl.style.display = 'block';
-          resEl.style.display = 'none';
-          const c = data.consumed || {{ kcal: 0, protein: 0, carbs: 0, fat: 0 }};
-          const g = data.goal || {{ kcal: 0, protein: 0, carbs: 0, fat: 0 }};
-          document.getElementById('summary-macros').innerHTML = `
-            <div class="macro-stat"><div class="macro-val">${{c.kcal}}</div><div class="macro-lbl">Kcal (${{g.kcal ? 'Meta ' + g.kcal : 'Sin meta'}})</div></div>
-            <div class="macro-stat"><div class="macro-val">${{c.protein}}g</div><div class="macro-lbl">Proteína (${{g.protein}}g)</div></div>
-            <div class="macro-stat"><div class="macro-val">${{c.carbs}}g</div><div class="macro-lbl">Carbos (${{g.carbs}}g)</div></div>
-            <div class="macro-stat"><div class="macro-val">${{c.fat}}g</div><div class="macro-lbl">Grasas (${{g.fat}}g)</div></div>
-          `;
-          const tbody = document.querySelector('#summary-meals-table tbody');
-          tbody.innerHTML = '';
-          (data.meals || []).forEach(m => {{
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${{m.name || m.item_type}}</td><td>${{m.quantity}} ${{m.unit}}</td><td>${{m.kcal}}</td><td>${{m.protein}}g / ${{m.carbs}}g / ${{m.fat}}g</td>`;
-            tbody.appendChild(tr);
-          }});
+        const [mealResp, woResp, healthResp] = await Promise.all([
+          fetch(`/api/get_day_summary?date=${{date}}`).catch(() => null),
+          fetch(`/api/get_workouts_by_day?date=${{date}}`).catch(() => null),
+          fetch(`/api/get_health_metrics?date=${{date}}`).catch(() => null)
+        ]);
+
+        const mealData = mealResp && mealResp.ok ? await mealResp.json() : null;
+        const woData = woResp && woResp.ok ? await woResp.json() : null;
+        const healthData = healthResp && healthResp.ok ? await healthResp.json() : null;
+
+        if (mealData && mealData.status === 'ok') {{
+          renderSummaryNutrition(mealData);
+          renderSummaryMeals(mealData.meals || [], mealData.spend || 0);
         }} else {{
-          throw new Error(data.message || 'No se pudo cargar el resumen');
+          renderSummaryNutrition({{}});
+          renderSummaryMeals([], 0);
         }}
+
+        if (woData && woData.status === 'ok') {{
+          renderSummaryWorkouts(woData.sessions || []);
+        }} else {{
+          renderSummaryWorkouts([]);
+        }}
+
+        if (healthData && healthData.status === 'ok') {{
+          renderSummaryHealth(healthData, date);
+        }} else {{
+          renderSummaryHealth(null, date);
+        }}
+
+        resEl.style.display = 'none';
       }} catch (err) {{
         resEl.style.display = 'flex';
         resEl.style.background = '#3b1d04';
         resEl.style.color = '#fed7aa';
-        resEl.innerHTML = `ℹ️ Consulta con Hermes: <code>Dame el resumen del día ${{date}}</code>`;
+        resEl.innerHTML = `ℹ️ Consulta con Hermes: <code>Dame el resumen del día ${{date}}</code> (${{err.message}})`;
       }}
     }}
 
-    // Initial fetch of catalogs
+    function renderSummaryNutrition(data) {{
+      const c = data.consumed || {{ kcal: 0, protein: 0, carbs: 0, fat: 0 }};
+      const g = data.goal || {{ kcal: 0, protein: 0, carbs: 0, fat: 0 }};
+      const rem = data.remaining || {{
+        kcal: Math.round(((g.kcal || 0) - c.kcal) * 10) / 10,
+        protein: Math.round(((g.protein || 0) - c.protein) * 10) / 10,
+        carbs: Math.round(((g.carbs || 0) - c.carbs) * 10) / 10,
+        fat: Math.round(((g.fat || 0) - c.fat) * 10) / 10
+      }};
+
+      const formatCard = (title, consumed, goal, remaining, unit) => {{
+        const hasGoal = goal && goal > 0;
+        let remText = 'Sin meta';
+        let badgeClass = 'badge-info';
+        if (hasGoal) {{
+          if (remaining >= 0) {{
+            remText = `${{remaining}}${{unit}} restantes`;
+            badgeClass = 'badge-ok';
+          }} else {{
+            remText = `${{Math.abs(remaining)}}${{unit}} excedidos ⚠️`;
+            badgeClass = 'badge-danger';
+          }}
+        }}
+        const goalLabel = hasGoal ? `Meta: ${{goal}}${{unit}}` : 'Sin meta fijada';
+        return `
+          <div class="macro-stat" style="background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">${{title}}</div>
+            <div class="macro-val" style="margin: 4px 0;">${{consumed}}${{unit}}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">${{goalLabel}}</div>
+            <div style="margin-top: 6px;"><span class="badge ${{badgeClass}}">${{remText}}</span></div>
+          </div>
+        `;
+      }};
+
+      const container = document.getElementById('summary-macros');
+      if (container) {{
+        container.innerHTML = `
+          ${{formatCard('Calorías', c.kcal, g.kcal, rem.kcal, ' kcal')}}
+          ${{formatCard('Proteína', c.protein, g.protein, rem.protein, 'g')}}
+          ${{formatCard('Carbohidratos', c.carbs, g.carbs, rem.carbs, 'g')}}
+          ${{formatCard('Grasas', c.fat, g.fat, rem.fat, 'g')}}
+        `;
+      }}
+    }}
+
+    function renderSummaryHealth(healthData, date) {{
+      const el = document.getElementById('summary-health');
+      if (!el) return;
+      const steps = healthData && healthData.steps;
+      const sleep = healthData && healthData.sleep;
+      const weight = healthData && healthData.weight;
+
+      // 1. Steps
+      let stepsContent = `
+        <div style="color: var(--text-muted); font-size: 0.85rem;">Sin registro</div>
+        <div style="margin-top: 6px; display: flex; gap: 4px; justify-content: center;">
+          <input type="number" id="quick-steps-input" placeholder="Pasos..." style="width: 80px; padding: 3px 6px; font-size: 0.8rem;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="quickLogSteps('${{date}}')" style="padding: 3px 8px; font-size: 0.75rem;">+ Guardar</button>
+        </div>
+      `;
+      if (steps) {{
+        const distStr = steps.distance_km ? ` (${{steps.distance_km}} km)` : '';
+        stepsContent = `
+          <div class="macro-val" style="color: var(--cyan);">${{Number(steps.steps).toLocaleString()}}</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">pasos${{distStr}}</div>
+          <div style="margin-top: 4px; display: flex; gap: 4px; justify-content: center;">
+            <input type="number" id="quick-steps-input" placeholder="${{steps.steps}}" style="width: 75px; padding: 2px 6px; font-size: 0.75rem;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="quickLogSteps('${{date}}')" style="padding: 2px 6px; font-size: 0.75rem;">Editar</button>
+          </div>
+        `;
+      }}
+
+      // 2. Sleep
+      let sleepContent = `<div style="color: var(--text-muted); font-size: 0.85rem;">Sin registro</div>`;
+      if (sleep) {{
+        sleepContent = `
+          <div class="macro-val" style="color: #a78bfa;">${{sleep.duration_hours}}h</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">${{sleep.duration_minutes}} min totales</div>
+          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">P: ${{sleep.deep_sleep_minutes}}m | REM: ${{sleep.rem_sleep_minutes}}m | L: ${{sleep.light_sleep_minutes}}m</div>
+        `;
+      }}
+
+      // 3. Weight
+      let weightContent = `<div style="color: var(--text-muted); font-size: 0.85rem;">Sin registro</div>`;
+      if (weight) {{
+        const bmiStr = weight.bmi ? ` | IMC: ${{weight.bmi}}` : '';
+        const fatStr = weight.body_fat_pct ? ` | ${{weight.body_fat_pct}}% grasa` : '';
+        weightContent = `
+          <div class="macro-val" style="color: var(--warning);">${{weight.weight_kg}} kg</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Peso corporal${{bmiStr}}${{fatStr}}</div>
+        `;
+      }}
+
+      el.innerHTML = `
+        <div class="macro-stat" style="background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;">
+          <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">👟 Pasos</div>
+          <div style="margin: 6px 0;">${{stepsContent}}</div>
+        </div>
+        <div class="macro-stat" style="background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;">
+          <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">💤 Sueño</div>
+          <div style="margin: 6px 0;">${{sleepContent}}</div>
+        </div>
+        <div class="macro-stat" style="background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;">
+          <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">⚖️ Peso</div>
+          <div style="margin: 6px 0;">${{weightContent}}</div>
+        </div>
+      `;
+    }}
+
+    async function quickLogSteps(date) {{
+      const input = document.getElementById('quick-steps-input');
+      if (!input || !input.value) return;
+      const steps = parseInt(input.value);
+      if (isNaN(steps) || steps < 0) return;
+      try {{
+        await fetch('/api/log_steps', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ steps, date }})
+        }});
+        await fetchSummary();
+      }} catch (e) {{
+        console.error('Error logging steps', e);
+      }}
+    }}
+
+    function renderSummaryMeals(meals, spend) {{
+      const tbody = document.getElementById('summary-meals-body');
+      const emptyMsg = document.getElementById('summary-meals-empty');
+      const spendBadge = document.getElementById('summary-spend-badge');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      if (spendBadge) {{
+        spendBadge.textContent = `Gasto: ${{parseFloat(spend || 0).toFixed(2)}} €`;
+      }}
+      if (!meals || meals.length === 0) {{
+        if (emptyMsg) emptyMsg.style.display = 'block';
+        return;
+      }}
+      if (emptyMsg) emptyMsg.style.display = 'none';
+      meals.forEach(m => {{
+        const tr = document.createElement('tr');
+        const name = m.name || (m.entry && m.entry.item_type) || 'Alimento';
+        const qty = m.quantity || (m.entry && m.entry.quantity) || 0;
+        const unit = m.unit || (m.entry && m.entry.unit) || 'gr';
+        const price = m.price ? `${{parseFloat(m.price).toFixed(2)}} €` : '-';
+        tr.innerHTML = `
+          <td><strong>${{escapeHtml(name)}}</strong></td>
+          <td>${{qty}} ${{escapeHtml(unit)}}</td>
+          <td>${{m.kcal || 0}}</td>
+          <td>${{m.protein || 0}}g / ${{m.carbs || 0}}g / ${{m.fat || 0}}g</td>
+          <td>${{price}}</td>
+        `;
+        tbody.appendChild(tr);
+      }});
+    }}
+
+    function renderSummaryWorkouts(sessions) {{
+      const container = document.getElementById('summary-workouts-container');
+      const emptyMsg = document.getElementById('summary-workouts-empty');
+      if (!container) return;
+      container.innerHTML = '';
+      if (!sessions || sessions.length === 0) {{
+        if (emptyMsg) emptyMsg.style.display = 'block';
+        return;
+      }}
+      if (emptyMsg) emptyMsg.style.display = 'none';
+      sessions.forEach((s, idx) => {{
+        const div = document.createElement('div');
+        div.style.cssText = 'background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px;';
+        
+        let setsRows = '';
+        (s.sets || []).forEach(set => {{
+          const e1rm = set.estimated_1rm ? `${{set.estimated_1rm}} kg` : '-';
+          setsRows += `
+            <tr>
+              <td><strong>${{escapeHtml(set.exercise)}}</strong></td>
+              <td>Serie ${{set.set_number}}</td>
+              <td>${{set.reps}}</td>
+              <td>${{set.weight}} kg</td>
+              <td><span style="color: var(--primary); font-weight: 700;">${{e1rm}}</span></td>
+            </tr>
+          `;
+        }});
+
+        const notesStr = s.notes ? `<div style="font-size: 0.85rem; color: var(--text-muted);">${{escapeHtml(s.notes)}}</div>` : '';
+        div.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
+            <div style="font-weight: 700; color: var(--cyan);">🏋️ Sesión #${{idx + 1}} — ${{s.date || ''}}</div>
+            <span class="badge badge-info">${{s.sets ? s.sets.length : 0}} series</span>
+          </div>
+          ${{notesStr}}
+          <div class="table-container" style="margin-top: 4px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ejercicio</th>
+                  <th>Serie</th>
+                  <th>Reps</th>
+                  <th>Peso</th>
+                  <th>1RM Est.</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${{setsRows}}
+              </tbody>
+            </table>
+          </div>
+        `;
+        container.appendChild(div);
+      }});
+    }}
+
+    // Initial fetch of catalogs and summary
     fetchIngredientsList();
     fetchRecipesList();
+    fetchSummary();
   </script>
 </body>
 </html>

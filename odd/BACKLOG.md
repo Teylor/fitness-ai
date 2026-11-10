@@ -44,7 +44,6 @@
 
 | Feature | File |
 |---------|---------|
-| — | — |
 
 ---
 
@@ -52,6 +51,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `ui-full-daily-summary` | `odd/tasks/ui-full-daily-summary.md` | 2026-11 |
 | `ui-new-features` | `odd/tasks/ui-new-features.md` | 2026-11 |
 | `ui-catalog-and-edit` | `odd/tasks/ui-catalog-and-edit.md` | 2026-11 |
 | `google-health-api` | `odd/tasks/google-health-api.md` | 2026-11 |

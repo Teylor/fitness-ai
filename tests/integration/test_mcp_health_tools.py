@@ -30,7 +30,7 @@ def test_health_tools_unauthenticated_return_error(db, monkeypatch):
     assert res_weight["code"] == "invalid_input"
 
 
-def test_sync_meals_tool_success(db, monkeypatch):
+def test_sync_meals_tool_unsupported(db, monkeypatch):
     monkeypatch.setattr(settings, "google_health_token", "test-bearer-token")
 
     ing = Ingredient.create(
@@ -44,27 +44,12 @@ def test_sync_meals_tool_success(db, monkeypatch):
         unit="u",
     )
 
-    def mock_handler(request: httpx2.Request) -> httpx2.Response:
-        assert request.headers.get("authorization") == "Bearer test-bearer-token"
-        return httpx2.Response(200, json={"status": "ok"})
-
-    transport = httpx2.MockTransport(mock_handler)
-    mock_http = httpx2.Client(transport=transport)
-
-    # Monkeypatch the client instantiation inside service
-    from src.services.google_health_client import GoogleHealthClient
-    orig_init = GoogleHealthClient.__init__
-
-    def patched_init(self, *args, **kwargs):
-        orig_init(self, token="test-bearer-token", http_client=mock_http)
-
-    monkeypatch.setattr(GoogleHealthClient, "__init__", patched_init)
-
+    # Google Health API v4 `food` data type is read-only: pushing meals must
+    # fail with a `sync_unsupported` error, no HTTP call is made.
     res = sync_meals_to_google_health("10-11-2026")
-    assert res["status"] == "ok"
-    assert res["date"] == "10-11-2026"
-    assert res["synced_count"] == 1
-    assert res["total_kcal"] == 210.0
+    assert res["status"] == "error"
+    assert res["code"] == "sync_unsupported"
+    assert "read-only" in res["message"]
 
 
 def test_fetch_sleep_and_weight_tools_success(db, monkeypatch):
@@ -78,14 +63,20 @@ def test_fetch_sleep_and_weight_tools_success(db, monkeypatch):
                 json={
                     "dataPoints": [
                         {
-                            "startTime": "2026-11-09T22:30:00Z",
-                            "endTime": "2026-11-10T06:30:00Z",
-                            "value": {
-                                "duration_minutes": 480.0,
-                                "deep_sleep_minutes": 90.0,
-                                "rem_sleep_minutes": 90.0,
-                                "light_sleep_minutes": 300.0,
-                            },
+                            "sleep": {
+                                "interval": {
+                                    "startTime": "2026-11-09T22:30:00Z",
+                                    "endTime": "2026-11-10T06:30:00Z",
+                                },
+                                "summary": {
+                                    "minutesAsleep": 480,
+                                    "stagesSummary": [
+                                        {"type": "DEEP", "minutes": 90},
+                                        {"type": "REM", "minutes": 90},
+                                        {"type": "LIGHT", "minutes": 300},
+                                    ],
+                                },
+                            }
                         }
                     ]
                 },
@@ -96,8 +87,13 @@ def test_fetch_sleep_and_weight_tools_success(db, monkeypatch):
                 json={
                     "dataPoints": [
                         {
-                            "startTime": "2026-11-10T07:30:00Z",
-                            "value": {"weight_kg": 75.2, "bmi": 22.8},
+                            "weight": {
+                                "sampleTime": {
+                                    "physicalTime": "2026-11-10T07:30:00Z",
+                                    "utcOffset": "3600s",
+                                },
+                                "weightGrams": 75200,
+                            }
                         }
                     ]
                 },
@@ -128,7 +124,55 @@ def test_fetch_sleep_and_weight_tools_success(db, monkeypatch):
     assert weight_res["latest_weight_kg"] == 75.2
 
     # 3. Full sync tool
+    # (sleep sessions already persisted by step 1; weight records already
+    # persisted by step 2, so no new rows are created during full sync.)
     sync_res = sync_google_health("10-11-2026")
     assert sync_res["status"] == "ok"
     assert sync_res["sleep_sessions_fetched"] == 1
-    assert sync_res["weight_records_fetched"] == 1
+    assert sync_res["weight_records_fetched"] == 0
+
+
+def test_log_steps_and_get_health_metrics_tools(db):
+    from src.db.models import SleepLog, WeightLog
+    from src.mcp.tools.health_tools import get_health_metrics, log_steps
+
+    # 1. Log steps
+    res_steps = log_steps(steps=8500, date="10-11-2026", distance_km=6.2)
+    assert res_steps["status"] == "ok"
+    assert res_steps["steps"] == 8500
+    assert res_steps["distance_km"] == 6.2
+
+    # 2. Add local sleep and weight logs
+    SleepLog.create(
+        date="10-11-2026",
+        start_time="2026-11-09T23:00:00Z",
+        end_time="2026-11-10T07:00:00Z",
+        duration_minutes=480.0,
+        deep_sleep_minutes=90.0,
+        rem_sleep_minutes=100.0,
+        light_sleep_minutes=290.0,
+        source="google_health",
+    )
+    WeightLog.create(
+        date="10-11-2026",
+        weight_kg=74.5,
+        bmi=22.5,
+        body_fat_pct=15.0,
+        source="google_health",
+    )
+
+    # 3. Query health metrics
+    metrics = get_health_metrics("10-11-2026")
+    assert metrics["status"] == "ok"
+    assert metrics["date"] == "10-11-2026"
+    assert metrics["steps"]["steps"] == 8500
+    assert metrics["sleep"]["duration_hours"] == 8.0
+    assert metrics["weight"]["weight_kg"] == 74.5
+
+    # 4. Update steps
+    updated_steps = log_steps(steps=10200, date="10-11-2026", distance_km=7.5)
+    assert updated_steps["status"] == "ok"
+    assert updated_steps["steps"] == 10200
+    metrics2 = get_health_metrics("10-11-2026")
+    assert metrics2["steps"]["steps"] == 10200
+

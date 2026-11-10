@@ -20,6 +20,8 @@ class SleepRecord:
     created_at: Optional[str] = None
 
 
+
+
 @dataclass
 class WeightRecord:
     """Body weight record."""
@@ -31,4 +33,20 @@ class WeightRecord:
     source: str = "google_health"
     id: Optional[int] = None
     created_at: Optional[str] = None
+
+
+@dataclass
+class StepRecord:
+    """Daily steps activity record."""
+
+    date: str  # DD-MM-YYYY
+    steps: int
+    distance_km: Optional[float] = None
+    source: str = "manual"
+    id: Optional[int] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
+
 
