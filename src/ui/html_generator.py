@@ -362,6 +362,11 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
     <!-- TAB 2: RECIPE BUILDER -->
     <section id="tab-recipe" class="tab-content {'active' if active_tab == 'recipe' else ''}">
+      <div id="recipe-edit-banner" style="display: none; background: #1e3a8a; color: #bfdbfe; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; align-items: center; justify-content: space-between;">
+        <span>✏️ Modo edición: <strong id="recipe-edit-label"></strong> (ID: <span id="recipe-edit-id"></span>)</span>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="cancelEditRecipe()">Cancelar Edición</button>
+      </div>
+
       <h2>🍲 Constructor de Recetas</h2>
       <form id="form-recipe" onsubmit="submitRecipe(event)">
         <div class="form-grid">
@@ -393,14 +398,49 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         </div>
 
         <div style="margin-top: 14px; display: flex; gap: 8px;">
-          <button type="submit" class="btn">Guardar Receta</button>
+          <button type="submit" id="btn-submit-recipe" class="btn">Guardar Receta</button>
+          <button type="button" id="btn-cancel-recipe" class="btn btn-secondary" style="display: none;" onclick="cancelEditRecipe()">Cancelar Edición</button>
         </div>
       </form>
       <div id="recipe-result" class="result-box"></div>
+
+      <!-- Catálogo de Recetas Guardadas -->
+      <div style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+          <h3 style="font-size: 1.1rem; color: var(--text);">📋 Recetas Guardadas</h3>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="recipe-search-input" placeholder="Buscar receta..." style="width: 200px; padding: 6px 10px;" oninput="filterRecipes()">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="fetchRecipesList()">🔄 Actualizar</button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table id="recipes-catalog-table">
+            <thead>
+              <tr>
+                <th>Receta</th>
+                <th>Ingredientes</th>
+                <th>Kcal</th>
+                <th>Macros (P/C/G)</th>
+                <th>Precio</th>
+                <th style="width: 80px;">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="recipes-catalog-body">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+        <div id="recipes-catalog-empty" style="display: none; color: var(--text-muted); padding: 12px; text-align: center;">No hay recetas guardadas.</div>
+      </div>
     </section>
 
     <!-- TAB 3: INGREDIENT MANAGER -->
     <section id="tab-ingredient" class="tab-content {'active' if active_tab == 'ingredient' else ''}">
+      <div id="ing-edit-banner" style="display: none; background: #1e3a8a; color: #bfdbfe; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; align-items: center; justify-content: space-between;">
+        <span>✏️ Modo edición: <strong id="ing-edit-label"></strong> (ID: <span id="ing-edit-id"></span>)</span>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="cancelEditIngredient()">Cancelar Edición</button>
+      </div>
+
       <h2>🥑 Crear / Editar Ingrediente</h2>
       <form id="form-ingredient" onsubmit="submitIngredient(event)">
         <div class="form-grid">
@@ -438,10 +478,43 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           </div>
         </div>
         <div style="margin-top: 14px; display: flex; gap: 8px;">
-          <button type="submit" class="btn">Guardar Ingrediente</button>
+          <button type="submit" id="btn-submit-ingredient" class="btn">Guardar Ingrediente</button>
+          <button type="button" id="btn-cancel-ingredient" class="btn btn-secondary" style="display: none;" onclick="cancelEditIngredient()">Cancelar Edición</button>
         </div>
       </form>
       <div id="ingredient-result" class="result-box"></div>
+
+      <!-- Catálogo de Ingredientes Guardados -->
+      <div style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+          <h3 style="font-size: 1.1rem; color: var(--text);">📋 Ingredientes Guardados</h3>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="ing-search-input" placeholder="Buscar ingrediente..." style="width: 200px; padding: 6px 10px;" oninput="filterIngredients()">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="fetchIngredientsList()">🔄 Actualizar</button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table id="ingredients-catalog-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Unidad</th>
+                <th>Kcal</th>
+                <th>P (g)</th>
+                <th>C (g)</th>
+                <th>G (g)</th>
+                <th>Precio</th>
+                <th>Estado</th>
+                <th style="width: 80px;">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="ingredients-catalog-body">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+        <div id="ingredients-catalog-empty" style="display: none; color: var(--text-muted); padding: 12px; text-align: center;">No hay ingredientes guardados.</div>
+      </div>
     </section>
 
     <!-- TAB 4: WORKOUT LOGGER -->
@@ -508,6 +581,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (activeBtn) activeBtn.classList.add('active');
       const target = document.getElementById('tab-' + tabName);
       if (target) target.classList.add('active');
+      if (tabName === 'ingredient') fetchIngredientsList();
+      if (tabName === 'recipe') fetchRecipesList();
     }}
 
     // Default dates to today
@@ -629,6 +704,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             <strong>✅ Operación completada con éxito</strong>
             <div>${{JSON.stringify(data, null, 2)}}</div>
           `;
+          return data;
         }} else {{
           throw new Error(data.message || data.code || 'Error desconocido');
         }}
@@ -647,7 +723,200 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             <button class="btn btn-sm" onclick="navigator.clipboard.writeText('${{promptDescription.replace(/'/g, "\\\\'")}}'); this.textContent = '¡Copiado!';">Copiar</button>
           </div>
         `;
+        return null;
       }}
+    }}
+
+    // Catalogs State
+    let allIngredients = [];
+    let allRecipes = [];
+    let editingIngredientId = null;
+    let editingRecipeId = null;
+
+    function escapeHtml(text) {{
+      if (text === null || text === undefined) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }}
+
+    // INGREDIENTS CATALOG & EDIT
+    async function fetchIngredientsList() {{
+      const tbody = document.getElementById('ingredients-catalog-body');
+      const emptyMsg = document.getElementById('ingredients-catalog-empty');
+      if (!tbody) return;
+      try {{
+        const resp = await fetch('/api/list_ingredients');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        if (data.status === 'ok') {{
+          allIngredients = data.ingredients || [];
+          renderIngredientsTable(allIngredients);
+        }}
+      }} catch (err) {{
+        tbody.innerHTML = `<tr><td colspan="9" style="color: var(--text-muted); text-align: center;">No se pudo conectar con el catálogo de ingredientes (${{err.message}}).</td></tr>`;
+      }}
+    }}
+
+    function renderIngredientsTable(list) {{
+      const tbody = document.getElementById('ingredients-catalog-body');
+      const emptyMsg = document.getElementById('ingredients-catalog-empty');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      if (!list || list.length === 0) {{
+        if (emptyMsg) emptyMsg.style.display = 'block';
+        return;
+      }}
+      if (emptyMsg) emptyMsg.style.display = 'none';
+      list.forEach(ing => {{
+        const tr = document.createElement('tr');
+        const badge = ing.provisional
+          ? '<span class="badge" style="background:#78350f; color:#fde68a;">Provisional</span>'
+          : '<span class="badge badge-ok">Confirmado</span>';
+        const priceStr = ing.price ? `${{parseFloat(ing.price).toFixed(2)}} €` : '-';
+        tr.innerHTML = `
+          <td><strong>${{escapeHtml(ing.name)}}</strong></td>
+          <td>${{escapeHtml(ing.unit)}}</td>
+          <td>${{ing.kcal || 0}}</td>
+          <td>${{ing.protein || 0}}</td>
+          <td>${{ing.carbs || 0}}</td>
+          <td>${{ing.fat || 0}}</td>
+          <td>${{priceStr}}</td>
+          <td>${{badge}}</td>
+          <td><button type="button" class="btn btn-secondary btn-sm" onclick="startEditIngredient(${{ing.id}})">✏️ Editar</button></td>
+        `;
+        tbody.appendChild(tr);
+      }});
+    }}
+
+    function filterIngredients() {{
+      const query = (document.getElementById('ing-search-input').value || '').toLowerCase().trim();
+      const filtered = allIngredients.filter(i => (i.name || '').toLowerCase().includes(query));
+      renderIngredientsTable(filtered);
+    }}
+
+    function startEditIngredient(id) {{
+      const ing = allIngredients.find(i => i.id === id);
+      if (!ing) return;
+      editingIngredientId = id;
+      document.getElementById('ing-name').value = ing.name || '';
+      document.getElementById('ing-unit').value = ing.unit || 'gr';
+      document.getElementById('ing-kcal').value = ing.kcal !== undefined ? ing.kcal : 0;
+      document.getElementById('ing-protein').value = ing.protein !== undefined ? ing.protein : 0;
+      document.getElementById('ing-carbs').value = ing.carbs !== undefined ? ing.carbs : 0;
+      document.getElementById('ing-fat').value = ing.fat !== undefined ? ing.fat : 0;
+      document.getElementById('ing-price').value = ing.price !== undefined ? ing.price : 0;
+
+      document.getElementById('ing-edit-label').textContent = ing.name;
+      document.getElementById('ing-edit-id').textContent = id;
+      document.getElementById('ing-edit-banner').style.display = 'flex';
+      document.getElementById('btn-submit-ingredient').textContent = 'Actualizar Ingrediente';
+      document.getElementById('btn-cancel-ingredient').style.display = 'inline-block';
+      document.getElementById('form-ingredient').scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+    }}
+
+    function cancelEditIngredient() {{
+      editingIngredientId = null;
+      document.getElementById('form-ingredient').reset();
+      document.getElementById('ing-edit-banner').style.display = 'none';
+      document.getElementById('btn-submit-ingredient').textContent = 'Guardar Ingrediente';
+      document.getElementById('btn-cancel-ingredient').style.display = 'none';
+    }}
+
+    // RECIPES CATALOG & EDIT
+    async function fetchRecipesList() {{
+      const tbody = document.getElementById('recipes-catalog-body');
+      const emptyMsg = document.getElementById('recipes-catalog-empty');
+      if (!tbody) return;
+      try {{
+        const resp = await fetch('/api/list_recipes');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        if (data.status === 'ok') {{
+          allRecipes = data.recipes || [];
+          renderRecipesTable(allRecipes);
+        }}
+      }} catch (err) {{
+        tbody.innerHTML = `<tr><td colspan="6" style="color: var(--text-muted); text-align: center;">No se pudo conectar con el catálogo de recetas (${{err.message}}).</td></tr>`;
+      }}
+    }}
+
+    function renderRecipesTable(list) {{
+      const tbody = document.getElementById('recipes-catalog-body');
+      const emptyMsg = document.getElementById('recipes-catalog-empty');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      if (!list || list.length === 0) {{
+        if (emptyMsg) emptyMsg.style.display = 'block';
+        return;
+      }}
+      if (emptyMsg) emptyMsg.style.display = 'none';
+      list.forEach(rec => {{
+        const tr = document.createElement('tr');
+        const itemsStr = (rec.items && rec.items.length > 0)
+          ? rec.items.map(it => `${{it.quantity}}${{it.unit}} ${{escapeHtml(it.name || ('Ingrediente #' + it.ingredient_id))}}`).join(', ')
+          : '<em style="color: var(--text-muted);">Sin ingredientes / Opaca</em>';
+        const kcalStr = rec.kcal !== null && rec.kcal !== undefined ? rec.kcal : '-';
+        const p = rec.protein !== null && rec.protein !== undefined ? rec.protein : 0;
+        const c = rec.carbs !== null && rec.carbs !== undefined ? rec.carbs : 0;
+        const f = rec.fat !== null && rec.fat !== undefined ? rec.fat : 0;
+        const macrosStr = `${{p}}g / ${{c}}g / ${{f}}g`;
+        const priceStr = rec.price ? `${{parseFloat(rec.price).toFixed(2)}} €` : '-';
+
+        tr.innerHTML = `
+          <td><strong>${{escapeHtml(rec.name)}}</strong></td>
+          <td style="max-width: 250px; font-size: 0.85rem; color: var(--text-muted);">${{itemsStr}}</td>
+          <td>${{kcalStr}}</td>
+          <td>${{macrosStr}}</td>
+          <td>${{priceStr}}</td>
+          <td><button type="button" class="btn btn-secondary btn-sm" onclick="startEditRecipe(${{rec.id}})">✏️ Editar</button></td>
+        `;
+        tbody.appendChild(tr);
+      }});
+    }}
+
+    function filterRecipes() {{
+      const query = (document.getElementById('recipe-search-input').value || '').toLowerCase().trim();
+      const filtered = allRecipes.filter(r => (r.name || '').toLowerCase().includes(query));
+      renderRecipesTable(filtered);
+    }}
+
+    function startEditRecipe(id) {{
+      const rec = allRecipes.find(r => r.id === id);
+      if (!rec) return;
+      editingRecipeId = id;
+      document.getElementById('recipe-name').value = rec.name || '';
+
+      const tbody = document.querySelector('#recipe-items-table tbody');
+      tbody.innerHTML = '';
+      if (rec.items && rec.items.length > 0) {{
+        rec.items.forEach(it => {{
+          addRecipeRow(it.name || ('Ingrediente #' + it.ingredient_id), it.quantity, it.unit);
+        }});
+      }} else {{
+        addRecipeRow('', 100, 'gr');
+      }}
+
+      document.getElementById('recipe-edit-label').textContent = rec.name;
+      document.getElementById('recipe-edit-id').textContent = id;
+      document.getElementById('recipe-edit-banner').style.display = 'flex';
+      document.getElementById('btn-submit-recipe').textContent = 'Actualizar Receta';
+      document.getElementById('btn-cancel-recipe').style.display = 'inline-block';
+      document.getElementById('form-recipe').scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+    }}
+
+    function cancelEditRecipe() {{
+      editingRecipeId = null;
+      document.getElementById('form-recipe').reset();
+      const tbody = document.querySelector('#recipe-items-table tbody');
+      tbody.innerHTML = '';
+      addRecipeRow('Pechuga de Pollo', 200, 'gr');
+      addRecipeRow('Arroz', 100, 'gr');
+      document.getElementById('recipe-edit-banner').style.display = 'none';
+      document.getElementById('btn-submit-recipe').textContent = 'Guardar Receta';
+      document.getElementById('btn-cancel-recipe').style.display = 'none';
     }}
 
     // Form handlers
@@ -664,8 +933,9 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       executeAction('register_meal', payload, 'meal-result', prompt);
     }}
 
-    function submitIngredient(e) {{
+    async function submitIngredient(e) {{
       e.preventDefault();
+      const isUpdating = editingIngredientId !== null;
       const payload = {{
         name: document.getElementById('ing-name').value,
         unit: document.getElementById('ing-unit').value,
@@ -675,12 +945,25 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         fat: parseFloat(document.getElementById('ing-fat').value) || 0,
         price: parseFloat(document.getElementById('ing-price').value) || 0
       }};
-      const prompt = `Crea el ingrediente ${{payload.name}} (${{payload.unit}}): ${{payload.kcal}} kcal, ${{payload.protein}}g P, ${{payload.carbs}}g C, ${{payload.fat}}g G`;
-      executeAction('create_ingredient', payload, 'ingredient-result', prompt);
+      let toolName = 'create_ingredient';
+      let prompt = `Crea el ingrediente ${{payload.name}} (${{payload.unit}}): ${{payload.kcal}} kcal, ${{payload.protein}}g P, ${{payload.carbs}}g C, ${{payload.fat}}g G`;
+      if (isUpdating) {{
+        toolName = 'update_ingredient';
+        payload.ingredient_id = editingIngredientId;
+        prompt = `Actualiza el ingrediente ID ${{editingIngredientId}} (${{payload.name}}): ${{payload.kcal}} kcal, ${{payload.protein}}g P, ${{payload.carbs}}g C, ${{payload.fat}}g G, ${{payload.price}}€`;
+      }}
+      const res = await executeAction(toolName, payload, 'ingredient-result', prompt);
+      if (res && res.status === 'ok') {{
+        await fetchIngredientsList();
+        if (isUpdating) {{
+          cancelEditIngredient();
+        }}
+      }}
     }}
 
-    function submitRecipe(e) {{
+    async function submitRecipe(e) {{
       e.preventDefault();
+      const isUpdating = editingRecipeId !== null;
       const items = [];
       document.querySelectorAll('#recipe-items-table tbody tr').forEach(tr => {{
         items.push({{
@@ -689,12 +972,24 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           unit: tr.querySelector('.rec-item-unit').value
         }});
       }});
+      let toolName = 'create_recipe';
       const payload = {{
         name: document.getElementById('recipe-name').value,
         ingredients: items
       }};
-      const prompt = `Crea la receta ${{payload.name}} con ingredientes: ` + items.map(i => `${{i.quantity}} ${{i.unit}} de ${{i.name}}`).join(', ');
-      executeAction('create_recipe', payload, 'recipe-result', prompt);
+      let prompt = `Crea la receta ${{payload.name}} con ingredientes: ` + items.map(i => `${{i.quantity}} ${{i.unit}} de ${{i.name}}`).join(', ');
+      if (isUpdating) {{
+        toolName = 'update_recipe';
+        payload.recipe_id = editingRecipeId;
+        prompt = `Actualiza la receta ID ${{editingRecipeId}} (${{payload.name}}) con ingredientes: ` + items.map(i => `${{i.quantity}} ${{i.unit}} de ${{i.name}}`).join(', ');
+      }}
+      const res = await executeAction(toolName, payload, 'recipe-result', prompt);
+      if (res && res.status === 'ok') {{
+        await fetchRecipesList();
+        if (isUpdating) {{
+          cancelEditRecipe();
+        }}
+      }}
     }}
 
     function submitWorkout(e) {{
@@ -757,6 +1052,10 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         resEl.innerHTML = `ℹ️ Consulta con Hermes: <code>Dame el resumen del día ${{date}}</code>`;
       }}
     }}
+
+    // Initial fetch of catalogs
+    fetchIngredientsList();
+    fetchRecipesList();
   </script>
 </body>
 </html>

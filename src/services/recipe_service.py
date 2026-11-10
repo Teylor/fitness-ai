@@ -169,6 +169,7 @@ class RecipeService:
                 ingredient_id=i.ingredient_id,
                 quantity=i.quantity,
                 unit=i.unit,
+                name=i.ingredient.name if hasattr(i, "ingredient") and i.ingredient is not None else None,
             )
             for i in RecipeItemModel.select().where(RecipeItemModel.recipe == row.id)
         ]

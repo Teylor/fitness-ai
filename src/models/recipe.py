@@ -30,3 +30,4 @@ class RecipeItem:
     unit: str
     id: Optional[int] = None
     recipe_id: Optional[int] = None
+    name: Optional[str] = None
