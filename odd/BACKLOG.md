@@ -32,7 +32,6 @@
 
 | # | Priority | Feature | State | Note |
 |---|-----------|---------|--------|------|
-| 8 | P3 | `seed-data` | ✅ Approved | Initial catalog of ingredients/exercises. |
 | 9 | P2 | `odd-merge-back` | ✅ Approved | When closing, reflux the met criteria to global `docs/specs/` (mimics OpenSpec's delta merge; closes the ODD's weak point). |
 
 > Recommended execution order: `mcp-server` (12 nutrition & goal tools) → `services-training` (training services + 6 MCP tools) → `hermes-e2e`. `specs-completion` can run in parallel.
@@ -73,4 +72,4 @@
 
 | Feature | Reason |
 |---------|--------|
-| — | — |
+| `seed-data` | Dropped by user preference: catalog will be populated incrementally as consumed via the UI. |
