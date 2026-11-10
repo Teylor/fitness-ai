@@ -44,13 +44,7 @@ class GoogleHealthService:
         return dt.strftime("%Y-%m-%d")
 
     def sync_meals(self, date: Optional[str] = None) -> Dict[str, Any]:
-        """Upload meals recorded on a specific date to Google Health as nutrition dataPoints.
-
-        Note: Google Health API v4 only exposes a read-only `food` data type,
-        so pushing custom nutrition data points is not supported. This method
-        currently raises a `sync_unsupported` ValidationError when there are
-        meals to sync.
-        """
+        """Upload meals recorded on a specific date to Google Health as nutrition-log dataPoints."""
         self.client._ensure_authenticated()
         valid_date = self._parse_date(date)
         iso_date = self._date_to_iso(valid_date)
@@ -80,26 +74,38 @@ class GoogleHealthService:
                 if rec:
                     item_name = rec.name
 
-            kcal = macros.get("kcal", 0.0)
-            protein = macros.get("protein", 0.0)
-            carbs = macros.get("carbs", 0.0)
-            fat = macros.get("fat", 0.0)
+            kcal = float(macros.get("kcal", 0.0))
+            protein = float(macros.get("protein", 0.0))
+            carbs = float(macros.get("carbs", 0.0))
+            fat = float(macros.get("fat", 0.0))
 
             total_kcal += kcal
             datapoint = {
-                "dataTypeName": "nutrition",
-                "startTime": f"{iso_date}T12:00:00Z",
-                "endTime": f"{iso_date}T12:30:00Z",
-                "value": {
-                    "meal_type": row.item_type,
-                    "name": item_name,
-                    "calories": kcal,
-                    "protein": protein,
-                    "carbs": carbs,
-                    "fat": fat,
-                    "quantity": row.quantity,
-                    "unit": row.unit,
-                },
+                "nutritionLog": {
+                    "interval": {
+                        "startTime": f"{iso_date}T12:00:00Z",
+                        "endTime": f"{iso_date}T12:30:00Z",
+                    },
+                    "foodDisplayName": item_name,
+                    "mealType": "MEAL_TYPE_UNSPECIFIED",
+                    "energy": {
+                        "kcal": round(kcal, 2),
+                    },
+                    "totalCarbohydrate": {
+                        "grams": round(carbs, 2),
+                    },
+                    "totalFat": {
+                        "grams": round(fat, 2),
+                    },
+                    "nutrients": [
+                        {
+                            "nutrient": "PROTEIN",
+                            "quantity": {
+                                "grams": round(protein, 2),
+                            },
+                        }
+                    ],
+                }
             }
             self.client.post_nutrition_datapoint(datapoint)
             synced_meals.append({
@@ -120,6 +126,23 @@ class GoogleHealthService:
             "total_kcal": round(total_kcal, 2),
             "meals": synced_meals,
         }
+
+    def clear_nutrition_logs(self) -> Dict[str, Any]:
+        """Fetch and remove all nutrition-log dataPoints from Google Health."""
+        self.client._ensure_authenticated()
+        raw_points = self.client.get_nutrition_datapoints()
+        names = []
+        for pt in raw_points:
+            name = pt.get("name")
+            if not name and "dataPointId" in pt:
+                name = f"users/me/dataTypes/nutrition-log/dataPoints/{pt['dataPointId']}"
+            if name:
+                names.append(name)
+
+        if names:
+            self.client.batch_delete_datapoints("nutrition-log", names)
+
+        return {"status": "ok", "deleted_count": len(names)}
 
     def fetch_sleep(self, date: Optional[str] = None, days: int = 1) -> Dict[str, Any]:
         """Fetch sleep sessions from Google Health and store them in sleep_logs."""
@@ -261,22 +284,17 @@ class GoogleHealthService:
         }
 
     def sync_all(self, date: Optional[str] = None) -> Dict[str, Any]:
-        """Perform full bidirectional synchronization (push meals, pull sleep and weight).
-
-        Note: the meal push step is currently unsupported by the Google Health
-        API v4 (`food` data type is read-only), so it is skipped and reported
-        as such in the result.
-        """
+        """Perform full bidirectional synchronization (push meals, pull sleep and weight)."""
         valid_date = self._parse_date(date)
+        meals_res = self.sync_meals(valid_date)
         sleep_res = self.fetch_sleep(valid_date)
         weight_res = self.fetch_weight(valid_date)
 
         return {
             "status": "ok",
             "date": valid_date,
-            "meals_synced": 0,
-            "meals_sync_status": "sync_unsupported",
-            "total_kcal_synced": 0.0,
+            "meals_synced": meals_res["synced_count"],
+            "total_kcal_synced": meals_res["total_kcal"],
             "sleep_sessions_fetched": sleep_res["count"],
             "weight_records_fetched": weight_res["count"],
             "latest_weight_kg": weight_res["latest_weight_kg"],

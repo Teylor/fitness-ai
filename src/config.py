@@ -38,6 +38,9 @@ class Settings:
         "GOOGLE_HEALTH_API_URL", "https://health.googleapis.com/v4"
     )
     google_health_token: Optional[str] = os.environ.get("GOOGLE_HEALTH_ACCESS_TOKEN")
+    google_health_refresh_token: Optional[str] = os.environ.get("GOOGLE_HEALTH_REFRESH_TOKEN")
+    google_client_id: Optional[str] = os.environ.get("GOOGLE_CLIENT_ID")
+    google_client_secret: Optional[str] = os.environ.get("GOOGLE_CLIENT_SECRET")
 
     # Paths
     base_dir: Path = field(default_factory=lambda: base_dir)

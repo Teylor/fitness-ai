@@ -464,7 +464,9 @@ async def test_hermes_google_health_sync_flow(hermes_client, monkeypatch):
 
     def mock_handler(request: httpx2.Request) -> httpx2.Response:
         url_str = str(request.url)
-        if "/dataTypes/sleep/dataPoints" in url_str:
+        if "/dataTypes/nutrition-log/dataPoints" in url_str:
+            return httpx2.Response(200, json={"status": "ok"})
+        elif "/dataTypes/sleep/dataPoints" in url_str:
             return httpx2.Response(
                 200,
                 json={
@@ -518,13 +520,11 @@ async def test_hermes_google_health_sync_flow(hermes_client, monkeypatch):
     )
 
     # 2. Sync meals to Google Health
-    # (Google Health API v4 `food` data type is read-only, so this is
-    # unsupported and must return a `sync_unsupported` error.)
     sync_meals_res = await hermes_client.call_tool(
         "sync_meals_to_google_health", date="11-11-2026"
     )
-    assert sync_meals_res["status"] == "error"
-    assert sync_meals_res["code"] == "sync_unsupported"
+    assert sync_meals_res["status"] == "ok"
+    assert sync_meals_res["synced_count"] == 1
 
     # 3. Fetch sleep
     sleep_res = await hermes_client.call_tool(
@@ -541,13 +541,12 @@ async def test_hermes_google_health_sync_flow(hermes_client, monkeypatch):
     assert weight_res["status"] == "ok"
     assert weight_res["latest_weight_kg"] == 76.0
 
-    # 5. Full sync (meal push is skipped / reported as unsupported)
+    # 5. Full sync
     full_sync = await hermes_client.call_tool(
         "sync_google_health", date="11-11-2026"
     )
     assert full_sync["status"] == "ok"
-    assert full_sync["meals_synced"] == 0
-    assert full_sync["meals_sync_status"] == "sync_unsupported"
+    assert full_sync["meals_synced"] == 1
     assert full_sync["sleep_sessions_fetched"] == 1
     assert full_sync["weight_records_fetched"] == 0
 
