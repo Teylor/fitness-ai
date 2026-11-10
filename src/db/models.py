@@ -16,8 +16,17 @@ from peewee import (
 )
 from playhouse.sqlite_ext import SqliteDatabase
 
+SQLITE_PRAGMAS = {
+    "journal_mode": "wal",
+    "cache_size": -1024 * 64,  # 64MB cache
+    "foreign_keys": 1,
+    "ignore_check_constraints": 0,
+    "synchronous": 1,  # NORMAL
+    "busy_timeout": 5000,
+}
+
 # Global instance of DB (assigned to :memory: in tests)
-db = SqliteDatabase("data/fitness.db")
+db = SqliteDatabase("data/fitness.db", pragmas=SQLITE_PRAGMAS)
 
 
 class BaseModel(Model):

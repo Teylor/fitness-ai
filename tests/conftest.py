@@ -4,8 +4,9 @@ import pytest
 from peewee import SqliteDatabase
 
 from src.db.models import (
-    db,
+    db as real_db,
     ALL_MODELS,
+    BaseModel,
     Ingredient,
     Recipe,
     RecipeItem,
@@ -26,15 +27,16 @@ def db():
 
     Rebinds global DB to :memory: and creates all tables.
     """
-    # Save original DB
-    original_db = db
-
-    # Create in-memory DB
-    test_db = SqliteDatabase(":memory:")
+    # Create in-memory DB with foreign keys enabled
+    test_db = SqliteDatabase(
+        ":memory:",
+        pragmas={"foreign_keys": 1, "busy_timeout": 5000},
+    )
     test_db.connect()
 
     # Rebind DB on all models
-    for model in ALL_MODELS:
+    models_to_bind = ALL_MODELS + [BaseModel]
+    for model in models_to_bind:
         model._meta.database = test_db
 
     # Create tables
@@ -46,8 +48,8 @@ def db():
     test_db.close()
 
     # Restore original DB
-    for model in ALL_MODELS:
-        model._meta.database = original_db
+    for model in models_to_bind:
+        model._meta.database = real_db
 
 
 @pytest.fixture

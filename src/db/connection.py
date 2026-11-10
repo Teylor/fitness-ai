@@ -1,38 +1,33 @@
 """SQLite connection management (Peewee)."""
 
-import os
 from contextlib import contextmanager
-from pathlib import Path
-from typing import Generator
+from typing import Generator, Optional
+from peewee import SqliteDatabase
 
 from src.config import settings
-from src.db.models import db, ALL_MODELS, BaseModel
+from src.db.models import db, ALL_MODELS, BaseModel, SQLITE_PRAGMAS
 
 
-def get_db() -> Generator:
+@contextmanager
+def get_db(database: Optional[SqliteDatabase] = None) -> Generator[SqliteDatabase, None, None]:
     """Context manager that automatically commits on success and rolls back on error.
 
+    Supports nested transactions via Peewee atomic blocks (savepoints).
+
     Usage:
-        with get_db() as cursor:
+        with get_db() as conn:
             Ingredient.create(name="Pan", unit="gr", ...)
     """
-    if not db.is_closed():
-        yield db
-        db.commit()
-    else:
-        db.connect()
-        try:
-            yield db
-            db.commit()
-        except Exception:
-            db.rollback()
-            raise
-        finally:
-            pass  # Do not close: the connection is long-lived (server 24/7)
+    target_db = database or BaseModel._meta.database or db
+    if target_db.is_closed():
+        target_db.connect(reuse_if_open=True)
+
+    with target_db.atomic():
+        yield target_db
 
 
 def init_db() -> None:
-    """Create the data directory, connect to the DB, and create tables if they do not exist.
+    """Create the data directory, connect to the DB, apply PRAGMAs and migrations.
 
     Important: calling multiple times is safe (idempotent).
     """
@@ -40,12 +35,18 @@ def init_db() -> None:
     db_path = settings.db_file
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Reassign the DB to the correct path (the global instance points to "data/fitness.db" relative)
-    db.init(str(db_path))
+    # Reassign the DB to the correct path with PRAGMAs configured
+    db.init(str(db_path), pragmas=SQLITE_PRAGMAS)
 
     # Connect
     if db.is_closed():
-        db.connect()
+        db.connect(reuse_if_open=True)
+
+    # Apply core SQLite PRAGMAs explicitly
+    db.execute_sql("PRAGMA foreign_keys = ON;")
+    db.execute_sql("PRAGMA journal_mode = WAL;")
+    db.execute_sql("PRAGMA busy_timeout = 5000;")
+    db.execute_sql("PRAGMA synchronous = NORMAL;")
 
     # Create tables if not exists (idempotent)
     db.create_tables(ALL_MODELS, safe=True)

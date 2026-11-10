@@ -32,7 +32,6 @@
 
 | # | Priority | Feature | State | Note |
 |---|-----------|---------|--------|------|
-| 7 | P2 | `db-robustness` | ✅ Approved | Rollback in `get_db()` (pending db-layer close). |
 | 8 | P3 | `seed-data` | ✅ Approved | Initial catalog of ingredients/exercises. |
 | 9 | P2 | `odd-merge-back` | ✅ Approved | When closing, reflux the met criteria to global `docs/specs/` (mimics OpenSpec's delta merge; closes the ODD's weak point). |
 
@@ -51,6 +50,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `db-robustness` | `odd/tasks/db-robustness.md` | 2026-11 |
 | `google-health-food-sync` | `odd/tasks/google-health-food-sync.md` | 2026-11 |
 | `ui-delete-actions` | `odd/tasks/ui-delete-actions.md` | 2026-11 |
 | `ui-full-daily-summary` | `odd/tasks/ui-full-daily-summary.md` | 2026-11 |
