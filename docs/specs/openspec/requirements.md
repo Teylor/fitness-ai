@@ -89,16 +89,37 @@ The system runs 24/7 on a local PC (server mode). An AI agent (Hermes Agent) con
 - **FR6.3** The PR row is created/updated only when the new estimated 1RM is **strictly greater** than the stored one.
 - **FR6.4** A PR records the date and the session that produced it (session link is nullable; deleting the session nulls it, deleting the exercise removes the PR).
 
+### FR7 — Health & Activity Tracking (Google Health)
+
+- **FR7.1** The system integrates with Google Health API v4 for bidirectional synchronization.
+- **FR7.2** Logged meals are uploaded to Google Health as `nutrition-log` data points with energy (`kcal`), total fat (`grams`), carbohydrates (`grams`), and protein (`nutrients`).
+- **FR7.3** Sleep sessions and body weight measurements are pulled from Google Health and persisted in local `sleep_logs` and `weight_logs`.
+- **FR7.4** Daily step counts and distances are tracked in local `step_logs` (`log_steps`) and aggregated in `get_health_metrics`.
+- **FR7.5** OAuth 2.0 authentication supports transparent token renewal using a `refresh_token`; when expired (HTTP 401), tokens are refreshed from Google OAuth and persisted to `.env` without user disruption.
+
+### FR8 — Generative UI Artifacts & Views
+
+- **FR8.1** The MCP server generates standalone interactive HTML artifacts (`get_ui_form`, `generate_html`) for embedding in Antigravity or Hermes chat interfaces.
+- **FR8.2** The UI provides tabbed navigation: Daily Summary (goal comparison, progress bars, macro breakdown), Meals (with live ingredient/recipe search and delete action), Training (exercises and sets), Steps, Sleep, Weight, and Catalog management (inline creation, edition, and deletion).
+- **FR8.3** Direct HTTP endpoints (`/ui`, `/ui/{form_type}`, `/api/{tool_name}`) allow browser interaction and asynchronous tool execution directly from UI widgets.
+
+### FR9 — Catalog & Log Deletions
+
+- **FR9.1** Individual meal entries can be deleted by ID (`delete_meal`).
+- **FR9.2** Ingredients can be deleted by ID (`delete_ingredient`), provided they are not referenced by existing recipes (`RESTRICT`).
+- **FR9.3** Recipes can be deleted by ID (`delete_recipe`), cascading deletion to associated `recipe_items`.
+
 ## Non-functional requirements
 
-- **NFR1 — Local-only:** single process, single SQLite file, no network dependencies; safe for 24/7 unattended operation.
+- **NFR1 — Local-only:** single process, single SQLite file, safe for 24/7 unattended operation with optional cloud sync to Google Health.
 - **NFR2 — Idempotent creation:** all creation paths tolerate retries (voice/agent may repeat a call): normalized exact duplicates return the existing item.
 - **NFR3 — Fuzzy resolution:** name lookups are normalized (lowercase, accents stripped, whitespace collapsed) with a fuzzy fallback (similarity threshold 0.6).
 - **NFR4 — Typed errors:** every tool failure returns a machine-readable envelope `{"status": "error", "code": ..., "message": ...}` with codes from a fixed vocabulary (`not_found`, `duplicate`, `invalid_input`, `conflict`, `internal`).
-- **NFR5 — Single user:** no concurrency, multi-user, or authentication requirements.
+- **NFR5 — Single user:** no multi-user partitioning or authentication overhead for local MCP calls.
 - **NFR6 — Language:** code, docstrings, and documentation are in English.
+- **NFR7 — Database Reliability:** SQLite runs with `foreign_keys = ON` to enforce constraints, `journal_mode = WAL` to allow concurrent readers/writers without locking, `busy_timeout = 5000` to prevent transient lock failures, and transactional contexts (`get_db`) with automatic rollback on error.
 
 ## Cross-references
 
-- Tool contract (23 MCP tools): [`api-spec.md`](./api-spec.md)
-- Schema (11 tables): [`data-model.md`](./data-model.md)
+- Tool contract (26 MCP tools): [`api-spec.md`](./api-spec.md)
+- Schema (12 tables): [`data-model.md`](./data-model.md)

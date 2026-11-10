@@ -10,7 +10,7 @@
 3. Items are ordered by priority: `P0` (now) / `P1` (next) / `P2` (later) / `P3` (idea).
 4. This file is the only place where new work is proposed.
 5. When starting a feature → the item moves to `odd/tasks/<feature>.md` and disappears from Proposed.
-6. When closing it (all tasks ✅ + Verification filled in `odd/tasks/<feature>.md`) → it is listed in **Done** with a date.
+6. When closing it (all tasks ✅ + Verification filled in `odd/tasks/<feature>.md`) → update the global specification in `docs/specs/openspec/` if the feature introduced or changed requirements, tools, or data models, and then list the item in **Done** with a date.
 7. The agent keeps the backlog up to date: when a feature starts its item moves to ➡️ In progress; when it closes, to 🏁 Done. The backlog is the single work queue: nothing is started that is not approved here.
 8. Each feature is developed on its own branch `feat/<feature-name>`, created when the feature starts. A fix to a feature is made on a `fix/<feature-name>` branch. When a feature is closed, after the last commit, push the branch and create a Pull Request to `main` directly.
 
@@ -30,12 +30,6 @@
 
 > Filled after review with the user. Empty = nothing pending.
 
-| # | Priority | Feature | State | Note |
-|---|-----------|---------|--------|------|
-| 9 | P2 | `odd-merge-back` | ✅ Approved | When closing, reflux the met criteria to global `docs/specs/` (mimics OpenSpec's delta merge; closes the ODD's weak point). |
-
-> Recommended execution order: `mcp-server` (12 nutrition & goal tools) → `services-training` (training services + 6 MCP tools) → `hermes-e2e`. `specs-completion` can run in parallel.
-
 ---
 
 ## ➡️ In progress
@@ -49,6 +43,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `odd-merge-back` | `odd/tasks/odd-merge-back.md` | 2026-11 |
 | `db-robustness` | `odd/tasks/db-robustness.md` | 2026-11 |
 | `google-health-food-sync` | `odd/tasks/google-health-food-sync.md` | 2026-11 |
 | `ui-delete-actions` | `odd/tasks/ui-delete-actions.md` | 2026-11 |
