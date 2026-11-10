@@ -592,6 +592,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
                   <th>Kcal</th>
                   <th>P / C / G</th>
                   <th>Precio</th>
+                  <th>Acción</th>
                 </tr>
               </thead>
               <tbody id="summary-meals-body"></tbody>
@@ -904,10 +905,37 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <td>${{ing.fat || 0}}</td>
           <td>${{priceStr}}</td>
           <td>${{badge}}</td>
-          <td><button type="button" class="btn btn-secondary btn-sm" onclick="startEditIngredient(${{ing.id}})">✏️ Editar</button></td>
+          <td style="white-space: nowrap;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="startEditIngredient(${{ing.id}})">✏️ Editar</button>
+            <button type="button" class="btn btn-secondary btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3); margin-left: 0.35rem;" onclick="deleteIngredient(${{ing.id}}, '${{escapeHtml(ing.name)}}')">🗑️ Eliminar</button>
+          </td>
         `;
         tbody.appendChild(tr);
       }});
+    }}
+
+    async function deleteIngredient(id, name) {{
+      if (!confirm(`¿Seguro que deseas eliminar el ingrediente "${{name}}"?`)) return;
+      try {{
+        const res = await fetch('/api/delete_ingredient', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ ingredient_id: id }})
+        }});
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          showToast(`Ingrediente "${{name}}" eliminado correctamente.`, 'ok');
+          if (editingIngredientId === id) cancelEditIngredient();
+          await fetchIngredientsList();
+        }} else {{
+          const msg = data.code === 'dependency'
+            ? `No se puede eliminar "${{name}}": está siendo utilizado en una o más recetas.`
+            : (data.message || 'Error al eliminar');
+          showToast(msg, 'error');
+        }}
+      }} catch (err) {{
+        showToast(`Error de conexión al eliminar: ${{err.message}}`, 'error');
+      }}
     }}
 
     function filterIngredients() {{
@@ -991,10 +1019,34 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <td>${{kcalStr}}</td>
           <td>${{macrosStr}}</td>
           <td>${{priceStr}}</td>
-          <td><button type="button" class="btn btn-secondary btn-sm" onclick="startEditRecipe(${{rec.id}})">✏️ Editar</button></td>
+          <td style="white-space: nowrap;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="startEditRecipe(${{rec.id}})">✏️ Editar</button>
+            <button type="button" class="btn btn-secondary btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3); margin-left: 0.35rem;" onclick="deleteRecipe(${{rec.id}}, '${{escapeHtml(rec.name)}}')">🗑️ Eliminar</button>
+          </td>
         `;
         tbody.appendChild(tr);
       }});
+    }}
+
+    async function deleteRecipe(id, name) {{
+      if (!confirm(`¿Seguro que deseas eliminar la receta "${{name}}"?`)) return;
+      try {{
+        const res = await fetch('/api/delete_recipe', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ recipe_id: id }})
+        }});
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          showToast(`Receta "${{name}}" eliminada correctamente.`, 'ok');
+          if (editingRecipeId === id) cancelEditRecipe();
+          await fetchRecipesList();
+        }} else {{
+          showToast(data.message || 'Error al eliminar receta', 'error');
+        }}
+      }} catch (err) {{
+        showToast(`Error de conexión al eliminar: ${{err.message}}`, 'error');
+      }}
     }}
 
     function filterRecipes() {{
@@ -1326,19 +1378,44 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (emptyMsg) emptyMsg.style.display = 'none';
       meals.forEach(m => {{
         const tr = document.createElement('tr');
-        const name = m.name || (m.entry && m.entry.item_type) || 'Alimento';
+        const entryId = m.entry ? m.entry.id : m.id;
+        const name = m.name || (m.entry && (m.entry.item_name || m.entry.item_type)) || 'Alimento';
         const qty = m.quantity || (m.entry && m.entry.quantity) || 0;
         const unit = m.unit || (m.entry && m.entry.unit) || 'gr';
         const price = m.price ? `${{parseFloat(m.price).toFixed(2)}} €` : '-';
+        const deleteBtn = entryId
+          ? `<button type="button" class="btn btn-secondary btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3);" onclick="deleteMeal(${{entryId}}, '${{escapeHtml(name)}}')">🗑️ Eliminar</button>`
+          : '-';
         tr.innerHTML = `
           <td><strong>${{escapeHtml(name)}}</strong></td>
           <td>${{qty}} ${{escapeHtml(unit)}}</td>
           <td>${{m.kcal || 0}}</td>
           <td>${{m.protein || 0}}g / ${{m.carbs || 0}}g / ${{m.fat || 0}}g</td>
           <td>${{price}}</td>
+          <td>${{deleteBtn}}</td>
         `;
         tbody.appendChild(tr);
       }});
+    }}
+
+    async function deleteMeal(entryId, name) {{
+      if (!confirm(`¿Seguro que deseas eliminar la comida "${{name}}"?`)) return;
+      try {{
+        const res = await fetch('/api/delete_meal', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ entry_id: entryId }})
+        }});
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          showToast(`Comida "${{name}}" eliminada correctamente.`, 'ok');
+          await fetchSummary();
+        }} else {{
+          showToast(data.message || 'Error al eliminar la comida', 'error');
+        }}
+      }} catch (err) {{
+        showToast(`Error de conexión al eliminar comida: ${{err.message}}`, 'error');
+      }}
     }}
 
     function renderSummaryWorkouts(sessions) {{

@@ -331,4 +331,88 @@ async def test_ui_full_daily_summary_dashboard(db):
         assert wos_data["sessions"][0]["notes"] == "Torso Hipertrofia"
 
 
+@pytest.mark.anyio
+async def test_ui_delete_actions_and_api(db):
+    server = create_server()
+    app = server.streamable_http_app()
+    transport = httpx2.ASGITransport(app=app)
+
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
+        # 1. UI rendering assertions for delete controls and functions
+        ing_ui = await client.get("/ui/ingredient")
+        assert ing_ui.status_code == 200
+        assert "deleteIngredient" in ing_ui.text
+
+        rec_ui = await client.get("/ui/recipe")
+        assert rec_ui.status_code == 200
+        assert "deleteRecipe" in rec_ui.text
+
+        sum_ui = await client.get("/ui/summary")
+        assert sum_ui.status_code == 200
+        assert "deleteMeal" in sum_ui.text
+        assert "<th>Acción</th>" in sum_ui.text
+
+        # 2. Ingredient create -> delete API flow
+        create_ing = await client.post(
+            "/api/create_ingredient",
+            json={"name": "Avocado", "unit": "u", "kcal": 160.0, "fat": 15.0},
+        )
+        assert create_ing.status_code == 200
+        ing_id = create_ing.json()["ingredient"]["id"]
+
+        del_ing = await client.post(
+            "/api/delete_ingredient",
+            json={"ingredient_id": ing_id},
+        )
+        assert del_ing.status_code == 200
+        assert del_ing.json()["status"] == "ok"
+
+        list_ings = await client.get("/api/list_ingredients")
+        assert not any(i["id"] == ing_id for i in list_ings.json()["ingredients"])
+
+        # 3. Recipe create -> delete API flow
+        create_rec = await client.post(
+            "/api/create_recipe",
+            json={"name": "Guacamole", "kcal": 200.0, "price": 2.50},
+        )
+        assert create_rec.status_code == 200
+        rec_id = create_rec.json()["recipe"]["id"]
+
+        del_rec = await client.post(
+            "/api/delete_recipe",
+            json={"recipe_id": rec_id},
+        )
+        assert del_rec.status_code == 200
+        assert del_rec.json()["status"] == "ok"
+
+        list_recs = await client.get("/api/list_recipes")
+        assert not any(r["id"] == rec_id for r in list_recs.json()["recipes"])
+
+        # 4. Meal create -> delete API flow with summary update
+        await client.post(
+            "/api/set_daily_goal",
+            json={"date": "15-11-2026", "kcal": 2000.0, "protein": 150.0, "carbs": 200.0, "fat": 60.0},
+        )
+        reg_meal = await client.post(
+            "/api/register_meal",
+            json={"item_name": "Quick Snack", "quantity": 1, "unit": "u", "date": "15-11-2026"},
+        )
+        assert reg_meal.status_code == 200
+        entry_id = reg_meal.json()["entry_id"]
+
+        sum_before = await client.get("/api/get_day_summary?date=15-11-2026")
+        assert any(m["entry"]["id"] == entry_id for m in sum_before.json()["meals"])
+
+        del_meal = await client.post(
+            "/api/delete_meal",
+            json={"entry_id": entry_id},
+        )
+        assert del_meal.status_code == 200
+        assert del_meal.json()["status"] == "ok"
+
+        sum_after = await client.get("/api/get_day_summary?date=15-11-2026")
+        assert not any(m["entry"]["id"] == entry_id for m in sum_after.json()["meals"])
+
+
+
 
