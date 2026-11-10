@@ -148,6 +148,10 @@ class GoogleHealthClient:
         """Fetch sleep dataPoints from Google Health API."""
         return self._get_datapoints("sleep")
 
+    def get_steps_datapoints(self) -> List[Dict[str, Any]]:
+        """Fetch step count dataPoints from Google Health API."""
+        return self._get_datapoints("steps")
+
     def get_weight_datapoints(self) -> List[Dict[str, Any]]:
         """Fetch weight body measurement dataPoints from Google Health API."""
         return self._get_datapoints("weight")

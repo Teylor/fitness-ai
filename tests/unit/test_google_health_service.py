@@ -3,7 +3,7 @@
 import httpx2
 import pytest
 
-from src.db.models import Ingredient, MealEntry, SleepLog, WeightLog
+from src.db.models import Ingredient, MealEntry, SleepLog, StepLog, WeightLog
 from src.services.google_health_client import GoogleHealthClient
 from src.services.google_health_service import GoogleHealthService
 from src.utils.errors import ValidationError
@@ -211,5 +211,88 @@ def test_client_refresh_token_on_401():
     assert attempts[0] == "Bearer expired-token"
     assert attempts[1] == "Bearer new-fresh-token"
     assert client.token == "new-fresh-token"
+
+
+def test_fetch_steps_persists_records(db):
+    def mock_handler(request: httpx2.Request) -> httpx2.Response:
+        assert "/dataTypes/steps/dataPoints" in str(request.url)
+        mock_data = {
+            "dataPoints": [
+                {
+                    "steps": {
+                        "count": "3500",
+                        "interval": {
+                            "startTime": "2026-11-10T08:00:00Z",
+                            "endTime": "2026-11-10T12:00:00Z",
+                        },
+                    }
+                },
+                {
+                    "steps": {
+                        "count": 4200,
+                        "interval": {
+                            "startTime": "2026-11-10T14:00:00Z",
+                            "endTime": "2026-11-10T18:00:00Z",
+                        },
+                    }
+                },
+            ]
+        }
+        return httpx2.Response(200, json=mock_data)
+
+    transport = httpx2.MockTransport(mock_handler)
+    mock_http = httpx2.Client(transport=transport)
+    client = GoogleHealthClient(token="mock-token", http_client=mock_http)
+    service = GoogleHealthService(client=client)
+
+    res = service.fetch_steps(date="10-11-2026")
+    assert res["status"] == "ok"
+    assert res["date"] == "10-11-2026"
+    assert res["steps"] == 7700
+    assert res["source"] == "google_health"
+
+    row = StepLog.get(StepLog.date == "10-11-2026")
+    assert row.steps == 7700
+    assert row.source == "google_health"
+
+
+def test_sync_all_coordinates_steps_sleep_weight_meals(db):
+    def mock_handler(request: httpx2.Request) -> httpx2.Response:
+        url_str = str(request.url)
+        if "/dataTypes/nutrition-log/dataPoints" in url_str:
+            return httpx2.Response(200, json={"dataPoints": []})
+        elif "/dataTypes/sleep/dataPoints" in url_str:
+            return httpx2.Response(200, json={"dataPoints": []})
+        elif "/dataTypes/weight/dataPoints" in url_str:
+            return httpx2.Response(200, json={"dataPoints": []})
+        elif "/dataTypes/steps/dataPoints" in url_str:
+            return httpx2.Response(
+                200,
+                json={
+                    "dataPoints": [
+                        {
+                            "steps": {
+                                "count": 6500,
+                                "interval": {"startTime": "2026-11-10T10:00:00Z"},
+                            }
+                        }
+                    ]
+                },
+            )
+        return httpx2.Response(404)
+
+    transport = httpx2.MockTransport(mock_handler)
+    mock_http = httpx2.Client(transport=transport)
+    client = GoogleHealthClient(token="mock-token", http_client=mock_http)
+    service = GoogleHealthService(client=client)
+
+    res = service.sync_all("10-11-2026")
+    assert res["status"] == "ok"
+    assert res["date"] == "10-11-2026"
+    assert res["meals_synced"] == 0
+    assert res["sleep_sessions_fetched"] == 0
+    assert res["weight_records_fetched"] == 0
+    assert res["steps_fetched"] == 6500
+
 
 
