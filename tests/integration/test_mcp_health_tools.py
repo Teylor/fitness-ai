@@ -15,6 +15,7 @@ from src.mcp.tools.health_tools import (
 
 def test_health_tools_unauthenticated_return_error(db, monkeypatch):
     monkeypatch.setattr(settings, "google_health_token", None)
+    monkeypatch.setattr(settings, "google_health_refresh_token", None)
 
     res = sync_meals_to_google_health("10-11-2026")
     assert res["status"] == "error"
@@ -30,7 +31,7 @@ def test_health_tools_unauthenticated_return_error(db, monkeypatch):
     assert res_weight["code"] == "invalid_input"
 
 
-def test_sync_meals_tool_unsupported(db, monkeypatch):
+def test_sync_meals_tool_success(db, monkeypatch):
     monkeypatch.setattr(settings, "google_health_token", "test-bearer-token")
 
     ing = Ingredient.create(
@@ -44,12 +45,26 @@ def test_sync_meals_tool_unsupported(db, monkeypatch):
         unit="u",
     )
 
-    # Google Health API v4 `food` data type is read-only: pushing meals must
-    # fail with a `sync_unsupported` error, no HTTP call is made.
+    def mock_handler(request: httpx2.Request) -> httpx2.Response:
+        assert request.headers.get("authorization") == "Bearer test-bearer-token"
+        assert "/dataTypes/nutrition-log/dataPoints" in str(request.url)
+        return httpx2.Response(200, json={"status": "ok"})
+
+    transport = httpx2.MockTransport(mock_handler)
+    mock_http = httpx2.Client(transport=transport)
+
+    from src.services.google_health_client import GoogleHealthClient
+    orig_init = GoogleHealthClient.__init__
+
+    def patched_init(self, *args, **kwargs):
+        orig_init(self, token="test-bearer-token", http_client=mock_http)
+
+    monkeypatch.setattr(GoogleHealthClient, "__init__", patched_init)
+
     res = sync_meals_to_google_health("10-11-2026")
-    assert res["status"] == "error"
-    assert res["code"] == "sync_unsupported"
-    assert "read-only" in res["message"]
+    assert res["status"] == "ok"
+    assert res["synced_count"] == 1
+    assert res["total_kcal"] == 210.0
 
 
 def test_fetch_sleep_and_weight_tools_success(db, monkeypatch):

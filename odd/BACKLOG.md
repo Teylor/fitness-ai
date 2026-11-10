@@ -51,6 +51,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `google-health-food-sync` | `odd/tasks/google-health-food-sync.md` | 2026-11 |
 | `ui-delete-actions` | `odd/tasks/ui-delete-actions.md` | 2026-11 |
 | `ui-full-daily-summary` | `odd/tasks/ui-full-daily-summary.md` | 2026-11 |
 | `ui-new-features` | `odd/tasks/ui-new-features.md` | 2026-11 |
