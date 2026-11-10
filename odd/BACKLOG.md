@@ -45,6 +45,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `meal-types` | `odd/tasks/meal-types.md` | 2026-11 |
 | `steps-google-health-pull` | `odd/tasks/steps-google-health-pull.md` | 2026-11 |
 | `google-health-autosync` | `odd/tasks/google-health-autosync.md` | 2026-11 |
 | `odd-merge-back` | `odd/tasks/odd-merge-back.md` | 2026-11 |

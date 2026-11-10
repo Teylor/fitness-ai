@@ -92,6 +92,7 @@ class MealEntry(BaseModel):
     item_id = IntegerField()  # FK polymorphic (without constraint)
     quantity = FloatField()
     unit = CharField()  # 'gr' | 'ml' | 'u'
+    meal_type = CharField(default="tentempie")  # 'desayuno' | 'comida' | 'merienda' | 'cena' | 'tentempie'
     created_at = DateTimeField(default=SQL("datetime('now')"))
 
     class Meta:

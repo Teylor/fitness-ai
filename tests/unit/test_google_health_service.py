@@ -60,12 +60,47 @@ def test_sync_meals_with_meals_uploads_nutrition_log(db):
     assert len(posted_payloads) == 1
     p = posted_payloads[0]["nutritionLog"]
     assert p["foodDisplayName"] == "Salmon"
-    assert p["mealType"] == "MEAL_TYPE_UNSPECIFIED"
+    assert p["mealType"] == "SNACK"
     assert p["energy"]["kcal"] == 416.0
     assert p["totalFat"]["grams"] == 26.0
     assert p["totalCarbohydrate"]["grams"] == 0.0
     assert p["nutrients"][0]["nutrient"] == "PROTEIN"
     assert p["nutrients"][0]["quantity"]["grams"] == 40.0
+
+
+def test_sync_meals_maps_all_meal_types_to_google_health(db):
+    ing = Ingredient.create(
+        name="Apple", unit="u", kcal=52.0, protein=0.3, carbs=14.0, fat=0.2
+    )
+    for mtype in ("desayuno", "comida", "merienda", "cena", "tentempie"):
+        MealEntry.create(
+            date="12-11-2026",
+            item_type="ingredient",
+            item_id=ing.id,
+            quantity=1.0,
+            unit="u",
+            meal_type=mtype,
+        )
+
+    posted = []
+
+    def mock_handler(request: httpx2.Request) -> httpx2.Response:
+        import json
+        if request.method == "POST" and "/dataTypes/nutrition-log/dataPoints" in str(request.url):
+            posted.append(json.loads(request.content.decode("utf-8")))
+            return httpx2.Response(200, json={"status": "ok"})
+        return httpx2.Response(200, json={"dataPoints": []})
+
+    client = GoogleHealthClient(token="mock-token", http_client=httpx2.Client(transport=httpx2.MockTransport(mock_handler)))
+    service = GoogleHealthService(client=client)
+
+    res = service.sync_meals(date="12-11-2026")
+    assert res["status"] == "ok"
+    assert res["synced_count"] == 5
+
+    meal_types_sent = [p["nutritionLog"]["mealType"] for p in posted]
+    assert meal_types_sent == ["BREAKFAST", "LUNCH", "BEFORE_DINNER", "DINNER", "SNACK"]
+
 
 
 def test_clear_nutrition_logs(db):

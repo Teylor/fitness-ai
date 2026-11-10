@@ -109,9 +109,10 @@ A logged intake (polymorphic — an ingredient or a recipe), with a date.
 | item_id | INTEGER | NOT NULL | Polymorphic pointer — no FK constraint |
 | quantity | REAL | NOT NULL | |
 | unit | TEXT | NOT NULL, `CHECK (unit IN ('gr','ml','u'))` | |
+| meal_type | TEXT | NOT NULL DEFAULT 'tentempie' | `desayuno`, `comida`, `merienda`, `cena`, `tentempie` |
 | created_at | TEXT | NOT NULL DEFAULT `datetime('now')` | |
 
-- **Indexes**: `idx_meal_entries_date` (`date`); `idx_meal_entries_item` (`item_type`, `item_id`); `idx_meal_entries_date_item` (`date`, `item_type`, `item_id`)
+- **Indexes**: `idx_meal_entries_date` (`date`); `idx_meal_entries_item` (`item_type`, `item_id`); `idx_meal_entries_date_item` (`date`, `item_type`, `item_id`); `idx_meal_entries_meal_type` (`meal_type`)
 
 ### `daily_goals`
 
@@ -247,6 +248,7 @@ Daily physical step counts and estimated walking/running distance.
 |---|---|
 | `ingredients.unit`, `recipes`-related `unit`, `meal_entries.unit`, `recipe_items.unit` | `gr`, `ml`, `u` |
 | `meal_entries.item_type` | `ingredient`, `recipe` |
+| `meal_entries.meal_type` | `desayuno`, `comida`, `merienda`, `cena`, `tentempie` |
 | `exercises.type` | `weight_reps`, `time`, `distance` |
 
 ## Migration Notes

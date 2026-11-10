@@ -138,3 +138,25 @@ def test_register_meal_google_health_failure_is_fault_tolerant(db, monkeypatch):
     assert res["entry_id"] is not None
 
 
+def test_register_meal_with_meal_type_and_summary_breakdown(db):
+    GoalService().set_default(
+        DailyGoal(date="01-01-2026", kcal=2000, protein=150, carbs=200, fat=60)
+    )
+    create_ingredient(name="Yogurt", unit="gr", kcal=60.0, protein=10.0, carbs=4.0, fat=0.0)
+    res = register_meal(
+        item_name="Yogurt",
+        quantity=200,
+        unit="gr",
+        date="16-11-2026",
+        meal_type="merienda",
+    )
+    assert res["status"] == "ok"
+    assert res["meal_type"] == "merienda"
+
+    summary = get_day_summary(date="16-11-2026")
+    assert "meals_by_type" in summary
+    assert summary["meals_by_type"]["merienda"]["kcal"] == 120.0
+    assert len(summary["meals_by_type"]["merienda"]["meals"]) == 1
+
+
+

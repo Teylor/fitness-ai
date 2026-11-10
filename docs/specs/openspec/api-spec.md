@@ -42,7 +42,7 @@
 
 - `ingredient`: `{id, name, unit, kcal, protein, carbs, fat, price, provisional, created_at, updated_at}`
 - `recipe`: `{id, name, price, kcal, protein, carbs, fat, provisional, created_at, updated_at, items: [{id, recipe_id, ingredient_id, quantity, unit}]}`
-- `meal_entry`: `{id, date, item_type, item_id, quantity, unit, created_at}`
+- `meal_entry`: `{id, date, item_type, item_id, quantity, unit, meal_type, created_at}`
 - `daily_goal`: `{id, date, kcal, protein, carbs, fat, is_default, created_at}`
 - `exercise`: `{id, name, muscle_group, type, created_at}`
 - `personal_record`: `{id, exercise_id, max_weight, max_reps, estimated_1rm, date, session_id}`
@@ -204,11 +204,13 @@ Register a meal. `item_type` optional → resolution: exact/normalized/fuzzy **i
 | `unit` | str | ✔ | — | `gr` \| `ml` \| `u` (used when creating a new item) |
 | `item_type` | str | | `null` | force `"ingredient"` \| `"recipe"` |
 | `date` | str | | `null` | `DD-MM-YYYY`; default today |
+| `meal_type` | str | | `"tentempie"` | `"desayuno"` \| `"comida"` \| `"merienda"` \| `"cena"` \| `"tentempie"` |
 
 ```json
 {
   "status": "ok",
   "entry_id": 11,
+  "meal_type": "tentempie",
   "macros": {"kcal": 150.0, "protein": 28.0, "carbs": 0.0, "fat": 3.0},
   "price": 0.4,
   "day_summary": {
@@ -216,14 +218,15 @@ Register a meal. `item_type` optional → resolution: exact/normalized/fuzzy **i
     "spend": 4.2,
     "goal": {"date": "01-01-2026", "kcal": 2200.0, "protein": 160.0, "carbs": 200.0, "fat": 70.0, "is_default": true, "id": 1, "created_at": "..."},
     "remaining": {"kcal": 1350.0, "protein": 100.0, "carbs": 110.0, "fat": 40.0},
-    "meals": [{"entry": {"id": 11, "date": "09-11-2026", "item_type": "ingredient", "item_id": 1, "quantity": 125.0, "unit": "gr", "created_at": "..."}, "kcal": 150.0, "protein": 28.0, "carbs": 0.0, "fat": 3.0, "price": 0.4}]
+    "meals": [{"entry": {"id": 11, "date": "09-11-2026", "item_type": "ingredient", "item_id": 1, "quantity": 125.0, "unit": "gr", "meal_type": "tentempie", "created_at": "..."}, "meal_type": "tentempie", "kcal": 150.0, "protein": 28.0, "carbs": 0.0, "fat": 3.0, "price": 0.4}],
+    "meals_by_type": {"tentempie": {"meals": [...], "kcal": 150.0, "protein": 28.0, "carbs": 0.0, "fat": 3.0, "spend": 0.4}}
   }
 }
 ```
 
 `day_summary` is `null` when no goal is found for the date.
 
-Errors: `invalid_input` (bad date format, bad unit when creating the item), `internal`.
+Errors: `invalid_input` (bad date format, bad unit, invalid meal_type), `internal`.
 
 ### `get_day_summary`
 
@@ -240,7 +243,14 @@ Consumed macros, spend, goal, remaining, and per-meal breakdown for a day.
   "spend": 4.2,
   "goal": {"id": 1, "date": "01-01-2026", "kcal": 2200.0, "protein": 160.0, "carbs": 200.0, "fat": 70.0, "is_default": true, "created_at": "..."},
   "remaining": {"kcal": 1350.0, "protein": 100.0, "carbs": 110.0, "fat": 40.0},
-  "meals": [{"entry": {"id": 11, "date": "09-11-2026", "item_type": "ingredient", "item_id": 1, "quantity": 125.0, "unit": "gr", "created_at": "..."}, "kcal": 150.0, "protein": 28.0, "carbs": 0.0, "fat": 3.0, "price": 0.4}]
+  "meals": [{"entry": {"id": 11, "date": "09-11-2026", "item_type": "ingredient", "item_id": 1, "quantity": 125.0, "unit": "gr", "meal_type": "tentempie", "created_at": "..."}, "meal_type": "tentempie", "kcal": 150.0, "protein": 28.0, "carbs": 0.0, "fat": 3.0, "price": 0.4}],
+  "meals_by_type": {
+    "desayuno": {"meals": [], "kcal": 0.0, "protein": 0.0, "carbs": 0.0, "fat": 0.0, "spend": 0.0},
+    "tentempie": {"meals": [...], "kcal": 150.0, "protein": 28.0, "carbs": 0.0, "fat": 3.0, "spend": 0.4},
+    "comida": {"meals": [], "kcal": 0.0, "protein": 0.0, "carbs": 0.0, "fat": 0.0, "spend": 0.0},
+    "merienda": {"meals": [], "kcal": 0.0, "protein": 0.0, "carbs": 0.0, "fat": 0.0, "spend": 0.0},
+    "cena": {"meals": [], "kcal": 0.0, "protein": 0.0, "carbs": 0.0, "fat": 0.0, "spend": 0.0}
+  }
 }
 ```
 

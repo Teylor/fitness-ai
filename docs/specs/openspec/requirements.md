@@ -57,8 +57,9 @@ The system runs 24/7 on a local PC (server mode). An AI agent (Hermes Agent) con
 - **FR2.1** An intake is registered by item name, quantity, and unit. The item type (`ingredient` | `recipe`) may be omitted: resolution order is exact/normalized/fuzzy ingredient → fuzzy recipe → **auto-created provisional ingredient**.
 - **FR2.2** Unknown items never fail a registration: they are auto-created as `provisional` and used.
 - **FR2.3** Intakes carry a date (`DD-MM-YYYY`); default = today.
-- **FR2.4** The day summary reports: consumed macros, total spend, the applicable goal, remaining macros (goal − consumed), and the per-meal breakdown with each meal's computed macros.
+- **FR2.4** The day summary reports: consumed macros, total spend, the applicable goal, remaining macros (goal − consumed), the per-meal breakdown with each meal's computed macros, and grouped subtotals by `meal_type`.
 - **FR2.5** Macros of a compound recipe are applied as `stored_value × quantity` (recipe values act as a per-unit multiplier); ingredient macros scale per the unit convention (see `api-spec.md`).
+- **FR2.6** Meals support a category `meal_type` (`desayuno`, `comida`, `merienda`, `cena`, `tentempie`, defaulting to `tentempie`). Both MCP registration and the Web UI allow selecting the meal type.
 
 ### FR3 — Daily goals
 
@@ -92,7 +93,7 @@ The system runs 24/7 on a local PC (server mode). An AI agent (Hermes Agent) con
 ### FR7 — Health & Activity Tracking (Google Health)
 
 - **FR7.1** The system integrates with Google Health API v4 for bidirectional synchronization.
-- **FR7.2** Logged meals are uploaded to Google Health as `nutrition-log` data points with energy (`kcal`), total fat (`grams`), carbohydrates (`grams`), and protein (`nutrients`). Registration and deletion of meals automatically trigger background synchronization with Google Health when credentials are configured.
+- **FR7.2** Logged meals are uploaded to Google Health as `nutrition-log` data points with energy (`kcal`), total fat (`grams`), carbohydrates (`grams`), protein (`nutrients`), and categorized `mealType` (`BREAKFAST`, `LUNCH`, `BEFORE_DINNER`, `DINNER`, `SNACK`). Registration and deletion of meals automatically trigger background synchronization with Google Health when credentials are configured.
 - **FR7.3** Sleep sessions and body weight measurements are pulled from Google Health and persisted in local `sleep_logs` and `weight_logs`.
 - **FR7.4** Daily step counts are synchronized exclusively from Google Health (`fetch_google_health_steps`, `sync_google_health`) and stored in local `step_logs` with `source="google_health"`. Manual step entry via UI and tool is disabled (`manual_steps_disabled`).
 - **FR7.5** OAuth 2.0 authentication supports transparent token renewal using a `refresh_token`; when expired (HTTP 401), tokens are refreshed from Google OAuth and persisted to `.env` without user disruption.

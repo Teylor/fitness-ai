@@ -13,5 +13,6 @@ class MealEntry:
     item_id: int
     quantity: float
     unit: str  # 'gr' | 'ml' | 'u'
+    meal_type: str = "tentempie"  # 'desayuno' | 'comida' | 'merienda' | 'cena' | 'tentempie'
     id: Optional[int] = None
     created_at: Optional[str] = None

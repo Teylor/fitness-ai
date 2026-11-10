@@ -99,15 +99,27 @@ class GoogleHealthService:
             carbs = float(macros.get("carbs", 0.0))
             fat = float(macros.get("fat", 0.0))
 
+            meal_type_val = getattr(row, "meal_type", "tentempie") or "tentempie"
+            meal_type_map = {
+                "desayuno": ("BREAKFAST", "08:00:00Z", "08:30:00Z"),
+                "tentempie": ("SNACK", "11:00:00Z", "11:30:00Z"),
+                "comida": ("LUNCH", "14:00:00Z", "14:30:00Z"),
+                "merienda": ("BEFORE_DINNER", "18:00:00Z", "18:30:00Z"),
+                "cena": ("DINNER", "21:00:00Z", "21:30:00Z"),
+            }
+            gh_meal_type, start_time_suffix, end_time_suffix = meal_type_map.get(
+                meal_type_val, ("SNACK", "12:00:00Z", "12:30:00Z")
+            )
+
             total_kcal += kcal
             datapoint = {
                 "nutritionLog": {
                     "interval": {
-                        "startTime": f"{iso_date}T12:00:00Z",
-                        "endTime": f"{iso_date}T12:30:00Z",
+                        "startTime": f"{iso_date}T{start_time_suffix}",
+                        "endTime": f"{iso_date}T{end_time_suffix}",
                     },
                     "foodDisplayName": item_name,
-                    "mealType": "MEAL_TYPE_UNSPECIFIED",
+                    "mealType": gh_meal_type,
                     "energy": {
                         "kcal": round(kcal, 2),
                     },
@@ -131,6 +143,7 @@ class GoogleHealthService:
             synced_meals.append({
                 "meal_id": row.id,
                 "name": item_name,
+                "meal_type": meal_type_val,
                 "quantity": row.quantity,
                 "unit": row.unit,
                 "kcal": kcal,

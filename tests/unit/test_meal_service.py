@@ -157,3 +157,66 @@ def test_update_meal_entry(db, meal_service, ingredient_service):
     with pytest.raises(NotFoundError) as exc_info:
         meal_service.update(999, quantity=1)
     assert exc_info.value.code == "not_found"
+
+
+def test_register_meal_with_meal_type_and_validation(db, meal_service, ingredient_service):
+    ing = ingredient_service.create(
+        Ingredient(name="oats", unit="gr", kcal=389, protein=16.9, carbs=66.3, fat=6.9)
+    )
+
+    # 1. Default meal_type is tentempie
+    entry1 = meal_service.register(
+        MealEntry(date="10-05-2026", item_type="ingredient", item_id=ing.id, quantity=50, unit="gr")
+    )
+    assert entry1.meal_type == "tentempie"
+
+    # 2. Explicit meal_type (desayuno)
+    entry2 = meal_service.register(
+        MealEntry(date="10-05-2026", item_type="ingredient", item_id=ing.id, quantity=80, unit="gr", meal_type="desayuno")
+    )
+    assert entry2.meal_type == "desayuno"
+
+    # 3. Invalid meal_type raises ValidationError
+    with pytest.raises(ValidationError) as exc:
+        meal_service.register(
+            MealEntry(date="10-05-2026", item_type="ingredient", item_id=ing.id, quantity=80, unit="gr", meal_type="invalid_type")
+        )
+    assert "invalid meal_type" in str(exc.value)
+
+
+def test_get_day_summary_groups_by_meal_type(db, meal_service, ingredient_service):
+    from src.services.goal_service import GoalService
+
+    GoalService().set_default(
+        DailyGoal(date="01-01-2026", kcal=2000, protein=150, carbs=200, fat=60)
+    )
+    ing = ingredient_service.create(
+        Ingredient(name="banana", unit="u", kcal=105, protein=1.3, carbs=27, fat=0.3, price=0.4)
+    )
+
+    meal_service.register(
+        MealEntry(date="15-05-2026", item_type="ingredient", item_id=ing.id, quantity=1, unit="u", meal_type="desayuno")
+    )
+    meal_service.register(
+        MealEntry(date="15-05-2026", item_type="ingredient", item_id=ing.id, quantity=2, unit="u", meal_type="comida")
+    )
+    meal_service.register(
+        MealEntry(date="15-05-2026", item_type="ingredient", item_id=ing.id, quantity=1, unit="u", meal_type="tentempie")
+    )
+
+    summary = meal_service.get_day_summary("15-05-2026")
+    assert summary["consumed"]["kcal"] == 420.0
+    assert "meals_by_type" in summary
+
+    by_type = summary["meals_by_type"]
+    assert len(by_type["desayuno"]["meals"]) == 1
+    assert by_type["desayuno"]["kcal"] == 105.0
+
+    assert len(by_type["comida"]["meals"]) == 1
+    assert by_type["comida"]["kcal"] == 210.0
+
+    assert len(by_type["tentempie"]["meals"]) == 1
+    assert by_type["tentempie"]["kcal"] == 105.0
+
+    assert len(by_type["cena"]["meals"]) == 0
+    assert by_type["cena"]["kcal"] == 0.0
