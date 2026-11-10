@@ -2,7 +2,7 @@
 
 import pytest
 from peewee import SqliteDatabase
-
+from src.config import settings
 from src.db.models import (
     db as real_db,
     ALL_MODELS,
@@ -50,6 +50,13 @@ def db():
     # Restore original DB
     for model in models_to_bind:
         model._meta.database = real_db
+
+
+@pytest.fixture(autouse=True)
+def isolate_external_apis(monkeypatch):
+    """Ensure tests run offline by default without hitting live Google Health APIs."""
+    monkeypatch.setattr(settings, "google_health_token", None)
+    monkeypatch.setattr(settings, "google_health_refresh_token", None)
 
 
 @pytest.fixture

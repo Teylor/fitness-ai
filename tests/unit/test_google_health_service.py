@@ -43,8 +43,10 @@ def test_sync_meals_with_meals_uploads_nutrition_log(db):
         import json
         assert request.headers.get("authorization") == "Bearer mock-token"
         assert "/dataTypes/nutrition-log/dataPoints" in str(request.url)
-        posted_payloads.append(json.loads(request.content.decode("utf-8")))
-        return httpx2.Response(200, json={"status": "ok"})
+        if request.method == "POST":
+            posted_payloads.append(json.loads(request.content.decode("utf-8")))
+            return httpx2.Response(200, json={"status": "ok"})
+        return httpx2.Response(200, json={"dataPoints": []})
 
     transport = httpx2.MockTransport(mock_handler)
     mock_http = httpx2.Client(transport=transport)

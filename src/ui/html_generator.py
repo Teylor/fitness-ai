@@ -308,8 +308,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       <div class="brand">
         <span>⚡</span> Fitness AI Hub
       </div>
-      <div style="font-size: 0.85rem; color: var(--text-muted);">
-        Hermes GUI Artifact
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-header-sync-health" onclick="syncGoogleHealthUI()" title="Sincronizar comidas, sueño y peso con Google Health">☁️ Sincronizar Google Health</button>
       </div>
     </header>
 
@@ -555,9 +555,10 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     <section id="tab-summary" class="tab-content {'active' if active_tab == 'summary' else ''}">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;">
         <h2>📊 Resumen Diario</h2>
-        <div style="display: flex; gap: 8px; align-items: center;">
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
           <input type="date" id="summary-date" style="padding: 6px 10px; width: 160px;" onchange="fetchSummary()" onclick="this.showPicker && this.showPicker()">
           <button type="button" class="btn btn-secondary btn-sm" onclick="fetchSummary()">🔄 Actualizar</button>
+          <button type="button" class="btn btn-primary btn-sm" id="btn-sync-health" onclick="syncGoogleHealthUI()">☁️ Sincronizar Google Health</button>
         </div>
       </div>
 
@@ -793,6 +794,71 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     let allRecipes = [];
     let editingIngredientId = null;
     let editingRecipeId = null;
+
+    function showToast(message, type = 'info') {{
+      let container = document.getElementById('toast-container');
+      if (!container) {{
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; max-width: 380px;';
+        document.body.appendChild(container);
+      }}
+      const toast = document.createElement('div');
+      const bg = type === 'ok' ? '#065f46' : (type === 'error' ? '#991b1b' : '#1e3a8a');
+      const border = type === 'ok' ? '#059669' : (type === 'error' ? '#dc2626' : '#3b82f6');
+      toast.style.cssText = `background: ${{bg}}; border: 1px solid ${{border}}; color: #ffffff; padding: 12px 16px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); font-size: 0.9rem; transition: opacity 0.3s ease; display: flex; align-items: center; justify-content: space-between; gap: 8px;`;
+      toast.innerHTML = `<span>${{escapeHtml(message)}}</span><button style="background: none; border: none; color: #fff; cursor: pointer; font-size: 1.1rem; line-height: 1;" onclick="this.parentElement.remove()">×</button>`;
+      container.appendChild(toast);
+      setTimeout(() => {{
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }}, 4000);
+    }}
+
+    async function syncGoogleHealthUI() {{
+      const btnSummary = document.getElementById('btn-sync-health');
+      const btnHeader = document.getElementById('btn-header-sync-health');
+      const btns = [btnSummary, btnHeader].filter(Boolean);
+      
+      btns.forEach(b => {{
+        b.disabled = true;
+        b.dataset.origText = b.innerHTML;
+        b.innerHTML = '⏳ Sincronizando...';
+      }});
+
+      const dateInput = document.getElementById('summary-date');
+      let targetDate = '';
+      if (dateInput && dateInput.value) {{
+        const parts = dateInput.value.split('-');
+        if (parts.length === 3) targetDate = `${{parts[2]}}-${{parts[1]}}-${{parts[0]}}`;
+      }}
+
+      try {{
+        const res = await fetch('/api/sync_google_health', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ date: targetDate || undefined }})
+        }});
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          const meals = data.meals_synced || 0;
+          const sleep = data.sleep_sessions_fetched || 0;
+          const weight = data.weight_records_fetched || 0;
+          const wtVal = data.latest_weight_kg ? ` (${{data.latest_weight_kg}} kg)` : '';
+          showToast(`☁️ Sincronizado con Google Health: ${{meals}} comidas, ${{sleep}} sesiones de sueño, ${{weight}} pesos${{wtVal}}`, 'ok');
+          await fetchSummary();
+        }} else {{
+          showToast(data.message || 'Error al sincronizar con Google Health', 'error');
+        }}
+      }} catch (err) {{
+        showToast(`Error de conexión con Google Health: ${{err.message}}`, 'error');
+      }} finally {{
+        btns.forEach(b => {{
+          b.disabled = false;
+          b.innerHTML = b.dataset.origText || '☁️ Sincronizar Google Health';
+        }});
+      }}
+    }}
 
     function escapeHtml(text) {{
       if (text === null || text === undefined) return '';

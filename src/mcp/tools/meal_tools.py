@@ -86,12 +86,25 @@ def register_meal(
         except Exception:
             day_summary = None
 
+        # Auto-sync with Google Health if credentials exist
+        gh_synced = False
+        try:
+            from src.config import settings
+            if settings.google_health_token or settings.google_health_refresh_token:
+                from src.services.google_health_service import GoogleHealthService
+                gh_svc = GoogleHealthService()
+                gh_res = gh_svc.sync_meals(date)
+                gh_synced = gh_res.get("status") == "ok"
+        except Exception:
+            gh_synced = False
+
         return {
             "status": "ok",
             "entry_id": entry.id,
             "macros": macros,
             "price": price,
             "day_summary": day_summary,
+            "google_health_synced": gh_synced,
         }
     except ToolError as err:
         return err.to_dict()
@@ -114,11 +127,31 @@ def get_day_summary(date: Optional[str] = None) -> dict:
 
 
 def delete_meal(entry_id: int) -> dict:
-    """Delete a registered meal entry by ID."""
+    """Delete a registered meal entry by ID and auto-sync with Google Health."""
     meal_service = MealService()
     try:
+        entry_row = MealEntryModel.get_or_none(MealEntryModel.id == int(entry_id))
+        entry_date = entry_row.date if entry_row else None
+
         meal_service.delete(int(entry_id))
-        return {"status": "ok", "entry_id": int(entry_id)}
+
+        gh_synced = False
+        if entry_date:
+            try:
+                from src.config import settings
+                if settings.google_health_token or settings.google_health_refresh_token:
+                    from src.services.google_health_service import GoogleHealthService
+                    gh_svc = GoogleHealthService()
+                    gh_res = gh_svc.sync_meals(entry_date)
+                    gh_synced = gh_res.get("status") == "ok"
+            except Exception:
+                gh_synced = False
+
+        return {
+            "status": "ok",
+            "entry_id": int(entry_id),
+            "google_health_synced": gh_synced,
+        }
     except ToolError as err:
         return err.to_dict()
     except Exception as exc:

@@ -49,6 +49,25 @@ class GoogleHealthService:
         valid_date = self._parse_date(date)
         iso_date = self._date_to_iso(valid_date)
 
+        # Clear any existing Google Health nutrition datapoints for this date to avoid duplicates
+        try:
+            raw_points = self.client.get_nutrition_datapoints()
+            pts_to_delete = []
+            for pt in raw_points:
+                nlog = pt.get("nutritionLog", {}) or {}
+                interval = nlog.get("interval", {}) or {}
+                st = interval.get("startTime", "")
+                if st.startswith(iso_date):
+                    name = pt.get("name")
+                    if not name and "dataPointId" in pt:
+                        name = f"users/me/dataTypes/nutrition-log/dataPoints/{pt['dataPointId']}"
+                    if name:
+                        pts_to_delete.append(name)
+            if pts_to_delete:
+                self.client.batch_delete_datapoints("nutrition-log", pts_to_delete)
+        except Exception:
+            pass
+
         meal_rows = list(MealEntryModel.select().where(MealEntryModel.date == valid_date))
         if not meal_rows:
             return {
