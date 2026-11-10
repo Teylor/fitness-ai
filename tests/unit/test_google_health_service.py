@@ -10,7 +10,7 @@ from src.utils.errors import ValidationError
 
 
 def test_client_missing_token_raises_validation_error():
-    client = GoogleHealthClient(token="")
+    client = GoogleHealthClient(token="", refresh_token="")
     with pytest.raises(ValidationError) as exc:
         client._ensure_authenticated()
     assert "Missing Google Health credentials" in str(exc.value)

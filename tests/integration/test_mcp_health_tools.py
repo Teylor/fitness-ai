@@ -15,6 +15,7 @@ from src.mcp.tools.health_tools import (
 
 def test_health_tools_unauthenticated_return_error(db, monkeypatch):
     monkeypatch.setattr(settings, "google_health_token", None)
+    monkeypatch.setattr(settings, "google_health_refresh_token", None)
 
     res = sync_meals_to_google_health("10-11-2026")
     assert res["status"] == "error"
