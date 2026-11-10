@@ -170,6 +170,130 @@ class WorkoutService:
             session_id=row.session_id,
         )
 
+    def get_exercise_stats(
+        self, exercise_id: Optional[int] = None
+    ) -> Dict[int, dict]:
+        """Aggregate PR and max-weight stats across historical sets for exercises.
+
+        Returns a dict mapping exercise_id to:
+        {
+            "estimated_1rm": float,
+            "estimated_1rm_weight": float,
+            "estimated_1rm_reps": int,
+            "estimated_1rm_date": str,
+            "max_weight": float,
+            "max_weight_reps": int,
+            "max_weight_date": str,
+        }
+        """
+        query = (
+            ExerciseSetModel.select(
+                ExerciseSetModel,
+                WorkoutSessionModel.date,
+            )
+            .join(WorkoutSessionModel)
+            .where(
+                ExerciseSetModel.weight.is_null(False)
+                & (ExerciseSetModel.weight > 0)
+                & ExerciseSetModel.reps.is_null(False)
+                & (ExerciseSetModel.reps > 0)
+            )
+        )
+        if exercise_id is not None:
+            query = query.where(ExerciseSetModel.exercise == exercise_id)
+
+        stats: Dict[int, dict] = {}
+
+        for s in query:
+            ex_id = s.exercise_id
+            w = float(s.weight)
+            r = int(s.reps)
+            e1rm = w if r == 1 else round(estimate_1rm(w, r), 1)
+
+            dt = s.session.date
+            s_date = self._to_date_str(dt)
+
+            if ex_id not in stats:
+                stats[ex_id] = {
+                    "estimated_1rm": e1rm,
+                    "estimated_1rm_weight": w,
+                    "estimated_1rm_reps": r,
+                    "estimated_1rm_date": s_date,
+                    "max_weight": w,
+                    "max_weight_reps": r,
+                    "max_weight_date": s_date,
+                }
+            else:
+                st = stats[ex_id]
+                # Highest estimated 1RM
+                if e1rm > st["estimated_1rm"]:
+                    st["estimated_1rm"] = e1rm
+                    st["estimated_1rm_weight"] = w
+                    st["estimated_1rm_reps"] = r
+                    st["estimated_1rm_date"] = s_date
+
+                # Heaviest weight set: higher weight wins; on tie, higher reps wins
+                if (w > st["max_weight"]) or (
+                    w == st["max_weight"] and r > st["max_weight_reps"]
+                ):
+                    st["max_weight"] = w
+                    st["max_weight_reps"] = r
+                    st["max_weight_date"] = s_date
+
+        # Also merge PersonalRecordModel in case sets were deleted or PR was manually stored
+        pr_query = PersonalRecordModel.select()
+        if exercise_id is not None:
+            pr_query = pr_query.where(PersonalRecordModel.exercise == exercise_id)
+
+        for pr_row in pr_query:
+            ex_id = pr_row.exercise_id
+            pr_e1rm = round(float(pr_row.estimated_1rm), 1)
+            pr_weight = float(pr_row.max_weight)
+            pr_reps = int(pr_row.max_reps)
+            pr_date = str(pr_row.date)
+
+            if ex_id not in stats:
+                stats[ex_id] = {
+                    "estimated_1rm": pr_e1rm,
+                    "estimated_1rm_weight": pr_weight,
+                    "estimated_1rm_reps": pr_reps,
+                    "estimated_1rm_date": pr_date,
+                    "max_weight": pr_weight,
+                    "max_weight_reps": pr_reps,
+                    "max_weight_date": pr_date,
+                }
+            else:
+                st = stats[ex_id]
+                if pr_e1rm > st["estimated_1rm"]:
+                    st["estimated_1rm"] = pr_e1rm
+                    st["estimated_1rm_weight"] = pr_weight
+                    st["estimated_1rm_reps"] = pr_reps
+                    st["estimated_1rm_date"] = pr_date
+                if (pr_weight > st["max_weight"]) or (
+                    pr_weight == st["max_weight"] and pr_reps > st["max_weight_reps"]
+                ):
+                    st["max_weight"] = pr_weight
+                    st["max_weight_reps"] = pr_reps
+                    st["max_weight_date"] = pr_date
+
+        return stats
+
+    @staticmethod
+    def _to_date_str(val) -> str:
+        if isinstance(val, datetime):
+            return val.strftime("%d-%m-%Y")
+        if isinstance(val, str):
+            val = val.strip()
+            if len(val) >= 10:
+                if val[4] == "-" and val[7] == "-":
+                    # YYYY-MM-DD -> DD-MM-YYYY
+                    parts = val[:10].split("-")
+                    return f"{parts[2]}-{parts[1]}-{parts[0]}"
+                elif val[2] == "-" and val[5] == "-":
+                    # DD-MM-YYYY
+                    return val[:10]
+        return str(val) if val else ""
+
     def get_by_day(self, date: str) -> List[dict]:
         """All sessions of a day (DD-MM-YYYY), each with its sets. Empty list if none."""
         day_dt, _, _ = self._parse_session_date(date)

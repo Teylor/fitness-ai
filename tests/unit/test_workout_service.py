@@ -270,3 +270,57 @@ def test_get_by_day_invalid_date_raises(db, workout_service, exercises):
     with pytest.raises(ValidationError) as exc_info:
         workout_service.get_by_day("2026-05-15")
     assert exc_info.value.code == "invalid_input"
+
+
+def test_get_exercise_stats_picks_highest_weight_and_best_1rm(db, workout_service, exercises):
+    # Simulates user's exact case: 20kg x 10, 22kg x 6, 18kg x 12
+    # 20kg x 10 reps -> e1rm: 26.7 kg
+    # 22kg x 6 reps  -> e1rm: 26.4 kg (highest weight is 22kg with 6 reps)
+    # 18kg x 12 reps -> e1rm: 25.2 kg
+    workout_service.register_session(WorkoutSession(date="15-05-2026"), [
+        {
+            "name": "Bench Press",
+            "sets": [
+                {"set_number": 1, "reps": 10, "weight": 20},
+                {"set_number": 2, "reps": 6, "weight": 22},
+                {"set_number": 3, "reps": 12, "weight": 18},
+            ],
+        }
+    ])
+    bench_id = exercises["Bench Press"].id
+    stats = workout_service.get_exercise_stats()
+    assert bench_id in stats
+    st = stats[bench_id]
+    assert st["max_weight"] == 22.0
+    assert st["max_weight_reps"] == 6
+    assert st["max_weight_date"] == "15-05-2026"
+    assert st["estimated_1rm"] == 26.7
+    assert st["estimated_1rm_weight"] == 20.0
+    assert st["estimated_1rm_reps"] == 10
+    assert st["estimated_1rm_date"] == "15-05-2026"
+
+
+def test_get_exercise_stats_picks_higher_reps_on_tied_max_weight(db, workout_service, exercises):
+    workout_service.register_session(WorkoutSession(date="10-05-2026"), [
+        {
+            "name": "Bench Press",
+            "sets": [
+                {"set_number": 1, "reps": 3, "weight": 50},
+                {"set_number": 2, "reps": 5, "weight": 50},
+            ],
+        }
+    ])
+    bench_id = exercises["Bench Press"].id
+    stats = workout_service.get_exercise_stats(exercise_id=bench_id)
+    assert stats[bench_id]["max_weight"] == 50.0
+    assert stats[bench_id]["max_weight_reps"] == 5
+
+
+def test_get_exercise_stats_ignores_time_and_distance_exercises(db, workout_service, exercises):
+    workout_service.register_session(WorkoutSession(date="15-05-2026"), [
+        {"name": "Plank", "sets": [{"set_number": 1, "duration": 60}]},
+    ])
+    stats = workout_service.get_exercise_stats()
+    plank_id = exercises["Plank"].id
+    assert plank_id not in stats
+

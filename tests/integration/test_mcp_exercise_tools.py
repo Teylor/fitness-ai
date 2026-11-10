@@ -50,3 +50,41 @@ def test_list_exercises_tool(db):
     page = list_exercises(limit=1, offset=1)
     assert page["count"] == 1
     assert page["exercises"][0]["name"] == "Squat"
+
+
+def test_list_exercises_with_prs(db):
+    from src.mcp.tools.workout_tools import register_workout
+
+    create_exercise(name="Overhead Press", muscle_group="shoulders")
+    create_exercise(name="Plank", muscle_group="core", type="time")
+
+    # Log workout with sets: 20kg x 10, 22kg x 6, 18kg x 12
+    register_workout(
+        date="15-05-2026",
+        exercises=[
+            {
+                "name": "Overhead Press",
+                "sets": [
+                    {"set_number": 1, "reps": 10, "weight": 20},
+                    {"set_number": 2, "reps": 6, "weight": 22},
+                    {"set_number": 3, "reps": 12, "weight": 18},
+                ],
+            }
+        ],
+    )
+
+    # When include_prs is False (default)
+    res_default = list_exercises(search="Overhead Press")
+    assert "pr" not in res_default["exercises"][0]
+
+    # When include_prs is True (or "true")
+    res_prs = list_exercises(include_prs=True)
+    ohp = next(x for x in res_prs["exercises"] if x["name"] == "Overhead Press")
+    assert ohp["pr"] is not None
+    assert ohp["pr"]["max_weight"] == 22.0
+    assert ohp["pr"]["max_weight_reps"] == 6
+    assert ohp["pr"]["estimated_1rm"] == 26.7
+
+    plank = next(x for x in res_prs["exercises"] if x["name"] == "Plank")
+    assert plank["pr"] is None
+

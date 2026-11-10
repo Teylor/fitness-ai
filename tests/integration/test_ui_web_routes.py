@@ -427,5 +427,63 @@ async def test_ui_delete_actions_and_api(db):
         assert not any(m["entry"]["id"] == entry_id for m in sum_after.json()["meals"])
 
 
+@pytest.mark.anyio
+async def test_ui_exercises_tab_and_prs_integration(db):
+    server = create_server()
+    app = server.streamable_http_app()
+    transport = httpx2.ASGITransport(app=app)
+
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
+        # 1. GET /ui/exercise
+        ui_res = await client.get("/ui/exercise")
+        assert ui_res.status_code == 200
+        assert "Ejercicios y Récords Personales" in ui_res.text
+        assert "1RM Estimado (PR)" in ui_res.text
+        assert "Récord de Peso (Max Set)" in ui_res.text
+        assert "💪 Ejercicios" in ui_res.text
+
+        # 2. Create exercise
+        create_res = await client.post(
+            "/api/create_exercise",
+            json={"name": "Press Militar", "muscle_group": "hombro", "type": "weight_reps"},
+        )
+        assert create_res.status_code == 200
+        assert create_res.json()["status"] == "ok"
+
+        # 3. Register workout with 20kg x 10, 22kg x 6, 18kg x 12
+        workout_res = await client.post(
+            "/api/register_workout",
+            json={
+                "date": "18-05-2026",
+                "exercises": [
+                    {
+                        "name": "Press Militar",
+                        "sets": [
+                            {"set_number": 1, "reps": 10, "weight": 20.0},
+                            {"set_number": 2, "reps": 6, "weight": 22.0},
+                            {"set_number": 3, "reps": 12, "weight": 18.0},
+                        ],
+                    }
+                ],
+            },
+        )
+        assert workout_res.status_code == 200
+        assert workout_res.json()["status"] == "ok"
+
+        # 4. Fetch /api/list_exercises?include_prs=true
+        list_res = await client.get("/api/list_exercises?include_prs=true")
+        assert list_res.status_code == 200
+        data = list_res.json()
+        assert data["status"] == "ok"
+
+        press = next((x for x in data["exercises"] if x["name"] == "Press Militar"), None)
+        assert press is not None
+        assert press["pr"] is not None
+        assert press["pr"]["max_weight"] == 22.0
+        assert press["pr"]["max_weight_reps"] == 6
+        assert press["pr"]["estimated_1rm"] == 26.7
+
+
+
 
 

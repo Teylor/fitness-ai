@@ -392,9 +392,31 @@ List/search the exercise catalog.
 | `search` | str | | `null` | substring filter on name |
 | `muscle_group` | str | | `null` | filter by muscle group |
 | `limit` / `offset` | int | | `50` / `0` | pagination |
+| `include_prs` | bool \| str | | `false` | include PR stats (`estimated_1rm`, `max_weight`, `max_weight_reps`, etc.) |
 
 ```json
-{"status": "ok", "exercises": [{"id": 1, "name": "bench press", "muscle_group": "chest", "type": "weight_reps", "created_at": "..."}], "count": 12}
+{
+  "status": "ok",
+  "exercises": [
+    {
+      "id": 1,
+      "name": "bench press",
+      "muscle_group": "chest",
+      "type": "weight_reps",
+      "created_at": "...",
+      "pr": {
+        "estimated_1rm": 26.7,
+        "estimated_1rm_weight": 20.0,
+        "estimated_1rm_reps": 10,
+        "estimated_1rm_date": "15-05-2026",
+        "max_weight": 22.0,
+        "max_weight_reps": 6,
+        "max_weight_date": "15-05-2026"
+      }
+    }
+  ],
+  "count": 1
+}
 ```
 
 Errors: `internal`.
