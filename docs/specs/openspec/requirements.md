@@ -94,7 +94,7 @@ The system runs 24/7 on a local PC (server mode). An AI agent (Hermes Agent) con
 - **FR7.1** The system integrates with Google Health API v4 for bidirectional synchronization.
 - **FR7.2** Logged meals are uploaded to Google Health as `nutrition-log` data points with energy (`kcal`), total fat (`grams`), carbohydrates (`grams`), and protein (`nutrients`). Registration and deletion of meals automatically trigger background synchronization with Google Health when credentials are configured.
 - **FR7.3** Sleep sessions and body weight measurements are pulled from Google Health and persisted in local `sleep_logs` and `weight_logs`.
-- **FR7.4** Daily step counts and distances are tracked in local `step_logs` (`log_steps`) and aggregated in `get_health_metrics`.
+- **FR7.4** Daily step counts are synchronized exclusively from Google Health (`fetch_google_health_steps`, `sync_google_health`) and stored in local `step_logs` with `source="google_health"`. Manual step entry via UI and tool is disabled (`manual_steps_disabled`).
 - **FR7.5** OAuth 2.0 authentication supports transparent token renewal using a `refresh_token`; when expired (HTTP 401), tokens are refreshed from Google OAuth and persisted to `.env` without user disruption.
 
 ### FR8 — Generative UI Artifacts & Views

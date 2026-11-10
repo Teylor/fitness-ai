@@ -9,9 +9,10 @@ from src.db.models import (
     MealEntry as MealEntryModel,
     Recipe as RecipeModel,
     SleepLog,
+    StepLog,
     WeightLog,
 )
-from src.models.health import SleepRecord, WeightRecord
+from src.models.health import SleepRecord, StepRecord, WeightRecord
 from src.services.google_health_client import GoogleHealthClient
 from src.services.meal_service import MealService
 from src.utils.errors import ValidationError
@@ -302,12 +303,89 @@ class GoogleHealthService:
             "records": [asdict(r) for r in saved_records],
         }
 
+    def fetch_steps(self, date: Optional[str] = None, days: int = 1) -> Dict[str, Any]:
+        """Fetch step count data from Google Health and store/update in step_logs."""
+        self.client._ensure_authenticated()
+        valid_date = self._parse_date(date)
+        iso_date = self._date_to_iso(valid_date)
+
+        raw_points = self.client.get_steps_datapoints()
+        daily_steps: Dict[str, int] = {}
+
+        for pt in raw_points:
+            steps_obj = pt.get("steps", {}) if isinstance(pt, dict) else {}
+            count_val = steps_obj.get("count", 0)
+            if not count_val and "stepCount" in steps_obj:
+                count_val = steps_obj.get("stepCount", 0)
+            if not count_val and "count" in pt:
+                count_val = pt.get("count", 0)
+            try:
+                count = int(count_val)
+            except (ValueError, TypeError):
+                count = 0
+
+            interval = steps_obj.get("interval", {}) or pt.get("interval", {}) or {}
+            st = (
+                interval.get("startTime")
+                or interval.get("civilStartTime")
+                or f"{iso_date}T00:00:00Z"
+            )
+
+            pt_date = valid_date
+            try:
+                clean_ts = st.replace("Z", "+00:00")
+                pt_dt = datetime.fromisoformat(clean_ts)
+                pt_date = pt_dt.strftime("%d-%m-%Y")
+            except Exception:
+                if st.startswith(iso_date):
+                    pt_date = valid_date
+
+            daily_steps[pt_date] = daily_steps.get(pt_date, 0) + count
+
+        total_steps_for_date = daily_steps.get(valid_date, 0)
+
+        # Update or create row for valid_date
+        row, created = StepLog.get_or_create(
+            date=valid_date,
+            defaults={
+                "steps": total_steps_for_date,
+                "source": "google_health",
+            },
+        )
+        if not created:
+            row.steps = total_steps_for_date
+            row.source = "google_health"
+            row.save()
+
+        # Also persist other dates if found in the retrieved data points
+        for d, st_count in daily_steps.items():
+            if d != valid_date:
+                other_row, other_created = StepLog.get_or_create(
+                    date=d,
+                    defaults={
+                        "steps": st_count,
+                        "source": "google_health",
+                    },
+                )
+                if not other_created:
+                    other_row.steps = st_count
+                    other_row.source = "google_health"
+                    other_row.save()
+
+        return {
+            "status": "ok",
+            "date": valid_date,
+            "steps": total_steps_for_date,
+            "source": "google_health",
+        }
+
     def sync_all(self, date: Optional[str] = None) -> Dict[str, Any]:
-        """Perform full bidirectional synchronization (push meals, pull sleep and weight)."""
+        """Perform full bidirectional synchronization (push meals, pull sleep, weight, and steps)."""
         valid_date = self._parse_date(date)
         meals_res = self.sync_meals(valid_date)
         sleep_res = self.fetch_sleep(valid_date)
         weight_res = self.fetch_weight(valid_date)
+        steps_res = self.fetch_steps(valid_date)
 
         return {
             "status": "ok",
@@ -317,4 +395,5 @@ class GoogleHealthService:
             "sleep_sessions_fetched": sleep_res["count"],
             "weight_records_fetched": weight_res["count"],
             "latest_weight_kg": weight_res["latest_weight_kg"],
+            "steps_fetched": steps_res["steps"],
         }

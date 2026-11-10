@@ -70,14 +70,32 @@ def fetch_google_health_weight(date: Optional[str] = None, days: int = 7) -> dic
         return {"status": "error", "code": "internal", "message": str(exc)}
 
 
+def fetch_google_health_steps(date: Optional[str] = None) -> dict:
+    """Fetch daily step count from Google Health and persist locally.
+
+    Args:
+        date: Reference date in DD-MM-YYYY format (default: today).
+
+    Returns:
+        {"status": "ok", "date": str, "steps": int, "source": "google_health"}
+    """
+    service = GoogleHealthService()
+    try:
+        return service.fetch_steps(date=date)
+    except ToolError as err:
+        return err.to_dict()
+    except Exception as exc:
+        return {"status": "error", "code": "internal", "message": str(exc)}
+
+
 def sync_google_health(date: Optional[str] = None) -> dict:
-    """Full synchronization: push meals to Google Health and pull sleep and weight metrics.
+    """Full synchronization: push meals to Google Health and pull sleep, weight, and steps metrics.
 
     Args:
         date: Target date in DD-MM-YYYY format (default: today).
 
     Returns:
-        {"status": "ok", "date": str, "meals_synced": int, "sleep_sessions_fetched": int, "weight_records_fetched": int}
+        {"status": "ok", "date": str, "meals_synced": int, "sleep_sessions_fetched": int, "weight_records_fetched": int, "steps_fetched": int}
     """
     service = GoogleHealthService()
     try:
@@ -93,50 +111,15 @@ def log_steps(
     date: Optional[str] = None,
     distance_km: Optional[float] = None,
 ) -> dict:
-    """Log or update daily step count for a specific date (DD-MM-YYYY)."""
-    if not date:
-        date = datetime.now().strftime("%d-%m-%Y")
-    else:
-        try:
-            datetime.strptime(date, "%d-%m-%Y")
-        except ValueError:
-            return {
-                "status": "error",
-                "code": "invalid_date",
-                "message": f"invalid date '{date}' (expected DD-MM-YYYY)",
-            }
-    try:
-        steps_val = int(steps)
-        if steps_val < 0:
-            return {
-                "status": "error",
-                "code": "invalid_input",
-                "message": "steps cannot be negative",
-            }
+    """Log or update daily step count for a specific date (DD-MM-YYYY).
 
-        row, created = StepLog.get_or_create(
-            date=date,
-            defaults={
-                "steps": steps_val,
-                "distance_km": distance_km,
-                "source": "manual",
-            },
-        )
-        if not created:
-            row.steps = steps_val
-            if distance_km is not None:
-                row.distance_km = distance_km
-            row.updated_at = SQL("datetime('now')")
-            row.save()
-
-        return {
-            "status": "ok",
-            "date": date,
-            "steps": row.steps,
-            "distance_km": row.distance_km,
-        }
-    except Exception as exc:
-        return {"status": "error", "code": "internal", "message": str(exc)}
+    Note: Manual step entry is disabled. Steps are synchronized automatically from Google Health.
+    """
+    return {
+        "status": "error",
+        "code": "manual_steps_disabled",
+        "message": "Manual step logging is disabled. Steps are synchronized automatically from Google Health.",
+    }
 
 
 def get_health_metrics(date: Optional[str] = None) -> dict:

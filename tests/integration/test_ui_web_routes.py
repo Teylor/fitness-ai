@@ -195,7 +195,7 @@ async def test_ui_new_features_elements_and_interactions(db):
 @pytest.mark.anyio
 async def test_ui_full_daily_summary_dashboard(db):
     from datetime import datetime
-    from src.db.models import SleepLog, WeightLog
+    from src.db.models import SleepLog, StepLog, WeightLog
 
     server = create_server()
     app = server.streamable_http_app()
@@ -211,7 +211,7 @@ async def test_ui_full_daily_summary_dashboard(db):
         assert "summary-health" in html
         assert "summary-workouts-container" in html
         assert "summary-meals-body" in html
-        assert "quickLogSteps" in html
+        assert "quick-steps-input" not in html
         assert "fetchSummary" in html
         assert "renderSummaryNutrition" in html
         assert "renderSummaryHealth" in html
@@ -230,14 +230,22 @@ async def test_ui_full_daily_summary_dashboard(db):
         assert goal_res.status_code == 200
         assert goal_res.json()["status"] == "ok"
 
-        # 3. Log steps via API
+        # 3. Log steps via API is disabled
         step_res = await client.post(
             "/api/log_steps",
             json={"steps": 9450, "date": today_str, "distance_km": 6.8},
         )
         assert step_res.status_code == 200
-        assert step_res.json()["status"] == "ok"
-        assert step_res.json()["steps"] == 9450
+        assert step_res.json()["status"] == "error"
+        assert step_res.json()["code"] == "manual_steps_disabled"
+
+        # Steps are populated via Google Health sync
+        StepLog.create(
+            date=today_str,
+            steps=9450,
+            distance_km=6.8,
+            source="google_health",
+        )
 
         # 4. Populate sleep & weight logs
         SleepLog.create(

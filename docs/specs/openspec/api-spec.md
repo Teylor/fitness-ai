@@ -36,7 +36,7 @@
 | Workouts (4) | `register_workout`, `get_last_workout`, `get_personal_record`, `get_workouts_by_day` |
 | Exercises (2) | `list_exercises`, `create_exercise` |
 | UI Artifacts (1) | `get_ui_form` |
-| Health & Activity (6) | `sync_meals_to_google_health`, `fetch_google_health_sleep`, `fetch_google_health_weight`, `sync_google_health`, `log_steps`, `get_health_metrics` |
+| Health & Activity (7) | `sync_meals_to_google_health`, `fetch_google_health_sleep`, `fetch_google_health_weight`, `fetch_google_health_steps`, `sync_google_health`, `log_steps`, `get_health_metrics` |
 
 ### Common shapes
 
@@ -471,35 +471,49 @@ Fetch weight body measurements from Google Health and store in local `weight_log
 
 Errors: `invalid_input` (bad date, missing credentials), `internal`.
 
-### `sync_google_health`
+### `fetch_google_health_steps`
 
-Full bidirectional synchronization: push meals, pull sleep and weight metrics.
+Fetch daily step count from Google Health and store/update in local `step_logs`.
 
 | Arg | Type | Req | Default | Description |
 |---|---|---|---|---|
 | `date` | str | | `today` | reference date in `DD-MM-YYYY` |
 
 ```json
-{"status": "ok", "date": "10-11-2026", "meals_synced": 2, "total_kcal_synced": 650.0, "sleep_sessions_fetched": 1, "weight_records_fetched": 1, "latest_weight_kg": 75.2}
+{"status": "ok", "date": "10-11-2026", "steps": 8500, "source": "google_health"}
+```
+
+Errors: `invalid_input` (bad date, missing credentials), `internal`.
+
+### `sync_google_health`
+
+Full bidirectional synchronization: push meals, pull sleep, weight, and steps metrics.
+
+| Arg | Type | Req | Default | Description |
+|---|---|---|---|---|
+| `date` | str | | `today` | reference date in `DD-MM-YYYY` |
+
+```json
+{"status": "ok", "date": "10-11-2026", "meals_synced": 2, "total_kcal_synced": 650.0, "sleep_sessions_fetched": 1, "weight_records_fetched": 1, "latest_weight_kg": 75.2, "steps_fetched": 8500}
 ```
 
 Errors: `invalid_input` (bad date, missing credentials), `internal`.
 
 ### `log_steps`
 
-Log or update daily step count and optional walking/running distance for a specific date.
+*Deprecated / Disabled*: Manual step logging is disabled in favor of automated synchronization from Google Health. Always returns `manual_steps_disabled`.
 
 | Arg | Type | Req | Default | Description |
 |---|---|---|---|---|
-| `steps` | int | ✔ | — | step count (must be non-negative) |
+| `steps` | int | ✔ | — | step count |
 | `date` | str | | `today` | target date in `DD-MM-YYYY` |
 | `distance_km` | float | | `null` | estimated distance in kilometers |
 
 ```json
-{"status": "ok", "date": "10-11-2026", "steps": 8500, "distance_km": 6.2}
+{"status": "error", "code": "manual_steps_disabled", "message": "Manual step logging is disabled. Steps are synchronized automatically from Google Health."}
 ```
 
-Errors: `invalid_input` (negative steps, bad date format), `internal`.
+Errors: `manual_steps_disabled`.
 
 ### `get_health_metrics`
 

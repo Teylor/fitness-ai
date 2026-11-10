@@ -24,6 +24,7 @@ from src.mcp.tools.recipe_tools import (
 )
 from src.mcp.tools.health_tools import (
     fetch_google_health_sleep,
+    fetch_google_health_steps,
     fetch_google_health_weight,
     get_health_metrics,
     log_steps,
@@ -78,10 +79,11 @@ def create_server() -> MCPServer:
     # UI tool (1)
     server.add_tool(get_ui_form, name="get_ui_form")
 
-    # Google Health tools (6)
+    # Google Health tools (7)
     server.add_tool(sync_meals_to_google_health, name="sync_meals_to_google_health")
     server.add_tool(fetch_google_health_sleep, name="fetch_google_health_sleep")
     server.add_tool(fetch_google_health_weight, name="fetch_google_health_weight")
+    server.add_tool(fetch_google_health_steps, name="fetch_google_health_steps")
     server.add_tool(sync_google_health, name="sync_google_health")
     server.add_tool(log_steps, name="log_steps")
     server.add_tool(get_health_metrics, name="get_health_metrics")

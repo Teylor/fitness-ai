@@ -7,6 +7,7 @@ from src.config import settings
 from src.db.models import Ingredient, MealEntry
 from src.mcp.tools.health_tools import (
     fetch_google_health_sleep,
+    fetch_google_health_steps,
     fetch_google_health_weight,
     sync_google_health,
     sync_meals_to_google_health,
@@ -29,6 +30,10 @@ def test_health_tools_unauthenticated_return_error(db, monkeypatch):
     res_weight = fetch_google_health_weight("10-11-2026")
     assert res_weight["status"] == "error"
     assert res_weight["code"] == "invalid_input"
+
+    res_steps = fetch_google_health_steps("10-11-2026")
+    assert res_steps["status"] == "error"
+    assert res_steps["code"] == "invalid_input"
 
 
 def test_sync_meals_tool_success(db, monkeypatch):
@@ -113,6 +118,20 @@ def test_fetch_sleep_and_weight_tools_success(db, monkeypatch):
                     ]
                 },
             )
+        elif "/dataTypes/steps/dataPoints" in url_str:
+            return httpx2.Response(
+                200,
+                json={
+                    "dataPoints": [
+                        {
+                            "steps": {
+                                "count": 8400,
+                                "interval": {"startTime": "2026-11-10T09:00:00Z"},
+                            }
+                        }
+                    ]
+                },
+            )
         return httpx2.Response(404)
 
     transport = httpx2.MockTransport(mock_handler)
@@ -138,26 +157,38 @@ def test_fetch_sleep_and_weight_tools_success(db, monkeypatch):
     assert weight_res["count"] == 1
     assert weight_res["latest_weight_kg"] == 75.2
 
-    # 3. Full sync tool
+    # 3. Fetch steps tool
+    steps_res = fetch_google_health_steps("10-11-2026")
+    assert steps_res["status"] == "ok"
+    assert steps_res["steps"] == 8400
+    assert steps_res["source"] == "google_health"
+
+    # 4. Full sync tool
     # (sleep sessions already persisted by step 1; weight records already
     # persisted by step 2, so no new rows are created during full sync.)
     sync_res = sync_google_health("10-11-2026")
     assert sync_res["status"] == "ok"
     assert sync_res["sleep_sessions_fetched"] == 1
     assert sync_res["weight_records_fetched"] == 0
+    assert sync_res["steps_fetched"] == 8400
 
 
 def test_log_steps_and_get_health_metrics_tools(db):
-    from src.db.models import SleepLog, WeightLog
+    from src.db.models import SleepLog, StepLog, WeightLog
     from src.mcp.tools.health_tools import get_health_metrics, log_steps
 
-    # 1. Log steps
+    # 1. Manual step logging is rejected
     res_steps = log_steps(steps=8500, date="10-11-2026", distance_km=6.2)
-    assert res_steps["status"] == "ok"
-    assert res_steps["steps"] == 8500
-    assert res_steps["distance_km"] == 6.2
+    assert res_steps["status"] == "error"
+    assert res_steps["code"] == "manual_steps_disabled"
 
-    # 2. Add local sleep and weight logs
+    # 2. Add steps via StepLog (simulating Google Health sync), sleep and weight logs
+    StepLog.create(
+        date="10-11-2026",
+        steps=8500,
+        distance_km=6.2,
+        source="google_health",
+    )
     SleepLog.create(
         date="10-11-2026",
         start_time="2026-11-09T23:00:00Z",
@@ -181,13 +212,7 @@ def test_log_steps_and_get_health_metrics_tools(db):
     assert metrics["status"] == "ok"
     assert metrics["date"] == "10-11-2026"
     assert metrics["steps"]["steps"] == 8500
+    assert metrics["steps"]["source"] == "google_health"
     assert metrics["sleep"]["duration_hours"] == 8.0
     assert metrics["weight"]["weight_kg"] == 74.5
-
-    # 4. Update steps
-    updated_steps = log_steps(steps=10200, date="10-11-2026", distance_km=7.5)
-    assert updated_steps["status"] == "ok"
-    assert updated_steps["steps"] == 10200
-    metrics2 = get_health_metrics("10-11-2026")
-    assert metrics2["steps"]["steps"] == 10200
 

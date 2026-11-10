@@ -138,6 +138,10 @@ class GoogleHealthClient:
         url = f"{self.base_url}/users/me/dataTypes/{data_type}/dataPoints"
         resp = self._request("GET", url)
         if resp.status_code != 200:
+            if resp.status_code == 403 and "MISSING_OAUTH_SCOPE" in resp.text:
+                raise ValidationError(
+                    f"Missing OAuth scope for '{data_type}'. Please re-authorize Google Health credentials with the 'activity_and_fitness.readonly' scope (run scripts/get_google_token.py)."
+                )
             raise ValidationError(
                 f"Google Health API error ({resp.status_code}): {resp.text}"
             )
@@ -147,6 +151,10 @@ class GoogleHealthClient:
     def get_sleep_datapoints(self) -> List[Dict[str, Any]]:
         """Fetch sleep dataPoints from Google Health API."""
         return self._get_datapoints("sleep")
+
+    def get_steps_datapoints(self) -> List[Dict[str, Any]]:
+        """Fetch step count dataPoints from Google Health API."""
+        return self._get_datapoints("steps")
 
     def get_weight_datapoints(self) -> List[Dict[str, Any]]:
         """Fetch weight body measurement dataPoints from Google Health API."""

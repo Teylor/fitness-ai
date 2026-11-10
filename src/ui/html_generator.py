@@ -1354,23 +1354,17 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const sleep = healthData && healthData.sleep;
       const weight = healthData && healthData.weight;
 
-      // 1. Steps
+      // 1. Steps (pulled exclusively from Google Health)
       let stepsContent = `
         <div style="color: var(--text-muted); font-size: 0.85rem;">Sin registro</div>
-        <div style="margin-top: 6px; display: flex; gap: 4px; justify-content: center;">
-          <input type="number" id="quick-steps-input" placeholder="Pasos..." style="width: 80px; padding: 3px 6px; font-size: 0.8rem;">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="quickLogSteps('${{date}}')" style="padding: 3px 8px; font-size: 0.75rem;">+ Guardar</button>
-        </div>
+        <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">Sincroniza con Google Health</div>
       `;
       if (steps) {{
         const distStr = steps.distance_km ? ` (${{steps.distance_km}} km)` : '';
+        const sourceBadge = '<span style="font-size: 0.65rem; background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 1px 5px; border-radius: 4px; margin-left: 4px;">Google Health</span>';
         stepsContent = `
           <div class="macro-val" style="color: var(--cyan);">${{Number(steps.steps).toLocaleString()}}</div>
-          <div style="font-size: 0.75rem; color: var(--text-muted);">pasos${{distStr}}</div>
-          <div style="margin-top: 4px; display: flex; gap: 4px; justify-content: center;">
-            <input type="number" id="quick-steps-input" placeholder="${{steps.steps}}" style="width: 75px; padding: 2px 6px; font-size: 0.75rem;">
-            <button type="button" class="btn btn-secondary btn-sm" onclick="quickLogSteps('${{date}}')" style="padding: 2px 6px; font-size: 0.75rem;">Editar</button>
-          </div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">pasos${{distStr}}${{sourceBadge}}</div>
         `;
       }}
 
@@ -1409,23 +1403,6 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <div style="margin: 6px 0;">${{weightContent}}</div>
         </div>
       `;
-    }}
-
-    async function quickLogSteps(date) {{
-      const input = document.getElementById('quick-steps-input');
-      if (!input || !input.value) return;
-      const steps = parseInt(input.value);
-      if (isNaN(steps) || steps < 0) return;
-      try {{
-        await fetch('/api/log_steps', {{
-          method: 'POST',
-          headers: {{ 'Content-Type': 'application/json' }},
-          body: JSON.stringify({{ steps, date }})
-        }});
-        await fetchSummary();
-      }} catch (e) {{
-        console.error('Error logging steps', e);
-      }}
     }}
 
     function renderSummaryMeals(meals, spend) {{

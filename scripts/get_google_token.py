@@ -16,6 +16,7 @@ HEALTH_SCOPES = [
     "https://www.googleapis.com/auth/googlehealth.nutrition.writeonly",
     "https://www.googleapis.com/auth/googlehealth.sleep.readonly",
     "https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly",
+    "https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly",
 ]
 HEALTH_SCOPE_STR = " ".join(HEALTH_SCOPES)
 
@@ -124,13 +125,20 @@ def oauth_browser_flow(client_id: str, client_secret: str, port: int = 8080):
 
 
 def main():
+    import os
+    from src.config import settings
+
     parser = argparse.ArgumentParser(description="Obtain Google Health API OAuth access token")
     parser.add_argument("--client-id", help="Google Cloud OAuth Client ID")
     parser.add_argument("--client-secret", help="Google Cloud OAuth Client Secret")
+    parser.add_argument("--manual", action="store_true", help="Force manual token paste mode")
     args = parser.parse_args()
 
-    if args.client_id and args.client_secret:
-        oauth_browser_flow(args.client_id, args.client_secret)
+    client_id = args.client_id or settings.google_client_id or os.environ.get("GOOGLE_CLIENT_ID")
+    client_secret = args.client_secret or settings.google_client_secret or os.environ.get("GOOGLE_CLIENT_SECRET")
+
+    if not args.manual and client_id and client_secret:
+        oauth_browser_flow(client_id, client_secret)
     else:
         manual_paste_mode()
 
