@@ -15,6 +15,12 @@
 - **Macros**: `kcal` (energy), `protein`, `carbs`, `fat` (grams).
 - **Booleans**: stored as `INTEGER` (0/1).
 - **`provisional`**: flag marking rows whose macro/price data is not yet confirmed.
+- **PRAGMAs & Concurrency**:
+  - `PRAGMA foreign_keys = ON;` — enforced on all connections to validate referential integrity and execute cascade/restrict behaviors.
+  - `PRAGMA journal_mode = WAL;` — Write-Ahead Logging enables concurrent readers without blocking writes, avoiding database locks during 24/7 background operation.
+  - `PRAGMA busy_timeout = 5000;` — waits up to 5000 ms on transient locks before raising errors.
+  - `PRAGMA synchronous = NORMAL;` — recommended durability and write performance mode for WAL.
+  - **Transaction Management**: `get_db()` context manager provides atomic transactions with automatic rollback on error and nested savepoint support.
 
 ## Relationships
 
@@ -218,6 +224,22 @@ Inbound body weight measurements from Google Health.
 | created_at | TEXT | NOT NULL DEFAULT `datetime('now')` | |
 
 - **Indexes**: `idx_weight_logs_date` (`date`); `UNIQUE (date, created_at)`
+
+### `step_logs`
+
+Daily physical step counts and estimated walking/running distance.
+
+| Field | Type | Constraints | Description |
+|---|---|---|---|
+| id | INTEGER | PK AUTOINCREMENT | |
+| date | TEXT | NOT NULL | `DD-MM-YYYY` |
+| steps | INTEGER | NOT NULL DEFAULT 0 | Daily step count |
+| distance_km | REAL | NULL | Estimated distance in km |
+| source | TEXT | NOT NULL DEFAULT `'manual'` | Data source (`'manual'` \| `'google_health'`) |
+| created_at | TEXT | NOT NULL DEFAULT `datetime('now')` | |
+| updated_at | TEXT | NOT NULL DEFAULT `datetime('now')` | |
+
+- **Indexes**: `idx_step_logs_date` (`date`); `UNIQUE (date)`
 
 ## Enumerations
 

@@ -25,18 +25,18 @@
 - **Units:** `gr` | `ml` | `u`. Macros are in grams, kcal in energy units, prices in currency **per unit** (per `gr`/`ml`/`u`).
 - **Pagination:** list tools take `limit` (default `50`) and `offset` (default `0`).
 
-## Tool index (23)
+## Tool index (26)
 
 | Domain | Tools |
 |---|---|
 | Ingredients (4) | `create_ingredient`, `update_ingredient`, `delete_ingredient`, `list_ingredients` |
 | Recipes (4) | `create_recipe`, `update_recipe`, `delete_recipe`, `list_recipes` |
-| Meals (2) | `register_meal`, `get_day_summary` |
+| Meals (3) | `register_meal`, `get_day_summary`, `delete_meal` |
 | Goals (2) | `set_daily_goal`, `get_daily_goal` |
 | Workouts (4) | `register_workout`, `get_last_workout`, `get_personal_record`, `get_workouts_by_day` |
 | Exercises (2) | `list_exercises`, `create_exercise` |
 | UI Artifacts (1) | `get_ui_form` |
-| Google Health (4) | `sync_meals_to_google_health`, `fetch_google_health_sleep`, `fetch_google_health_weight`, `sync_google_health` |
+| Health & Activity (6) | `sync_meals_to_google_health`, `fetch_google_health_sleep`, `fetch_google_health_weight`, `sync_google_health`, `log_steps`, `get_health_metrics` |
 
 ### Common shapes
 
@@ -48,6 +48,7 @@
 - `personal_record`: `{id, exercise_id, max_weight, max_reps, estimated_1rm, date, session_id}`
 - `sleep_log`: `{id, date, start_time, end_time, duration_minutes, deep_sleep_minutes, rem_sleep_minutes, light_sleep_minutes, source}`
 - `weight_log`: `{id, date, weight_kg, bmi, body_fat_pct, source}`
+- `step_log`: `{id, date, steps, distance_km, source, created_at, updated_at}`
 
 ---
 
@@ -244,6 +245,20 @@ Consumed macros, spend, goal, remaining, and per-meal breakdown for a day.
 ```
 
 Errors: `not_found` (no goal for the date or fallback), `invalid_input` (bad date), `internal`.
+
+### `delete_meal`
+
+Delete a logged meal entry by its primary key ID.
+
+| Arg | Type | Req | Default | Description |
+|---|---|---|---|---|
+| `entry_id` | int | ✔ | — | ID of the meal entry to delete |
+
+```json
+{"status": "ok", "entry_id": 11}
+```
+
+Errors: `not_found`, `invalid_input`, `internal`.
 
 ---
 
@@ -469,5 +484,56 @@ Full bidirectional synchronization: push meals, pull sleep and weight metrics.
 ```
 
 Errors: `invalid_input` (bad date, missing credentials), `internal`.
+
+### `log_steps`
+
+Log or update daily step count and optional walking/running distance for a specific date.
+
+| Arg | Type | Req | Default | Description |
+|---|---|---|---|---|
+| `steps` | int | ✔ | — | step count (must be non-negative) |
+| `date` | str | | `today` | target date in `DD-MM-YYYY` |
+| `distance_km` | float | | `null` | estimated distance in kilometers |
+
+```json
+{"status": "ok", "date": "10-11-2026", "steps": 8500, "distance_km": 6.2}
+```
+
+Errors: `invalid_input` (negative steps, bad date format), `internal`.
+
+### `get_health_metrics`
+
+Retrieve aggregated health and activity metrics (sleep, weight, steps) for a specific date.
+
+| Arg | Type | Req | Default | Description |
+|---|---|---|---|---|
+| `date` | str | | `today` | target date in `DD-MM-YYYY` |
+
+```json
+{
+  "status": "ok",
+  "date": "10-11-2026",
+  "steps": 8500,
+  "distance_km": 6.2,
+  "latest_weight_kg": 75.2,
+  "sleep_duration_minutes": 480.0,
+  "sleep_records_count": 1,
+  "weight_records_count": 1
+}
+```
+
+Errors: `invalid_input` (bad date format), `internal`.
+
+---
+
+## Interactive Web Routes
+
+In addition to JSON-RPC over MCP, the server serves interactive HTML forms and an HTTP API bridge:
+
+| Route | Method | Description |
+|---|---|---|
+| `/ui` | `GET` | Render UI view (optional `?form=hub\|meal\|recipe\|ingredient\|workout\|summary`) |
+| `/ui/{form_type}` | `GET` | Direct view rendering by form type path |
+| `/api/{tool_name}` | `GET`, `POST` | HTTP execution bridge invoking any registered MCP tool and returning JSON |
 
 
