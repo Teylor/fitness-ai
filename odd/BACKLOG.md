@@ -28,7 +28,9 @@
 
 ## 📥 Proposed
 
-> Filled after review with the user. Empty = nothing pending.
+| Priority | Feature | Description | Reference |
+|:---:|---------|-------------|-----------|
+| `P3` | `android-apk-remote-access` | Package dashboard into Android APK (Capacitor/PWA) and enable remote API access via Cloudflare Tunnel / Tailscale | [ADR-003](docs/architecture/ssd-decisions.md#adr-003-mobile-access-strategy-android-apk--remote-api) |
 
 ---
 
@@ -43,6 +45,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `google-health-autosync` | `odd/tasks/google-health-autosync.md` | 2026-11 |
 | `odd-merge-back` | `odd/tasks/odd-merge-back.md` | 2026-11 |
 | `db-robustness` | `odd/tasks/db-robustness.md` | 2026-11 |
 | `google-health-food-sync` | `odd/tasks/google-health-food-sync.md` | 2026-11 |

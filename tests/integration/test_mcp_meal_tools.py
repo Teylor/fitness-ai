@@ -91,3 +91,50 @@ def test_delete_meal_tool(db):
     assert err_res["status"] == "error"
     assert err_res["code"] == "not_found"
 
+
+def test_register_and_delete_meal_with_google_health_autosync(db, monkeypatch):
+    from src.config import settings
+    from src.services.google_health_service import GoogleHealthService
+
+    monkeypatch.setattr(settings, "google_health_token", "mock-token")
+    sync_calls = []
+
+    def mock_sync_meals(self, date=None):
+        sync_calls.append(date)
+        return {"status": "ok", "synced_count": 1}
+
+    monkeypatch.setattr(GoogleHealthService, "sync_meals", mock_sync_meals)
+
+    # 1. Register meal with auto-sync enabled
+    create_ingredient(name="Pavo", unit="gr", kcal=110.0, protein=24.0, price=0.8)
+    res = register_meal(item_name="Pavo", quantity=150, unit="gr", date="15-11-2026")
+    assert res["status"] == "ok"
+    assert res["google_health_synced"] is True
+    assert "15-11-2026" in sync_calls
+
+    # 2. Delete meal with auto-sync enabled
+    del_res = delete_meal(entry_id=res["entry_id"])
+    assert del_res["status"] == "ok"
+    assert del_res["google_health_synced"] is True
+    assert len(sync_calls) == 2
+
+
+def test_register_meal_google_health_failure_is_fault_tolerant(db, monkeypatch):
+    from src.config import settings
+    from src.services.google_health_service import GoogleHealthService
+
+    monkeypatch.setattr(settings, "google_health_token", "mock-token")
+
+    def mock_failing_sync(self, date=None):
+        raise RuntimeError("Google API network timeout")
+
+    monkeypatch.setattr(GoogleHealthService, "sync_meals", mock_failing_sync)
+
+    create_ingredient(name="Avena", unit="gr", kcal=380.0, price=0.3)
+    res = register_meal(item_name="Avena", quantity=50, unit="gr", date="15-11-2026")
+    # Must succeed locally despite cloud sync failure
+    assert res["status"] == "ok"
+    assert res["google_health_synced"] is False
+    assert res["entry_id"] is not None
+
+

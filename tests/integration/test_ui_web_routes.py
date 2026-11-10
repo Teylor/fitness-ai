@@ -18,6 +18,8 @@ async def test_ui_web_routes_and_api_dispatch(db):
         assert ui_res.status_code == 200
         assert "text/html" in ui_res.headers.get("content-type", "")
         assert "Fitness AI Hub" in ui_res.text
+        assert "Sincronizar Google Health" in ui_res.text
+        assert "syncGoogleHealthUI" in ui_res.text
 
         # 2. GET /ui/workout
         workout_res = await client.get("/ui/workout")

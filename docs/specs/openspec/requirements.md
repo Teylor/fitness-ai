@@ -92,7 +92,7 @@ The system runs 24/7 on a local PC (server mode). An AI agent (Hermes Agent) con
 ### FR7 — Health & Activity Tracking (Google Health)
 
 - **FR7.1** The system integrates with Google Health API v4 for bidirectional synchronization.
-- **FR7.2** Logged meals are uploaded to Google Health as `nutrition-log` data points with energy (`kcal`), total fat (`grams`), carbohydrates (`grams`), and protein (`nutrients`).
+- **FR7.2** Logged meals are uploaded to Google Health as `nutrition-log` data points with energy (`kcal`), total fat (`grams`), carbohydrates (`grams`), and protein (`nutrients`). Registration and deletion of meals automatically trigger background synchronization with Google Health when credentials are configured.
 - **FR7.3** Sleep sessions and body weight measurements are pulled from Google Health and persisted in local `sleep_logs` and `weight_logs`.
 - **FR7.4** Daily step counts and distances are tracked in local `step_logs` (`log_steps`) and aggregated in `get_health_metrics`.
 - **FR7.5** OAuth 2.0 authentication supports transparent token renewal using a `refresh_token`; when expired (HTTP 401), tokens are refreshed from Google OAuth and persisted to `.env` without user disruption.
@@ -102,6 +102,7 @@ The system runs 24/7 on a local PC (server mode). An AI agent (Hermes Agent) con
 - **FR8.1** The MCP server generates standalone interactive HTML artifacts (`get_ui_form`, `generate_html`) for embedding in Antigravity or Hermes chat interfaces.
 - **FR8.2** The UI provides tabbed navigation: Daily Summary (goal comparison, progress bars, macro breakdown), Meals (with live ingredient/recipe search and delete action), Training (exercises and sets), Steps, Sleep, Weight, and Catalog management (inline creation, edition, and deletion).
 - **FR8.3** Direct HTTP endpoints (`/ui`, `/ui/{form_type}`, `/api/{tool_name}`) allow browser interaction and asynchronous tool execution directly from UI widgets.
+- **FR8.4** The web UI header and Daily Summary views provide one-click "Sincronizar Google Health" actions to trigger full synchronization and refresh metrics.
 
 ### FR9 — Catalog & Log Deletions
 
