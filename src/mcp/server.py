@@ -1,5 +1,8 @@
 """MCP server setup and tool registration."""
 
+import dataclasses
+from typing import Any
+
 from mcp.server.mcpserver import MCPServer
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse
@@ -12,7 +15,7 @@ from src.mcp.tools.ingredient_tools import (
     list_ingredients,
     update_ingredient,
 )
-from src.mcp.tools.meal_tools import get_day_summary, register_meal
+from src.mcp.tools.meal_tools import delete_meal, get_day_summary, register_meal
 from src.mcp.tools.recipe_tools import (
     create_recipe,
     delete_recipe,
@@ -22,6 +25,8 @@ from src.mcp.tools.recipe_tools import (
 from src.mcp.tools.health_tools import (
     fetch_google_health_sleep,
     fetch_google_health_weight,
+    get_health_metrics,
+    log_steps,
     sync_google_health,
     sync_meals_to_google_health,
 )
@@ -51,9 +56,10 @@ def create_server() -> MCPServer:
     server.add_tool(delete_recipe, name="delete_recipe")
     server.add_tool(list_recipes, name="list_recipes")
 
-    # Meal tools (2)
+    # Meal tools (3)
     server.add_tool(register_meal, name="register_meal")
     server.add_tool(get_day_summary, name="get_day_summary")
+    server.add_tool(delete_meal, name="delete_meal")
 
     # Goal tools (2)
     server.add_tool(set_daily_goal, name="set_daily_goal")
@@ -72,11 +78,13 @@ def create_server() -> MCPServer:
     # UI tool (1)
     server.add_tool(get_ui_form, name="get_ui_form")
 
-    # Google Health tools (4)
+    # Google Health tools (6)
     server.add_tool(sync_meals_to_google_health, name="sync_meals_to_google_health")
     server.add_tool(fetch_google_health_sleep, name="fetch_google_health_sleep")
     server.add_tool(fetch_google_health_weight, name="fetch_google_health_weight")
     server.add_tool(sync_google_health, name="sync_google_health")
+    server.add_tool(log_steps, name="log_steps")
+    server.add_tool(get_health_metrics, name="get_health_metrics")
 
     # Custom HTTP web routes for interactive artifacts
     @server.custom_route("/ui", methods=["GET"])
@@ -114,7 +122,7 @@ def create_server() -> MCPServer:
 
         try:
             result = tool.fn(**kwargs)
-            return JSONResponse(result)
+            return JSONResponse(_to_jsonable(result))
         except Exception as exc:
             return JSONResponse(
                 {"status": "error", "code": "internal", "message": str(exc)},
@@ -122,3 +130,13 @@ def create_server() -> MCPServer:
             )
 
     return server
+
+
+def _to_jsonable(obj: Any) -> Any:
+    if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
+        return dataclasses.asdict(obj)
+    if isinstance(obj, dict):
+        return {k: _to_jsonable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple, set)):
+        return [_to_jsonable(v) for v in obj]
+    return obj

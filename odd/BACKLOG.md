@@ -44,7 +44,6 @@
 
 | Feature | File |
 |---------|---------|
-| — | — |
 
 ---
 
@@ -52,6 +51,10 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `ui-delete-actions` | `odd/tasks/ui-delete-actions.md` | 2026-11 |
+| `ui-full-daily-summary` | `odd/tasks/ui-full-daily-summary.md` | 2026-11 |
+| `ui-new-features` | `odd/tasks/ui-new-features.md` | 2026-11 |
+| `ui-catalog-and-edit` | `odd/tasks/ui-catalog-and-edit.md` | 2026-11 |
 | `google-health-api` | `odd/tasks/google-health-api.md` | 2026-11 |
 | `html-artifacts` | `odd/tasks/html-artifacts.md` | 2026-11 |
 | `hermes-e2e` | `odd/tasks/hermes-e2e.md` | 2026-11 |

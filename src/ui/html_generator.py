@@ -247,6 +247,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
     .badge-ok {{ background: #064e3b; color: #6ee7b7; }}
     .badge-info {{ background: #164e63; color: #67e8f9; }}
+    .badge-danger {{ background: #7f1d1d; color: #fca5a5; }}
+    .badge-warning {{ background: #78350f; color: #fde68a; }}
 
     .macro-preview {{
       display: grid;
@@ -326,19 +328,20 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       <form id="form-meal" onsubmit="submitMeal(event)">
         <div class="form-grid">
           <div class="form-group">
-            <label for="meal-date">Fecha (DD-MM-YYYY)</label>
-            <input type="text" id="meal-date" required placeholder="DD-MM-YYYY">
+            <label for="meal-date">Fecha</label>
+            <input type="date" id="meal-date" required onclick="this.showPicker && this.showPicker()">
           </div>
           <div class="form-group">
             <label for="meal-type">Tipo de Alimento</label>
-            <select id="meal-type">
+            <select id="meal-type" onchange="updateMealDatalist()">
               <option value="ingredient">Ingrediente</option>
               <option value="recipe">Receta</option>
             </select>
           </div>
           <div class="form-group">
             <label for="meal-item">Nombre (ej: Arroz, Pechuga, Bowl)</label>
-            <input type="text" id="meal-item" required placeholder="Nombre del alimento...">
+            <input type="text" id="meal-item" list="meal-items-datalist" required placeholder="Buscar o escribir alimento..." oninput="onMealItemInput()">
+            <datalist id="meal-items-datalist"></datalist>
           </div>
           <div class="form-group">
             <label for="meal-qty">Cantidad</label>
@@ -362,6 +365,11 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
     <!-- TAB 2: RECIPE BUILDER -->
     <section id="tab-recipe" class="tab-content {'active' if active_tab == 'recipe' else ''}">
+      <div id="recipe-edit-banner" style="display: none; background: #1e3a8a; color: #bfdbfe; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; align-items: center; justify-content: space-between;">
+        <span>✏️ Modo edición: <strong id="recipe-edit-label"></strong> (ID: <span id="recipe-edit-id"></span>)</span>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="cancelEditRecipe()">Cancelar Edición</button>
+      </div>
+
       <h2>🍲 Constructor de Recetas</h2>
       <form id="form-recipe" onsubmit="submitRecipe(event)">
         <div class="form-grid">
@@ -391,16 +399,52 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             </tbody>
           </table>
         </div>
+        <datalist id="recipe-ingredients-datalist"></datalist>
 
         <div style="margin-top: 14px; display: flex; gap: 8px;">
-          <button type="submit" class="btn">Guardar Receta</button>
+          <button type="submit" id="btn-submit-recipe" class="btn">Guardar Receta</button>
+          <button type="button" id="btn-cancel-recipe" class="btn btn-secondary" style="display: none;" onclick="cancelEditRecipe()">Cancelar Edición</button>
         </div>
       </form>
       <div id="recipe-result" class="result-box"></div>
+
+      <!-- Catálogo de Recetas Guardadas -->
+      <div style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+          <h3 style="font-size: 1.1rem; color: var(--text);">📋 Recetas Guardadas</h3>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="recipe-search-input" placeholder="Buscar receta..." style="width: 200px; padding: 6px 10px;" oninput="filterRecipes()">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="fetchRecipesList()">🔄 Actualizar</button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table id="recipes-catalog-table">
+            <thead>
+              <tr>
+                <th>Receta</th>
+                <th>Ingredientes</th>
+                <th>Kcal</th>
+                <th>Macros (P/C/G)</th>
+                <th>Precio</th>
+                <th style="width: 80px;">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="recipes-catalog-body">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+        <div id="recipes-catalog-empty" style="display: none; color: var(--text-muted); padding: 12px; text-align: center;">No hay recetas guardadas.</div>
+      </div>
     </section>
 
     <!-- TAB 3: INGREDIENT MANAGER -->
     <section id="tab-ingredient" class="tab-content {'active' if active_tab == 'ingredient' else ''}">
+      <div id="ing-edit-banner" style="display: none; background: #1e3a8a; color: #bfdbfe; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; align-items: center; justify-content: space-between;">
+        <span>✏️ Modo edición: <strong id="ing-edit-label"></strong> (ID: <span id="ing-edit-id"></span>)</span>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="cancelEditIngredient()">Cancelar Edición</button>
+      </div>
+
       <h2>🥑 Crear / Editar Ingrediente</h2>
       <form id="form-ingredient" onsubmit="submitIngredient(event)">
         <div class="form-grid">
@@ -438,10 +482,43 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           </div>
         </div>
         <div style="margin-top: 14px; display: flex; gap: 8px;">
-          <button type="submit" class="btn">Guardar Ingrediente</button>
+          <button type="submit" id="btn-submit-ingredient" class="btn">Guardar Ingrediente</button>
+          <button type="button" id="btn-cancel-ingredient" class="btn btn-secondary" style="display: none;" onclick="cancelEditIngredient()">Cancelar Edición</button>
         </div>
       </form>
       <div id="ingredient-result" class="result-box"></div>
+
+      <!-- Catálogo de Ingredientes Guardados -->
+      <div style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+          <h3 style="font-size: 1.1rem; color: var(--text);">📋 Ingredientes Guardados</h3>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="ing-search-input" placeholder="Buscar ingrediente..." style="width: 200px; padding: 6px 10px;" oninput="filterIngredients()">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="fetchIngredientsList()">🔄 Actualizar</button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table id="ingredients-catalog-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Unidad</th>
+                <th>Kcal</th>
+                <th>P (g)</th>
+                <th>C (g)</th>
+                <th>G (g)</th>
+                <th>Precio</th>
+                <th>Estado</th>
+                <th style="width: 80px;">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="ingredients-catalog-body">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+        <div id="ingredients-catalog-empty" style="display: none; color: var(--text-muted); padding: 12px; text-align: center;">No hay ingredientes guardados.</div>
+      </div>
     </section>
 
     <!-- TAB 4: WORKOUT LOGGER -->
@@ -451,7 +528,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         <div class="form-grid">
           <div class="form-group">
             <label for="workout-date">Fecha y Hora (opcional)</label>
-            <input type="text" id="workout-date" placeholder="DD-MM-YYYY HH:MM">
+            <input type="datetime-local" id="workout-date" onclick="this.showPicker && this.showPicker()">
           </div>
           <div class="form-group" style="grid-column: 1 / -1;">
             <label for="workout-notes">Notas de la sesión</label>
@@ -476,25 +553,62 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
     <!-- TAB 5: DAILY SUMMARY -->
     <section id="tab-summary" class="tab-content {'active' if active_tab == 'summary' else ''}">
-      <h2>📊 Resumen Diario</h2>
-      <div class="form-grid">
-        <div class="form-group">
-          <label for="summary-date">Fecha</label>
-          <input type="text" id="summary-date" placeholder="DD-MM-YYYY">
-        </div>
-        <div class="form-group" style="justify-content: flex-end;">
-          <button type="button" class="btn btn-secondary" onclick="fetchSummary()">Consultar Resumen</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;">
+        <h2>📊 Resumen Diario</h2>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="date" id="summary-date" style="padding: 6px 10px; width: 160px;" onchange="fetchSummary()" onclick="this.showPicker && this.showPicker()">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="fetchSummary()">🔄 Actualizar</button>
         </div>
       </div>
-      <div id="summary-cards" style="margin-top: 12px; display: none;">
-        <div class="macro-preview" id="summary-macros"></div>
-        <div class="table-container" style="margin-top: 12px;">
-          <table id="summary-meals-table">
-            <thead><tr><th>Comida</th><th>Cantidad</th><th>Kcal</th><th>P / C / G</th></tr></thead>
-            <tbody></tbody>
-          </table>
+
+      <div id="summary-cards" style="display: flex; flex-direction: column; gap: 20px;">
+        <!-- 1. Macro Goals, Consumed & Remaining -->
+        <div>
+          <h3 style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">🎯 Objetivos vs Consumido vs Restante</h3>
+          <div class="macro-preview" id="summary-macros" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));"></div>
+        </div>
+
+        <!-- 2. Health & Activity Metrics (Steps, Sleep, Weight) -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h3 style="font-size: 0.95rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">👟 Actividad y Salud</h3>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Métricas del día</span>
+          </div>
+          <div class="macro-preview" id="summary-health" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));"></div>
+        </div>
+
+        <!-- 3. Day's Meals -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h3 style="font-size: 0.95rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">🥗 Comidas del Día</h3>
+            <span id="summary-spend-badge" class="badge badge-info" style="font-size: 0.8rem;">Gasto: 0.00 €</span>
+          </div>
+          <div class="table-container">
+            <table id="summary-meals-table">
+              <thead>
+                <tr>
+                  <th>Alimento</th>
+                  <th>Cantidad</th>
+                  <th>Kcal</th>
+                  <th>P / C / G</th>
+                  <th>Precio</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="summary-meals-body"></tbody>
+            </table>
+          </div>
+          <div id="summary-meals-empty" style="display: none; color: var(--text-muted); padding: 12px; text-align: center;">No hay comidas registradas para este día.</div>
+        </div>
+
+        <!-- 4. Day's Workouts -->
+        <div>
+          <h3 style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">🏋️ Entrenamientos Realizados</h3>
+          <div id="summary-workouts-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
+          <div id="summary-workouts-empty" style="display: none; color: var(--text-muted); padding: 12px; text-align: center;">No hay entrenamientos registrados para este día.</div>
         </div>
       </div>
+
       <div id="summary-result" class="result-box"></div>
     </section>
   </div>
@@ -508,29 +622,51 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (activeBtn) activeBtn.classList.add('active');
       const target = document.getElementById('tab-' + tabName);
       if (target) target.classList.add('active');
+      if (tabName === 'ingredient') fetchIngredientsList();
+      if (tabName === 'recipe') fetchRecipesList();
+      if (tabName === 'summary') fetchSummary();
     }}
 
-    // Default dates to today
-    function formatToday(withTime = false) {{
+    // Date helpers (ISO for inputs, DD-MM-YYYY for backend)
+    function formatTodayIso(withTime = false) {{
       const d = new Date();
       const pad = n => String(n).padStart(2, '0');
-      const dateStr = `${{pad(d.getDate())}}-${{pad(d.getMonth() + 1)}}-${{d.getFullYear()}}`;
+      const datePart = `${{d.getFullYear()}}-${{pad(d.getMonth() + 1)}}-${{pad(d.getDate())}}`;
       if (withTime) {{
-        return `${{dateStr}} ${{pad(d.getHours())}}:${{pad(d.getMinutes())}}`;
+        return `${{datePart}}T${{pad(d.getHours())}}:${{pad(d.getMinutes())}}`;
       }}
-      return dateStr;
+      return datePart;
     }}
 
-    document.getElementById('meal-date').value = formatToday(false);
-    document.getElementById('workout-date').value = formatToday(true);
-    document.getElementById('summary-date').value = formatToday(false);
+    function toBackendDate(val) {{
+      if (!val) return '';
+      if (/^\\d{{2}}-\\d{{2}}-\\d{{4}}/.test(val)) return val;
+      if (/^\\d{{4}}-\\d{{2}}-\\d{{2}}/.test(val)) {{
+        const parts = val.split('-');
+        return `${{parts[2]}}-${{parts[1]}}-${{parts[0]}}`;
+      }}
+      return val;
+    }}
+
+    function toBackendDateTime(val) {{
+      if (!val) return undefined;
+      if (val.includes('T')) {{
+        const [d, t] = val.split('T');
+        return `${{toBackendDate(d)}} ${{t}}`;
+      }}
+      return toBackendDate(val);
+    }}
+
+    document.getElementById('meal-date').value = formatTodayIso(false);
+    document.getElementById('workout-date').value = formatTodayIso(true);
+    document.getElementById('summary-date').value = formatTodayIso(false);
 
     // Dynamic Recipe Rows
     function addRecipeRow(name = '', qty = 100, unit = 'gr') {{
       const tbody = document.querySelector('#recipe-items-table tbody');
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><input type="text" class="rec-item-name" required value="${{name}}" placeholder="Ingrediente..."></td>
+        <td><input type="text" class="rec-item-name" list="recipe-ingredients-datalist" required value="${{name}}" placeholder="Buscar ingrediente..." oninput="onRecipeItemInput(this)"></td>
         <td><input type="number" class="rec-item-qty" required value="${{qty}}" min="0.1" step="any"></td>
         <td>
           <select class="rec-item-unit">
@@ -543,8 +679,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       `;
       tbody.appendChild(tr);
     }}
-    addRecipeRow('Pechuga de Pollo', 200, 'gr');
-    addRecipeRow('Arroz', 100, 'gr');
+    // Start with 1 clean empty row instead of hardcoded chicken and rice
+    addRecipeRow('', 100, 'gr');
 
     // Dynamic Workout Exercises & Sets
     let exerciseCount = 0;
@@ -629,6 +765,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             <strong>✅ Operación completada con éxito</strong>
             <div>${{JSON.stringify(data, null, 2)}}</div>
           `;
+          return data;
         }} else {{
           throw new Error(data.message || data.code || 'Error desconocido');
         }}
@@ -647,14 +784,319 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             <button class="btn btn-sm" onclick="navigator.clipboard.writeText('${{promptDescription.replace(/'/g, "\\\\'")}}'); this.textContent = '¡Copiado!';">Copiar</button>
           </div>
         `;
+        return null;
       }}
+    }}
+
+    // Catalogs State
+    let allIngredients = [];
+    let allRecipes = [];
+    let editingIngredientId = null;
+    let editingRecipeId = null;
+
+    function escapeHtml(text) {{
+      if (text === null || text === undefined) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }}
+
+    function updateMealDatalist() {{
+      const type = document.getElementById('meal-type').value;
+      const datalist = document.getElementById('meal-items-datalist');
+      if (!datalist) return;
+      datalist.innerHTML = '';
+      if (type === 'ingredient') {{
+        allIngredients.forEach(i => {{
+          const opt = document.createElement('option');
+          opt.value = i.name;
+          opt.label = `${{i.unit}} | ${{i.kcal || 0}} kcal`;
+          datalist.appendChild(opt);
+        }});
+      }} else {{
+        allRecipes.forEach(r => {{
+          const opt = document.createElement('option');
+          opt.value = r.name;
+          opt.label = `${{r.kcal || 0}} kcal`;
+          datalist.appendChild(opt);
+        }});
+      }}
+    }}
+
+    function onMealItemInput() {{
+      const val = (document.getElementById('meal-item').value || '').trim().toLowerCase();
+      const type = document.getElementById('meal-type').value;
+      if (type === 'ingredient') {{
+        const matched = allIngredients.find(i => (i.name || '').toLowerCase() === val);
+        if (matched && matched.unit) {{
+          document.getElementById('meal-unit').value = matched.unit;
+        }}
+      }}
+    }}
+
+    function updateRecipeDatalist() {{
+      const datalist = document.getElementById('recipe-ingredients-datalist');
+      if (!datalist) return;
+      datalist.innerHTML = '';
+      allIngredients.forEach(i => {{
+        const opt = document.createElement('option');
+        opt.value = i.name;
+        opt.label = `${{i.unit}} | ${{i.kcal || 0}} kcal`;
+        datalist.appendChild(opt);
+      }});
+    }}
+
+    function onRecipeItemInput(input) {{
+      const val = (input.value || '').trim().toLowerCase();
+      const matched = allIngredients.find(i => (i.name || '').toLowerCase() === val);
+      if (matched && matched.unit) {{
+        const tr = input.closest('tr');
+        if (tr) {{
+          const unitSelect = tr.querySelector('.rec-item-unit');
+          if (unitSelect) unitSelect.value = matched.unit;
+        }}
+      }}
+    }}
+
+    // INGREDIENTS CATALOG & EDIT
+    async function fetchIngredientsList() {{
+      const tbody = document.getElementById('ingredients-catalog-body');
+      const emptyMsg = document.getElementById('ingredients-catalog-empty');
+      if (!tbody) return;
+      try {{
+        const resp = await fetch('/api/list_ingredients');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        if (data.status === 'ok') {{
+          allIngredients = data.ingredients || [];
+          renderIngredientsTable(allIngredients);
+          updateRecipeDatalist();
+          updateMealDatalist();
+        }}
+      }} catch (err) {{
+        tbody.innerHTML = `<tr><td colspan="9" style="color: var(--text-muted); text-align: center;">No se pudo conectar con el catálogo de ingredientes (${{err.message}}).</td></tr>`;
+      }}
+    }}
+
+    function renderIngredientsTable(list) {{
+      const tbody = document.getElementById('ingredients-catalog-body');
+      const emptyMsg = document.getElementById('ingredients-catalog-empty');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      if (!list || list.length === 0) {{
+        if (emptyMsg) emptyMsg.style.display = 'block';
+        return;
+      }}
+      if (emptyMsg) emptyMsg.style.display = 'none';
+      list.forEach(ing => {{
+        const tr = document.createElement('tr');
+        const badge = ing.provisional
+          ? '<span class="badge" style="background:#78350f; color:#fde68a;">Provisional</span>'
+          : '<span class="badge badge-ok">Confirmado</span>';
+        const priceStr = ing.price ? `${{parseFloat(ing.price).toFixed(2)}} €` : '-';
+        tr.innerHTML = `
+          <td><strong>${{escapeHtml(ing.name)}}</strong></td>
+          <td>${{escapeHtml(ing.unit)}}</td>
+          <td>${{ing.kcal || 0}}</td>
+          <td>${{ing.protein || 0}}</td>
+          <td>${{ing.carbs || 0}}</td>
+          <td>${{ing.fat || 0}}</td>
+          <td>${{priceStr}}</td>
+          <td>${{badge}}</td>
+          <td style="white-space: nowrap;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="startEditIngredient(${{ing.id}})">✏️ Editar</button>
+            <button type="button" class="btn btn-secondary btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3); margin-left: 0.35rem;" onclick="deleteIngredient(${{ing.id}}, '${{escapeHtml(ing.name)}}')">🗑️ Eliminar</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }});
+    }}
+
+    async function deleteIngredient(id, name) {{
+      if (!confirm(`¿Seguro que deseas eliminar el ingrediente "${{name}}"?`)) return;
+      try {{
+        const res = await fetch('/api/delete_ingredient', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ ingredient_id: id }})
+        }});
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          showToast(`Ingrediente "${{name}}" eliminado correctamente.`, 'ok');
+          if (editingIngredientId === id) cancelEditIngredient();
+          await fetchIngredientsList();
+        }} else {{
+          const msg = data.code === 'dependency'
+            ? `No se puede eliminar "${{name}}": está siendo utilizado en una o más recetas.`
+            : (data.message || 'Error al eliminar');
+          showToast(msg, 'error');
+        }}
+      }} catch (err) {{
+        showToast(`Error de conexión al eliminar: ${{err.message}}`, 'error');
+      }}
+    }}
+
+    function filterIngredients() {{
+      const query = (document.getElementById('ing-search-input').value || '').toLowerCase().trim();
+      const filtered = allIngredients.filter(i => (i.name || '').toLowerCase().includes(query));
+      renderIngredientsTable(filtered);
+    }}
+
+    function startEditIngredient(id) {{
+      const ing = allIngredients.find(i => i.id === id);
+      if (!ing) return;
+      editingIngredientId = id;
+      document.getElementById('ing-name').value = ing.name || '';
+      document.getElementById('ing-unit').value = ing.unit || 'gr';
+      document.getElementById('ing-kcal').value = ing.kcal !== undefined ? ing.kcal : 0;
+      document.getElementById('ing-protein').value = ing.protein !== undefined ? ing.protein : 0;
+      document.getElementById('ing-carbs').value = ing.carbs !== undefined ? ing.carbs : 0;
+      document.getElementById('ing-fat').value = ing.fat !== undefined ? ing.fat : 0;
+      document.getElementById('ing-price').value = ing.price !== undefined ? ing.price : 0;
+
+      document.getElementById('ing-edit-label').textContent = ing.name;
+      document.getElementById('ing-edit-id').textContent = id;
+      document.getElementById('ing-edit-banner').style.display = 'flex';
+      document.getElementById('btn-submit-ingredient').textContent = 'Actualizar Ingrediente';
+      document.getElementById('btn-cancel-ingredient').style.display = 'inline-block';
+      document.getElementById('form-ingredient').scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+    }}
+
+    function cancelEditIngredient() {{
+      editingIngredientId = null;
+      document.getElementById('form-ingredient').reset();
+      document.getElementById('ing-edit-banner').style.display = 'none';
+      document.getElementById('btn-submit-ingredient').textContent = 'Guardar Ingrediente';
+      document.getElementById('btn-cancel-ingredient').style.display = 'none';
+    }}
+
+    // RECIPES CATALOG & EDIT
+    async function fetchRecipesList() {{
+      const tbody = document.getElementById('recipes-catalog-body');
+      const emptyMsg = document.getElementById('recipes-catalog-empty');
+      if (!tbody) return;
+      try {{
+        const resp = await fetch('/api/list_recipes');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        if (data.status === 'ok') {{
+          allRecipes = data.recipes || [];
+          renderRecipesTable(allRecipes);
+          updateMealDatalist();
+        }}
+      }} catch (err) {{
+        tbody.innerHTML = `<tr><td colspan="6" style="color: var(--text-muted); text-align: center;">No se pudo conectar con el catálogo de recetas (${{err.message}}).</td></tr>`;
+      }}
+    }}
+
+    function renderRecipesTable(list) {{
+      const tbody = document.getElementById('recipes-catalog-body');
+      const emptyMsg = document.getElementById('recipes-catalog-empty');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      if (!list || list.length === 0) {{
+        if (emptyMsg) emptyMsg.style.display = 'block';
+        return;
+      }}
+      if (emptyMsg) emptyMsg.style.display = 'none';
+      list.forEach(rec => {{
+        const tr = document.createElement('tr');
+        const itemsStr = (rec.items && rec.items.length > 0)
+          ? rec.items.map(it => `${{it.quantity}}${{it.unit}} ${{escapeHtml(it.name || ('Ingrediente #' + it.ingredient_id))}}`).join(', ')
+          : '<em style="color: var(--text-muted);">Sin ingredientes / Opaca</em>';
+        const kcalStr = rec.kcal !== null && rec.kcal !== undefined ? rec.kcal : '-';
+        const p = rec.protein !== null && rec.protein !== undefined ? rec.protein : 0;
+        const c = rec.carbs !== null && rec.carbs !== undefined ? rec.carbs : 0;
+        const f = rec.fat !== null && rec.fat !== undefined ? rec.fat : 0;
+        const macrosStr = `${{p}}g / ${{c}}g / ${{f}}g`;
+        const priceStr = rec.price ? `${{parseFloat(rec.price).toFixed(2)}} €` : '-';
+
+        tr.innerHTML = `
+          <td><strong>${{escapeHtml(rec.name)}}</strong></td>
+          <td style="max-width: 250px; font-size: 0.85rem; color: var(--text-muted);">${{itemsStr}}</td>
+          <td>${{kcalStr}}</td>
+          <td>${{macrosStr}}</td>
+          <td>${{priceStr}}</td>
+          <td style="white-space: nowrap;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="startEditRecipe(${{rec.id}})">✏️ Editar</button>
+            <button type="button" class="btn btn-secondary btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3); margin-left: 0.35rem;" onclick="deleteRecipe(${{rec.id}}, '${{escapeHtml(rec.name)}}')">🗑️ Eliminar</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }});
+    }}
+
+    async function deleteRecipe(id, name) {{
+      if (!confirm(`¿Seguro que deseas eliminar la receta "${{name}}"?`)) return;
+      try {{
+        const res = await fetch('/api/delete_recipe', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ recipe_id: id }})
+        }});
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          showToast(`Receta "${{name}}" eliminada correctamente.`, 'ok');
+          if (editingRecipeId === id) cancelEditRecipe();
+          await fetchRecipesList();
+        }} else {{
+          showToast(data.message || 'Error al eliminar receta', 'error');
+        }}
+      }} catch (err) {{
+        showToast(`Error de conexión al eliminar: ${{err.message}}`, 'error');
+      }}
+    }}
+
+    function filterRecipes() {{
+      const query = (document.getElementById('recipe-search-input').value || '').toLowerCase().trim();
+      const filtered = allRecipes.filter(r => (r.name || '').toLowerCase().includes(query));
+      renderRecipesTable(filtered);
+    }}
+
+    function startEditRecipe(id) {{
+      const rec = allRecipes.find(r => r.id === id);
+      if (!rec) return;
+      editingRecipeId = id;
+      document.getElementById('recipe-name').value = rec.name || '';
+
+      const tbody = document.querySelector('#recipe-items-table tbody');
+      tbody.innerHTML = '';
+      if (rec.items && rec.items.length > 0) {{
+        rec.items.forEach(it => {{
+          addRecipeRow(it.name || ('Ingrediente #' + it.ingredient_id), it.quantity, it.unit);
+        }});
+      }} else {{
+        addRecipeRow('', 100, 'gr');
+      }}
+
+      document.getElementById('recipe-edit-label').textContent = rec.name;
+      document.getElementById('recipe-edit-id').textContent = id;
+      document.getElementById('recipe-edit-banner').style.display = 'flex';
+      document.getElementById('btn-submit-recipe').textContent = 'Actualizar Receta';
+      document.getElementById('btn-cancel-recipe').style.display = 'inline-block';
+      document.getElementById('form-recipe').scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+    }}
+
+    function cancelEditRecipe() {{
+      editingRecipeId = null;
+      document.getElementById('form-recipe').reset();
+      const tbody = document.querySelector('#recipe-items-table tbody');
+      tbody.innerHTML = '';
+      addRecipeRow('', 100, 'gr');
+      document.getElementById('recipe-edit-banner').style.display = 'none';
+      document.getElementById('btn-submit-recipe').textContent = 'Guardar Receta';
+      document.getElementById('btn-cancel-recipe').style.display = 'none';
     }}
 
     // Form handlers
     function submitMeal(e) {{
       e.preventDefault();
+      const rawDate = document.getElementById('meal-date').value;
+      const formattedDate = toBackendDate(rawDate);
       const payload = {{
-        date: document.getElementById('meal-date').value,
+        date: formattedDate,
         item_name: document.getElementById('meal-item').value,
         item_type: document.getElementById('meal-type').value,
         quantity: parseFloat(document.getElementById('meal-qty').value),
@@ -664,8 +1106,9 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       executeAction('register_meal', payload, 'meal-result', prompt);
     }}
 
-    function submitIngredient(e) {{
+    async function submitIngredient(e) {{
       e.preventDefault();
+      const isUpdating = editingIngredientId !== null;
       const payload = {{
         name: document.getElementById('ing-name').value,
         unit: document.getElementById('ing-unit').value,
@@ -675,12 +1118,25 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         fat: parseFloat(document.getElementById('ing-fat').value) || 0,
         price: parseFloat(document.getElementById('ing-price').value) || 0
       }};
-      const prompt = `Crea el ingrediente ${{payload.name}} (${{payload.unit}}): ${{payload.kcal}} kcal, ${{payload.protein}}g P, ${{payload.carbs}}g C, ${{payload.fat}}g G`;
-      executeAction('create_ingredient', payload, 'ingredient-result', prompt);
+      let toolName = 'create_ingredient';
+      let prompt = `Crea el ingrediente ${{payload.name}} (${{payload.unit}}): ${{payload.kcal}} kcal, ${{payload.protein}}g P, ${{payload.carbs}}g C, ${{payload.fat}}g G`;
+      if (isUpdating) {{
+        toolName = 'update_ingredient';
+        payload.ingredient_id = editingIngredientId;
+        prompt = `Actualiza el ingrediente ID ${{editingIngredientId}} (${{payload.name}}): ${{payload.kcal}} kcal, ${{payload.protein}}g P, ${{payload.carbs}}g C, ${{payload.fat}}g G, ${{payload.price}}€`;
+      }}
+      const res = await executeAction(toolName, payload, 'ingredient-result', prompt);
+      if (res && res.status === 'ok') {{
+        await fetchIngredientsList();
+        if (isUpdating) {{
+          cancelEditIngredient();
+        }}
+      }}
     }}
 
-    function submitRecipe(e) {{
+    async function submitRecipe(e) {{
       e.preventDefault();
+      const isUpdating = editingRecipeId !== null;
       const items = [];
       document.querySelectorAll('#recipe-items-table tbody tr').forEach(tr => {{
         items.push({{
@@ -689,12 +1145,24 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           unit: tr.querySelector('.rec-item-unit').value
         }});
       }});
+      let toolName = 'create_recipe';
       const payload = {{
         name: document.getElementById('recipe-name').value,
         ingredients: items
       }};
-      const prompt = `Crea la receta ${{payload.name}} con ingredientes: ` + items.map(i => `${{i.quantity}} ${{i.unit}} de ${{i.name}}`).join(', ');
-      executeAction('create_recipe', payload, 'recipe-result', prompt);
+      let prompt = `Crea la receta ${{payload.name}} con ingredientes: ` + items.map(i => `${{i.quantity}} ${{i.unit}} de ${{i.name}}`).join(', ');
+      if (isUpdating) {{
+        toolName = 'update_recipe';
+        payload.recipe_id = editingRecipeId;
+        prompt = `Actualiza la receta ID ${{editingRecipeId}} (${{payload.name}}) con ingredientes: ` + items.map(i => `${{i.quantity}} ${{i.unit}} de ${{i.name}}`).join(', ');
+      }}
+      const res = await executeAction(toolName, payload, 'recipe-result', prompt);
+      if (res && res.status === 'ok') {{
+        await fetchRecipesList();
+        if (isUpdating) {{
+          cancelEditRecipe();
+        }}
+      }}
     }}
 
     function submitWorkout(e) {{
@@ -712,8 +1180,10 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         }});
         exercises.push({{ name: exName, sets }});
       }});
+      const rawDate = document.getElementById('workout-date').value;
+      const formattedDate = rawDate ? toBackendDateTime(rawDate) : undefined;
       const payload = {{
-        date: document.getElementById('workout-date').value || undefined,
+        date: formattedDate,
         notes: document.getElementById('workout-notes').value || undefined,
         exercises
       }};
@@ -722,41 +1192,292 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     }}
 
     async function fetchSummary() {{
-      const date = document.getElementById('summary-date').value || formatToday(false);
+      const rawDate = document.getElementById('summary-date').value;
+      const date = toBackendDate(rawDate) || toBackendDate(formatTodayIso(false));
       const resEl = document.getElementById('summary-result');
-      const cardsEl = document.getElementById('summary-cards');
+
       try {{
-        const resp = await fetch(`/api/get_day_summary?date=${{date}}`);
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const data = await resp.json();
-        if (data.status === 'ok') {{
-          cardsEl.style.display = 'block';
-          resEl.style.display = 'none';
-          const c = data.consumed || {{ kcal: 0, protein: 0, carbs: 0, fat: 0 }};
-          const g = data.goal || {{ kcal: 0, protein: 0, carbs: 0, fat: 0 }};
-          document.getElementById('summary-macros').innerHTML = `
-            <div class="macro-stat"><div class="macro-val">${{c.kcal}}</div><div class="macro-lbl">Kcal (${{g.kcal ? 'Meta ' + g.kcal : 'Sin meta'}})</div></div>
-            <div class="macro-stat"><div class="macro-val">${{c.protein}}g</div><div class="macro-lbl">Proteína (${{g.protein}}g)</div></div>
-            <div class="macro-stat"><div class="macro-val">${{c.carbs}}g</div><div class="macro-lbl">Carbos (${{g.carbs}}g)</div></div>
-            <div class="macro-stat"><div class="macro-val">${{c.fat}}g</div><div class="macro-lbl">Grasas (${{g.fat}}g)</div></div>
-          `;
-          const tbody = document.querySelector('#summary-meals-table tbody');
-          tbody.innerHTML = '';
-          (data.meals || []).forEach(m => {{
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${{m.name || m.item_type}}</td><td>${{m.quantity}} ${{m.unit}}</td><td>${{m.kcal}}</td><td>${{m.protein}}g / ${{m.carbs}}g / ${{m.fat}}g</td>`;
-            tbody.appendChild(tr);
-          }});
+        const [mealResp, woResp, healthResp] = await Promise.all([
+          fetch(`/api/get_day_summary?date=${{date}}`).catch(() => null),
+          fetch(`/api/get_workouts_by_day?date=${{date}}`).catch(() => null),
+          fetch(`/api/get_health_metrics?date=${{date}}`).catch(() => null)
+        ]);
+
+        const mealData = mealResp && mealResp.ok ? await mealResp.json() : null;
+        const woData = woResp && woResp.ok ? await woResp.json() : null;
+        const healthData = healthResp && healthResp.ok ? await healthResp.json() : null;
+
+        if (mealData && mealData.status === 'ok') {{
+          renderSummaryNutrition(mealData);
+          renderSummaryMeals(mealData.meals || [], mealData.spend || 0);
         }} else {{
-          throw new Error(data.message || 'No se pudo cargar el resumen');
+          renderSummaryNutrition({{}});
+          renderSummaryMeals([], 0);
         }}
+
+        if (woData && woData.status === 'ok') {{
+          renderSummaryWorkouts(woData.sessions || []);
+        }} else {{
+          renderSummaryWorkouts([]);
+        }}
+
+        if (healthData && healthData.status === 'ok') {{
+          renderSummaryHealth(healthData, date);
+        }} else {{
+          renderSummaryHealth(null, date);
+        }}
+
+        resEl.style.display = 'none';
       }} catch (err) {{
         resEl.style.display = 'flex';
         resEl.style.background = '#3b1d04';
         resEl.style.color = '#fed7aa';
-        resEl.innerHTML = `ℹ️ Consulta con Hermes: <code>Dame el resumen del día ${{date}}</code>`;
+        resEl.innerHTML = `ℹ️ Consulta con Hermes: <code>Dame el resumen del día ${{date}}</code> (${{err.message}})`;
       }}
     }}
+
+    function renderSummaryNutrition(data) {{
+      const c = data.consumed || {{ kcal: 0, protein: 0, carbs: 0, fat: 0 }};
+      const g = data.goal || {{ kcal: 0, protein: 0, carbs: 0, fat: 0 }};
+      const rem = data.remaining || {{
+        kcal: Math.round(((g.kcal || 0) - c.kcal) * 10) / 10,
+        protein: Math.round(((g.protein || 0) - c.protein) * 10) / 10,
+        carbs: Math.round(((g.carbs || 0) - c.carbs) * 10) / 10,
+        fat: Math.round(((g.fat || 0) - c.fat) * 10) / 10
+      }};
+
+      const formatCard = (title, consumed, goal, remaining, unit) => {{
+        const hasGoal = goal && goal > 0;
+        let remText = 'Sin meta';
+        let badgeClass = 'badge-info';
+        if (hasGoal) {{
+          if (remaining >= 0) {{
+            remText = `${{remaining}}${{unit}} restantes`;
+            badgeClass = 'badge-ok';
+          }} else {{
+            remText = `${{Math.abs(remaining)}}${{unit}} excedidos ⚠️`;
+            badgeClass = 'badge-danger';
+          }}
+        }}
+        const goalLabel = hasGoal ? `Meta: ${{goal}}${{unit}}` : 'Sin meta fijada';
+        return `
+          <div class="macro-stat" style="background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">${{title}}</div>
+            <div class="macro-val" style="margin: 4px 0;">${{consumed}}${{unit}}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">${{goalLabel}}</div>
+            <div style="margin-top: 6px;"><span class="badge ${{badgeClass}}">${{remText}}</span></div>
+          </div>
+        `;
+      }};
+
+      const container = document.getElementById('summary-macros');
+      if (container) {{
+        container.innerHTML = `
+          ${{formatCard('Calorías', c.kcal, g.kcal, rem.kcal, ' kcal')}}
+          ${{formatCard('Proteína', c.protein, g.protein, rem.protein, 'g')}}
+          ${{formatCard('Carbohidratos', c.carbs, g.carbs, rem.carbs, 'g')}}
+          ${{formatCard('Grasas', c.fat, g.fat, rem.fat, 'g')}}
+        `;
+      }}
+    }}
+
+    function renderSummaryHealth(healthData, date) {{
+      const el = document.getElementById('summary-health');
+      if (!el) return;
+      const steps = healthData && healthData.steps;
+      const sleep = healthData && healthData.sleep;
+      const weight = healthData && healthData.weight;
+
+      // 1. Steps
+      let stepsContent = `
+        <div style="color: var(--text-muted); font-size: 0.85rem;">Sin registro</div>
+        <div style="margin-top: 6px; display: flex; gap: 4px; justify-content: center;">
+          <input type="number" id="quick-steps-input" placeholder="Pasos..." style="width: 80px; padding: 3px 6px; font-size: 0.8rem;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="quickLogSteps('${{date}}')" style="padding: 3px 8px; font-size: 0.75rem;">+ Guardar</button>
+        </div>
+      `;
+      if (steps) {{
+        const distStr = steps.distance_km ? ` (${{steps.distance_km}} km)` : '';
+        stepsContent = `
+          <div class="macro-val" style="color: var(--cyan);">${{Number(steps.steps).toLocaleString()}}</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">pasos${{distStr}}</div>
+          <div style="margin-top: 4px; display: flex; gap: 4px; justify-content: center;">
+            <input type="number" id="quick-steps-input" placeholder="${{steps.steps}}" style="width: 75px; padding: 2px 6px; font-size: 0.75rem;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="quickLogSteps('${{date}}')" style="padding: 2px 6px; font-size: 0.75rem;">Editar</button>
+          </div>
+        `;
+      }}
+
+      // 2. Sleep
+      let sleepContent = `<div style="color: var(--text-muted); font-size: 0.85rem;">Sin registro</div>`;
+      if (sleep) {{
+        sleepContent = `
+          <div class="macro-val" style="color: #a78bfa;">${{sleep.duration_hours}}h</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">${{sleep.duration_minutes}} min totales</div>
+          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">P: ${{sleep.deep_sleep_minutes}}m | REM: ${{sleep.rem_sleep_minutes}}m | L: ${{sleep.light_sleep_minutes}}m</div>
+        `;
+      }}
+
+      // 3. Weight
+      let weightContent = `<div style="color: var(--text-muted); font-size: 0.85rem;">Sin registro</div>`;
+      if (weight) {{
+        const bmiStr = weight.bmi ? ` | IMC: ${{weight.bmi}}` : '';
+        const fatStr = weight.body_fat_pct ? ` | ${{weight.body_fat_pct}}% grasa` : '';
+        weightContent = `
+          <div class="macro-val" style="color: var(--warning);">${{weight.weight_kg}} kg</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Peso corporal${{bmiStr}}${{fatStr}}</div>
+        `;
+      }}
+
+      el.innerHTML = `
+        <div class="macro-stat" style="background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;">
+          <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">👟 Pasos</div>
+          <div style="margin: 6px 0;">${{stepsContent}}</div>
+        </div>
+        <div class="macro-stat" style="background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;">
+          <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">💤 Sueño</div>
+          <div style="margin: 6px 0;">${{sleepContent}}</div>
+        </div>
+        <div class="macro-stat" style="background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;">
+          <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">⚖️ Peso</div>
+          <div style="margin: 6px 0;">${{weightContent}}</div>
+        </div>
+      `;
+    }}
+
+    async function quickLogSteps(date) {{
+      const input = document.getElementById('quick-steps-input');
+      if (!input || !input.value) return;
+      const steps = parseInt(input.value);
+      if (isNaN(steps) || steps < 0) return;
+      try {{
+        await fetch('/api/log_steps', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ steps, date }})
+        }});
+        await fetchSummary();
+      }} catch (e) {{
+        console.error('Error logging steps', e);
+      }}
+    }}
+
+    function renderSummaryMeals(meals, spend) {{
+      const tbody = document.getElementById('summary-meals-body');
+      const emptyMsg = document.getElementById('summary-meals-empty');
+      const spendBadge = document.getElementById('summary-spend-badge');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      if (spendBadge) {{
+        spendBadge.textContent = `Gasto: ${{parseFloat(spend || 0).toFixed(2)}} €`;
+      }}
+      if (!meals || meals.length === 0) {{
+        if (emptyMsg) emptyMsg.style.display = 'block';
+        return;
+      }}
+      if (emptyMsg) emptyMsg.style.display = 'none';
+      meals.forEach(m => {{
+        const tr = document.createElement('tr');
+        const entryId = m.entry ? m.entry.id : m.id;
+        const name = m.name || (m.entry && (m.entry.item_name || m.entry.item_type)) || 'Alimento';
+        const qty = m.quantity || (m.entry && m.entry.quantity) || 0;
+        const unit = m.unit || (m.entry && m.entry.unit) || 'gr';
+        const price = m.price ? `${{parseFloat(m.price).toFixed(2)}} €` : '-';
+        const deleteBtn = entryId
+          ? `<button type="button" class="btn btn-secondary btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3);" onclick="deleteMeal(${{entryId}}, '${{escapeHtml(name)}}')">🗑️ Eliminar</button>`
+          : '-';
+        tr.innerHTML = `
+          <td><strong>${{escapeHtml(name)}}</strong></td>
+          <td>${{qty}} ${{escapeHtml(unit)}}</td>
+          <td>${{m.kcal || 0}}</td>
+          <td>${{m.protein || 0}}g / ${{m.carbs || 0}}g / ${{m.fat || 0}}g</td>
+          <td>${{price}}</td>
+          <td>${{deleteBtn}}</td>
+        `;
+        tbody.appendChild(tr);
+      }});
+    }}
+
+    async function deleteMeal(entryId, name) {{
+      if (!confirm(`¿Seguro que deseas eliminar la comida "${{name}}"?`)) return;
+      try {{
+        const res = await fetch('/api/delete_meal', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ entry_id: entryId }})
+        }});
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          showToast(`Comida "${{name}}" eliminada correctamente.`, 'ok');
+          await fetchSummary();
+        }} else {{
+          showToast(data.message || 'Error al eliminar la comida', 'error');
+        }}
+      }} catch (err) {{
+        showToast(`Error de conexión al eliminar comida: ${{err.message}}`, 'error');
+      }}
+    }}
+
+    function renderSummaryWorkouts(sessions) {{
+      const container = document.getElementById('summary-workouts-container');
+      const emptyMsg = document.getElementById('summary-workouts-empty');
+      if (!container) return;
+      container.innerHTML = '';
+      if (!sessions || sessions.length === 0) {{
+        if (emptyMsg) emptyMsg.style.display = 'block';
+        return;
+      }}
+      if (emptyMsg) emptyMsg.style.display = 'none';
+      sessions.forEach((s, idx) => {{
+        const div = document.createElement('div');
+        div.style.cssText = 'background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px;';
+        
+        let setsRows = '';
+        (s.sets || []).forEach(set => {{
+          const e1rm = set.estimated_1rm ? `${{set.estimated_1rm}} kg` : '-';
+          setsRows += `
+            <tr>
+              <td><strong>${{escapeHtml(set.exercise)}}</strong></td>
+              <td>Serie ${{set.set_number}}</td>
+              <td>${{set.reps}}</td>
+              <td>${{set.weight}} kg</td>
+              <td><span style="color: var(--primary); font-weight: 700;">${{e1rm}}</span></td>
+            </tr>
+          `;
+        }});
+
+        const notesStr = s.notes ? `<div style="font-size: 0.85rem; color: var(--text-muted);">${{escapeHtml(s.notes)}}</div>` : '';
+        div.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
+            <div style="font-weight: 700; color: var(--cyan);">🏋️ Sesión #${{idx + 1}} — ${{s.date || ''}}</div>
+            <span class="badge badge-info">${{s.sets ? s.sets.length : 0}} series</span>
+          </div>
+          ${{notesStr}}
+          <div class="table-container" style="margin-top: 4px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ejercicio</th>
+                  <th>Serie</th>
+                  <th>Reps</th>
+                  <th>Peso</th>
+                  <th>1RM Est.</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${{setsRows}}
+              </tbody>
+            </table>
+          </div>
+        `;
+        container.appendChild(div);
+      }});
+    }}
+
+    // Initial fetch of catalogs and summary
+    fetchIngredientsList();
+    fetchRecipesList();
+    fetchSummary();
   </script>
 </body>
 </html>

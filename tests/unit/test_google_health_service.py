@@ -12,7 +12,7 @@ from src.utils.errors import ValidationError
 def test_client_missing_token_raises_validation_error():
     client = GoogleHealthClient(token="")
     with pytest.raises(ValidationError) as exc:
-        client.post_nutrition_datapoint({"test": 1})
+        client._ensure_authenticated()
     assert "Missing Google Health credentials" in str(exc.value)
 
 
@@ -25,7 +25,7 @@ def test_sync_meals_without_meals_returns_zero(db):
     assert res["total_kcal"] == 0.0
 
 
-def test_sync_meals_uploads_nutrition_datapoint(db):
+def test_sync_meals_with_meals_raises_sync_unsupported(db):
     ing = Ingredient.create(
         name="Salmon", unit="gr", kcal=208.0, protein=20.0, carbs=0.0, fat=13.0
     )
@@ -37,29 +37,14 @@ def test_sync_meals_uploads_nutrition_datapoint(db):
         unit="gr",
     )
 
-    posted_payloads = []
-
-    def mock_handler(request: httpx2.Request) -> httpx2.Response:
-        import json
-        assert request.headers.get("authorization") == "Bearer mock-token"
-        assert "/dataTypes/nutrition/dataPoints" in str(request.url)
-        posted_payloads.append(json.loads(request.content.decode("utf-8")))
-        return httpx2.Response(200, json={"status": "ok"})
-
-    transport = httpx2.MockTransport(mock_handler)
-    mock_http = httpx2.Client(transport=transport)
-    client = GoogleHealthClient(token="mock-token", http_client=mock_http)
+    client = GoogleHealthClient(token="mock-token")
     service = GoogleHealthService(client=client)
 
-    res = service.sync_meals(date="10-11-2026")
-    assert res["status"] == "ok"
-    assert res["synced_count"] == 1
-    assert res["total_kcal"] == 416.0
-    assert len(posted_payloads) == 1
-    val = posted_payloads[0]["value"]
-    assert val["name"] == "Salmon"
-    assert val["calories"] == 416.0
-    assert val["protein"] == 40.0
+    # Google Health API v4 `food` data type is read-only, so pushing meals
+    # is not supported and must fail with a `sync_unsupported` error.
+    with pytest.raises(ValidationError) as exc:
+        service.sync_meals(date="10-11-2026")
+    assert exc.value.code == "sync_unsupported"
 
 
 def test_fetch_sleep_persists_records(db):
@@ -68,14 +53,20 @@ def test_fetch_sleep_persists_records(db):
         mock_data = {
             "dataPoints": [
                 {
-                    "startTime": "2026-11-09T23:00:00Z",
-                    "endTime": "2026-11-10T07:15:00Z",
-                    "value": {
-                        "duration_minutes": 495.0,
-                        "deep_sleep_minutes": 110.0,
-                        "rem_sleep_minutes": 95.0,
-                        "light_sleep_minutes": 290.0,
-                    },
+                    "sleep": {
+                        "interval": {
+                            "startTime": "2026-11-09T23:00:00Z",
+                            "endTime": "2026-11-10T07:15:00Z",
+                        },
+                        "summary": {
+                            "minutesAsleep": 495,
+                            "stagesSummary": [
+                                {"type": "DEEP", "minutes": 110},
+                                {"type": "REM", "minutes": 95},
+                                {"type": "LIGHT", "minutes": 290},
+                            ],
+                        },
+                    }
                 }
             ]
         }
@@ -105,12 +96,13 @@ def test_fetch_weight_persists_records(db):
         mock_data = {
             "dataPoints": [
                 {
-                    "startTime": "2026-11-10T08:00:00Z",
-                    "value": {
-                        "weight_kg": 78.5,
-                        "bmi": 23.4,
-                        "body_fat_pct": 14.8,
-                    },
+                    "weight": {
+                        "sampleTime": {
+                            "physicalTime": "2026-11-10T08:00:00Z",
+                            "utcOffset": "3600s",
+                        },
+                        "weightGrams": 78500,
+                    }
                 }
             ]
         }
@@ -130,5 +122,4 @@ def test_fetch_weight_persists_records(db):
     assert WeightLog.select().count() == 1
     db_row = WeightLog.get()
     assert db_row.weight_kg == 78.5
-    assert db_row.bmi == 23.4
 

@@ -1,5 +1,6 @@
 """Meal registration domain service."""
 
+from dataclasses import asdict
 from datetime import datetime
 
 from src.db.models import (
@@ -67,14 +68,18 @@ class MealService:
                 item = IngredientModel.create(
                     name=f"provisional-{row.item_id}", unit=row.unit, provisional=True
                 )
-            return calc_ingredient_macros(item, row.quantity)
+            res = calc_ingredient_macros(item, row.quantity)
+            res["name"] = item.name
+            return res
         item = RecipeModel.get_by_id(row.item_id)
         if item is None:
-            return {**{key: 0.0 for key in MACRO_KEYS}, "price": 0.0}
-        return {
+            return {**{key: 0.0 for key in MACRO_KEYS}, "price": 0.0, "name": f"recipe-{row.item_id}"}
+        res = {
             key: round((getattr(item, key) or 0.0) * row.quantity, 2)
             for key in MACRO_KEYS
         } | {"price": round((item.price or 0.0) * row.quantity, 2)}
+        res["name"] = item.name
+        return res
 
     def register(self, entry: MealEntry) -> MealEntry:
         """Register a meal entry. Creates provisional item if missing."""
@@ -101,7 +106,7 @@ class MealService:
         for row in rows:
             item = self._to_domain(row)
             macros = self._entry_macros(row)
-            meals.append({"entry": item, **macros})
+            meals.append({"entry": asdict(item), **macros})
         return meals
 
     def get_day_summary(self, date: str) -> dict:

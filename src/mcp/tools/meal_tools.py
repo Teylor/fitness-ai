@@ -111,3 +111,16 @@ def get_day_summary(date: Optional[str] = None) -> dict:
         return err.to_dict()
     except Exception as exc:
         return {"status": "error", "code": "internal", "message": str(exc)}
+
+
+def delete_meal(entry_id: int) -> dict:
+    """Delete a registered meal entry by ID."""
+    meal_service = MealService()
+    try:
+        meal_service.delete(int(entry_id))
+        return {"status": "ok", "entry_id": int(entry_id)}
+    except ToolError as err:
+        return err.to_dict()
+    except Exception as exc:
+        return {"status": "error", "code": "internal", "message": str(exc)}
+

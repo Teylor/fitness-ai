@@ -13,9 +13,10 @@ EXPECTED_18_TOOLS = {
     "update_recipe",
     "delete_recipe",
     "list_recipes",
-    # Meals (2)
+    # Meals (3)
     "register_meal",
     "get_day_summary",
+    "delete_meal",
     # Goals (2)
     "set_daily_goal",
     "get_daily_goal",
@@ -29,11 +30,13 @@ EXPECTED_18_TOOLS = {
     "create_exercise",
     # UI Artifacts (1)
     "get_ui_form",
-    # Google Health (4)
+    # Health & Activity (6)
     "sync_meals_to_google_health",
     "fetch_google_health_sleep",
     "fetch_google_health_weight",
     "sync_google_health",
+    "log_steps",
+    "get_health_metrics",
 }
 
 
@@ -41,7 +44,7 @@ EXPECTED_18_TOOLS = {
 async def test_hermes_protocol_handshake_and_tool_discovery(hermes_client):
     """Verify that Hermes can connect, initialize session, and discover all tools."""
     tool_names = await hermes_client.list_tool_names()
-    assert len(tool_names) == 23
+    assert len(tool_names) == 26
     assert tool_names == EXPECTED_18_TOOLS
 
     tools = await hermes_client.list_tools()
@@ -461,17 +464,19 @@ async def test_hermes_google_health_sync_flow(hermes_client, monkeypatch):
 
     def mock_handler(request: httpx2.Request) -> httpx2.Response:
         url_str = str(request.url)
-        if "/dataTypes/nutrition/dataPoints" in url_str:
-            return httpx2.Response(200, json={"status": "ok"})
-        elif "/dataTypes/sleep/dataPoints" in url_str:
+        if "/dataTypes/sleep/dataPoints" in url_str:
             return httpx2.Response(
                 200,
                 json={
                     "dataPoints": [
                         {
-                            "startTime": "2026-11-10T23:00:00Z",
-                            "endTime": "2026-11-11T07:00:00Z",
-                            "value": {"duration_minutes": 480.0},
+                            "sleep": {
+                                "interval": {
+                                    "startTime": "2026-11-10T23:00:00Z",
+                                    "endTime": "2026-11-11T07:00:00Z",
+                                },
+                                "summary": {"minutesAsleep": 480},
+                            }
                         }
                     ]
                 },
@@ -482,8 +487,13 @@ async def test_hermes_google_health_sync_flow(hermes_client, monkeypatch):
                 json={
                     "dataPoints": [
                         {
-                            "startTime": "2026-11-11T08:00:00Z",
-                            "value": {"weight_kg": 76.0},
+                            "weight": {
+                                "sampleTime": {
+                                    "physicalTime": "2026-11-11T08:00:00Z",
+                                    "utcOffset": "3600s",
+                                },
+                                "weightGrams": 76000,
+                            }
                         }
                     ]
                 },
@@ -508,11 +518,13 @@ async def test_hermes_google_health_sync_flow(hermes_client, monkeypatch):
     )
 
     # 2. Sync meals to Google Health
+    # (Google Health API v4 `food` data type is read-only, so this is
+    # unsupported and must return a `sync_unsupported` error.)
     sync_meals_res = await hermes_client.call_tool(
         "sync_meals_to_google_health", date="11-11-2026"
     )
-    assert sync_meals_res["status"] == "ok"
-    assert sync_meals_res["synced_count"] == 1
+    assert sync_meals_res["status"] == "error"
+    assert sync_meals_res["code"] == "sync_unsupported"
 
     # 3. Fetch sleep
     sleep_res = await hermes_client.call_tool(
@@ -529,14 +541,15 @@ async def test_hermes_google_health_sync_flow(hermes_client, monkeypatch):
     assert weight_res["status"] == "ok"
     assert weight_res["latest_weight_kg"] == 76.0
 
-    # 5. Full sync
+    # 5. Full sync (meal push is skipped / reported as unsupported)
     full_sync = await hermes_client.call_tool(
         "sync_google_health", date="11-11-2026"
     )
     assert full_sync["status"] == "ok"
-    assert full_sync["meals_synced"] == 1
+    assert full_sync["meals_synced"] == 0
+    assert full_sync["meals_sync_status"] == "sync_unsupported"
     assert full_sync["sleep_sessions_fetched"] == 1
-    assert full_sync["weight_records_fetched"] == 1
+    assert full_sync["weight_records_fetched"] == 0
 
 
 

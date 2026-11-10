@@ -26,6 +26,8 @@ def test_create_recipe_compound(db, recipe_service, ingredient_service):
     assert r.protein == 20 + 15
     assert r.carbs == 160 + 120
     assert r.price == 0.35
+    assert r.items[0].name == "Flour"
+    assert r.items[1].name == "Water"
 
 
 def test_create_recipe_opaque(db, recipe_service):
