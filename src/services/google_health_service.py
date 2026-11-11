@@ -338,20 +338,31 @@ class GoogleHealthService:
                 count = 0
 
             interval = steps_obj.get("interval", {}) or pt.get("interval", {}) or {}
-            st = (
-                interval.get("startTime")
-                or interval.get("civilStartTime")
-                or f"{iso_date}T00:00:00Z"
-            )
+            civ_start = interval.get("civilStartTime")
+            pt_date = None
+            if isinstance(civ_start, dict) and isinstance(civ_start.get("date"), dict):
+                d_obj = civ_start["date"]
+                if d_obj.get("year") and d_obj.get("month") and d_obj.get("day"):
+                    pt_date = (
+                        f"{int(d_obj['day']):02d}-"
+                        f"{int(d_obj['month']):02d}-"
+                        f"{int(d_obj['year']):04d}"
+                    )
 
-            pt_date = valid_date
-            try:
-                clean_ts = st.replace("Z", "+00:00")
-                pt_dt = datetime.fromisoformat(clean_ts)
-                pt_date = pt_dt.strftime("%d-%m-%Y")
-            except Exception:
-                if st.startswith(iso_date):
-                    pt_date = valid_date
+            if not pt_date:
+                st = (
+                    interval.get("startTime")
+                    or (civ_start if isinstance(civ_start, str) else None)
+                    or f"{iso_date}T00:00:00Z"
+                )
+                pt_date = valid_date
+                try:
+                    clean_ts = st.replace("Z", "+00:00")
+                    pt_dt = datetime.fromisoformat(clean_ts)
+                    pt_date = pt_dt.strftime("%d-%m-%Y")
+                except Exception:
+                    if str(st).startswith(iso_date):
+                        pt_date = valid_date
 
             daily_steps[pt_date] = daily_steps.get(pt_date, 0) + count
 

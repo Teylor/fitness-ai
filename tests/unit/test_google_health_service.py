@@ -330,4 +330,53 @@ def test_sync_all_coordinates_steps_sleep_weight_meals(db):
     assert res["steps_fetched"] == 6500
 
 
+def test_fetch_steps_uses_reconcile_and_civil_start_time(db):
+    def mock_handler(request: httpx2.Request) -> httpx2.Response:
+        url_str = str(request.url)
+        assert "/dataTypes/steps/dataPoints:reconcile" in url_str
+        assert "pageSize=1440" in url_str
+        mock_data = {
+            "dataPoints": [
+                {
+                    "steps": {
+                        "count": "647",
+                        "interval": {
+                            "startTime": "2026-11-10T23:30:00Z",
+                            "civilStartTime": {
+                                "date": {"year": 2026, "month": 11, "day": 11},
+                                "time": {"hours": 0, "minutes": 30, "seconds": 0},
+                            },
+                        },
+                    }
+                },
+                {
+                    "steps": {
+                        "count": "4000",
+                        "interval": {
+                            "startTime": "2026-11-11T12:00:00Z",
+                            "civilStartTime": {
+                                "date": {"year": 2026, "month": 11, "day": 11},
+                                "time": {"hours": 13, "minutes": 0, "seconds": 0},
+                            },
+                        },
+                    }
+                },
+            ]
+        }
+        return httpx2.Response(200, json=mock_data)
+
+    transport = httpx2.MockTransport(mock_handler)
+    mock_http = httpx2.Client(transport=transport)
+    client = GoogleHealthClient(token="mock-token", http_client=mock_http)
+    service = GoogleHealthService(client=client)
+
+    res = service.fetch_steps(date="11-11-2026")
+    assert res["status"] == "ok"
+    assert res["date"] == "11-11-2026"
+    assert res["steps"] == 4647
+    row = StepLog.get(StepLog.date == "11-11-2026")
+    assert row.steps == 4647
+
+
+
 
