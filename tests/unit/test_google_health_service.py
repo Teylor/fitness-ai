@@ -378,5 +378,97 @@ def test_fetch_steps_uses_reconcile_and_civil_start_time(db):
     assert row.steps == 4647
 
 
+def test_client_reuses_shared_http_client():
+    c1 = GoogleHealthClient(token="t1")
+    c2 = GoogleHealthClient(token="t2")
+    assert c1._get_client() is c2._get_client()
+
+
+def test_sync_meals_skips_zero_calorie_supplements(db):
+    creatine = Ingredient.create(
+        name="Creatine",
+        unit="gr",
+        kcal=0.0,
+        protein=0.0,
+        carbs=0.0,
+        fat=0.0,
+        is_supplement=True,
+    )
+    oats = Ingredient.create(
+        name="Oats",
+        unit="gr",
+        kcal=380.0,
+        protein=13.0,
+        carbs=67.0,
+        fat=6.5,
+        is_supplement=False,
+    )
+    MealEntry.create(
+        date="11-11-2026",
+        item_type="ingredient",
+        item_id=creatine.id,
+        quantity=5.0,
+        unit="gr",
+        meal_type="desayuno",
+    )
+    MealEntry.create(
+        date="11-11-2026",
+        item_type="ingredient",
+        item_id=oats.id,
+        quantity=100.0,
+        unit="gr",
+        meal_type="desayuno",
+    )
+
+    posted = []
+
+    def mock_handler(request: httpx2.Request) -> httpx2.Response:
+        import json
+        if request.method == "POST" and "/dataTypes/nutrition-log/dataPoints" in str(request.url):
+            posted.append(json.loads(request.content.decode("utf-8")))
+            return httpx2.Response(200, json={"status": "ok"})
+        return httpx2.Response(200, json={"dataPoints": []})
+
+    client = GoogleHealthClient(
+        token="mock-token",
+        http_client=httpx2.Client(transport=httpx2.MockTransport(mock_handler)),
+    )
+    service = GoogleHealthService(client=client)
+
+    res = service.sync_meals(date="11-11-2026")
+    assert res["status"] == "ok"
+    assert res["synced_count"] == 1
+    assert res["total_kcal"] == 380.0
+    assert len(posted) == 1
+    assert posted[0]["nutritionLog"]["foodDisplayName"] == "Oats"
+
+
+def test_register_meal_async_sync_schedules_background_task(db, monkeypatch):
+    from src.config import settings
+    from src.mcp.tools import meal_tools
+
+    monkeypatch.setattr(settings, "google_health_token", "mock-token")
+    scheduled_dates = []
+
+    def fake_schedule(date: str) -> bool:
+        scheduled_dates.append(date)
+        return True
+
+    monkeypatch.setattr(meal_tools, "_schedule_meal_sync", fake_schedule)
+
+    Ingredient.create(name="Rice", unit="gr", kcal=350.0, carbs=78.0)
+    res = meal_tools.register_meal(
+        item_name="Rice",
+        quantity=100.0,
+        unit="gr",
+        date="11-11-2026",
+        async_sync=True,
+    )
+    assert res["status"] == "ok"
+    assert res["google_health_synced"] is True
+    assert scheduled_dates == ["11-11-2026"]
+
+
+
 
 

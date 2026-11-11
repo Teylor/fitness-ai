@@ -1,6 +1,7 @@
 """MCP tools: Meal registration and daily summary operations."""
 
 from datetime import datetime
+import threading
 from typing import Optional
 
 from src.db.models import MealEntry as MealEntryModel
@@ -12,6 +13,45 @@ from src.services.meal_service import MealService
 from src.services.recipe_service import RecipeService
 from src.utils.errors import ToolError
 
+_SYNC_LOCK = threading.Lock()
+_ACTIVE_SYNC_DATES: set[str] = set()
+_DIRTY_SYNC_DATES: set[str] = set()
+
+
+def _schedule_meal_sync(date: str) -> bool:
+    """Schedule a coalesced background Google Health meal sync for a given date."""
+    with _SYNC_LOCK:
+        if date in _ACTIVE_SYNC_DATES:
+            _DIRTY_SYNC_DATES.add(date)
+            return True
+        _ACTIVE_SYNC_DATES.add(date)
+
+    def _worker(target_date: str) -> None:
+        from src.services.google_health_service import GoogleHealthService
+
+        while True:
+            try:
+                GoogleHealthService().sync_meals(target_date)
+            except Exception:
+                pass
+            with _SYNC_LOCK:
+                if target_date in _DIRTY_SYNC_DATES:
+                    _DIRTY_SYNC_DATES.discard(target_date)
+                    continue
+                _ACTIVE_SYNC_DATES.discard(target_date)
+                break
+
+    threading.Thread(target=_worker, args=(date,), daemon=True).start()
+    return True
+
+
+def _is_truthy_async(val: Optional[bool]) -> bool:
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, str):
+        return val.strip().lower() in ("1", "true", "yes")
+    return False
+
 
 def register_meal(
     item_name: str,
@@ -20,6 +60,7 @@ def register_meal(
     item_type: Optional[str] = None,
     date: Optional[str] = None,
     meal_type: Optional[str] = "tentempie",
+    async_sync: Optional[bool] = False,
 ) -> dict:
     """Register a food intake; auto-creates provisional item if missing.
 
@@ -30,6 +71,7 @@ def register_meal(
         item_type: 'ingredient' | 'recipe' (optional).
         date: Date in DD-MM-YYYY format (default: today).
         meal_type: 'desayuno' | 'comida' | 'merienda' | 'cena' | 'tentempie' (default: 'tentempie').
+        async_sync: Run Google Health auto-sync in a coalesced background thread (default: False).
     """
     meal_service = MealService()
     ingredient_service = IngredientService()
@@ -102,10 +144,13 @@ def register_meal(
         try:
             from src.config import settings
             if settings.google_health_token or settings.google_health_refresh_token:
-                from src.services.google_health_service import GoogleHealthService
-                gh_svc = GoogleHealthService()
-                gh_res = gh_svc.sync_meals(date)
-                gh_synced = gh_res.get("status") == "ok"
+                if _is_truthy_async(async_sync):
+                    gh_synced = _schedule_meal_sync(date)
+                else:
+                    from src.services.google_health_service import GoogleHealthService
+                    gh_svc = GoogleHealthService()
+                    gh_res = gh_svc.sync_meals(date)
+                    gh_synced = gh_res.get("status") == "ok"
         except Exception:
             gh_synced = False
 
@@ -138,7 +183,7 @@ def get_day_summary(date: Optional[str] = None) -> dict:
         return {"status": "error", "code": "internal", "message": str(exc)}
 
 
-def delete_meal(entry_id: int) -> dict:
+def delete_meal(entry_id: int, async_sync: Optional[bool] = False) -> dict:
     """Delete a registered meal entry by ID and auto-sync with Google Health."""
     meal_service = MealService()
     try:
@@ -152,10 +197,13 @@ def delete_meal(entry_id: int) -> dict:
             try:
                 from src.config import settings
                 if settings.google_health_token or settings.google_health_refresh_token:
-                    from src.services.google_health_service import GoogleHealthService
-                    gh_svc = GoogleHealthService()
-                    gh_res = gh_svc.sync_meals(entry_date)
-                    gh_synced = gh_res.get("status") == "ok"
+                    if _is_truthy_async(async_sync):
+                        gh_synced = _schedule_meal_sync(entry_date)
+                    else:
+                        from src.services.google_health_service import GoogleHealthService
+                        gh_svc = GoogleHealthService()
+                        gh_res = gh_svc.sync_meals(entry_date)
+                        gh_synced = gh_res.get("status") == "ok"
             except Exception:
                 gh_synced = False
 
