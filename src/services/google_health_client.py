@@ -1,10 +1,25 @@
 """Google Health API (v4) HTTP client."""
 
+import threading
 from typing import Any, Dict, List, Optional
 import httpx2
 
 from src.config import settings
 from src.utils.errors import ValidationError
+
+_SHARED_HTTP_CLIENT: Optional[httpx2.Client] = None
+_CLIENT_LOCK = threading.Lock()
+_TOKEN_REFRESH_LOCK = threading.Lock()
+
+
+def get_shared_http_client() -> httpx2.Client:
+    """Return a module-level persistent httpx2.Client for connection pooling."""
+    global _SHARED_HTTP_CLIENT
+    if _SHARED_HTTP_CLIENT is None:
+        with _CLIENT_LOCK:
+            if _SHARED_HTTP_CLIENT is None:
+                _SHARED_HTTP_CLIENT = httpx2.Client(timeout=10.0)
+    return _SHARED_HTTP_CLIENT
 
 
 class GoogleHealthClient:
@@ -36,6 +51,9 @@ class GoogleHealthClient:
         self.base_url = (base_url or settings.google_health_api_url).rstrip("/")
         self._http_client = http_client
 
+    def _get_client(self) -> httpx2.Client:
+        return self._http_client or get_shared_http_client()
+
     def _ensure_authenticated(self) -> str:
         if not self.token:
             if self.refresh_token and self.client_id and self.client_secret:
@@ -58,23 +76,20 @@ class GoogleHealthClient:
             "refresh_token": self.refresh_token,
             "grant_type": "refresh_token",
         }
-        try:
-            client = self._http_client or httpx2.Client(timeout=10.0)
-            close_client = self._http_client is None
+        with _TOKEN_REFRESH_LOCK:
             try:
+                client = self._get_client()
                 resp = client.post(url, data=payload)
                 if resp.status_code == 200:
                     data = resp.json()
                     new_token = data.get("access_token")
                     if new_token:
                         self.token = new_token
+                        settings.google_health_token = new_token
                         self._persist_token(new_token)
                         return new_token
-            finally:
-                if close_client:
-                    client.close()
-        except Exception:
-            pass
+            except Exception:
+                pass
         return None
 
     def _persist_token(self, token: str) -> None:
@@ -107,22 +122,16 @@ class GoogleHealthClient:
         params: Optional[Dict[str, Any]] = None,
     ) -> httpx2.Response:
         headers = self._get_headers()
-        client = self._http_client or httpx2.Client(timeout=10.0)
-        close_client = self._http_client is None
-
-        try:
+        client = self._get_client()
+        resp = client.request(
+            method, url, json=json, params=params, headers=headers
+        )
+        if resp.status_code == 401 and self.refresh_access_token():
+            headers = self._get_headers()
             resp = client.request(
                 method, url, json=json, params=params, headers=headers
             )
-            if resp.status_code == 401 and self.refresh_access_token():
-                headers = self._get_headers()
-                resp = client.request(
-                    method, url, json=json, params=params, headers=headers
-                )
-            return resp
-        finally:
-            if close_client:
-                client.close()
+        return resp
 
     def post_nutrition_datapoint(self, data_point: Dict[str, Any]) -> Dict[str, Any]:
         """Upload a nutrition dataPoint to Google Health API via nutrition-log."""

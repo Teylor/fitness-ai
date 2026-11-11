@@ -965,10 +965,11 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         const data = await res.json();
         if (data.status === 'ok') {{
           const meals = data.meals_synced || 0;
+          const steps = data.steps_fetched || 0;
           const sleep = data.sleep_sessions_fetched || 0;
           const weight = data.weight_records_fetched || 0;
           const wtVal = data.latest_weight_kg ? ` (${{data.latest_weight_kg}} kg)` : '';
-          showToast(`☁️ Sincronizado con Google Health: ${{meals}} comidas, ${{sleep}} sesiones de sueño, ${{weight}} pesos${{wtVal}}`, 'ok');
+          showToast(`☁️ Sincronizado con Google Health: ${{meals}} comidas, ${{steps}} pasos, ${{sleep}} sesiones de sueño, ${{weight}} pesos${{wtVal}}`, 'ok');
           await fetchSummary();
         }} else {{
           showToast(data.message || 'Error al sincronizar con Google Health', 'error');
@@ -1469,7 +1470,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         item_type: document.getElementById('meal-item-type').value,
         meal_type: document.getElementById('meal-eating-type').value,
         quantity: parseFloat(document.getElementById('meal-qty').value),
-        unit: document.getElementById('meal-unit').value
+        unit: document.getElementById('meal-unit').value,
+        async_sync: true
       }};
       const prompt = `Registra una comida (${{payload.meal_type}}) de ${{payload.quantity}} ${{payload.unit}} de ${{payload.item_name}} para la fecha ${{payload.date}}`;
       executeAction('register_meal', payload, 'meal-result', prompt);
@@ -1917,7 +1919,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         const res = await fetch('/api/delete_meal', {{
           method: 'POST',
           headers: {{ 'Content-Type': 'application/json' }},
-          body: JSON.stringify({{ entry_id: entryId }})
+          body: JSON.stringify({{ entry_id: entryId, async_sync: true }})
         }});
         const data = await res.json();
         if (data.status === 'ok') {{

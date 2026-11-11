@@ -1,5 +1,6 @@
 """Google Health synchronization service."""
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
@@ -14,8 +15,9 @@ from src.db.models import (
 )
 from src.models.health import SleepRecord, StepRecord, WeightRecord
 from src.services.google_health_client import GoogleHealthClient
-from src.services.meal_service import MealService
+from src.services.meal_service import MACRO_KEYS, MealService
 from src.utils.errors import ValidationError
+from src.utils.macros import calc_ingredient_macros
 
 
 class GoogleHealthService:
@@ -44,7 +46,11 @@ class GoogleHealthService:
         dt = datetime.strptime(date_str, "%d-%m-%Y")
         return dt.strftime("%Y-%m-%d")
 
-    def sync_meals(self, date: Optional[str] = None) -> Dict[str, Any]:
+    def sync_meals(
+        self,
+        date: Optional[str] = None,
+        raw_nutrition_points: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
         """Upload meals recorded on a specific date to Google Health as nutrition-log dataPoints."""
         self.client._ensure_authenticated()
         valid_date = self._parse_date(date)
@@ -52,7 +58,11 @@ class GoogleHealthService:
 
         # Clear any existing Google Health nutrition datapoints for this date to avoid duplicates
         try:
-            raw_points = self.client.get_nutrition_datapoints()
+            raw_points = (
+                raw_nutrition_points
+                if raw_nutrition_points is not None
+                else self.client.get_nutrition_datapoints()
+            )
             pts_to_delete = []
             for pt in raw_points:
                 nlog = pt.get("nutritionLog", {}) or {}
@@ -79,34 +89,75 @@ class GoogleHealthService:
                 "meals": [],
             }
 
+        # Batch-prefetch ingredients and recipes to eliminate N+1 queries
+        ing_ids = {r.item_id for r in meal_rows if r.item_type == "ingredient"}
+        rec_ids = {r.item_id for r in meal_rows if r.item_type == "recipe"}
+        ing_map = (
+            {
+                i.id: i
+                for i in IngredientModel.select().where(IngredientModel.id.in_(ing_ids))
+            }
+            if ing_ids
+            else {}
+        )
+        rec_map = (
+            {
+                r.id: r
+                for r in RecipeModel.select().where(RecipeModel.id.in_(rec_ids))
+            }
+            if rec_ids
+            else {}
+        )
+
+        meal_type_map = {
+            "desayuno": ("BREAKFAST", "08:00:00Z", "08:30:00Z"),
+            "tentempie": ("SNACK", "11:00:00Z", "11:30:00Z"),
+            "comida": ("LUNCH", "14:00:00Z", "14:30:00Z"),
+            "merienda": ("BEFORE_DINNER", "18:00:00Z", "18:30:00Z"),
+            "cena": ("DINNER", "21:00:00Z", "21:30:00Z"),
+        }
+
         synced_meals = []
+        datapoints_to_post = []
         total_kcal = 0.0
 
         for row in meal_rows:
-            macros = self.meal_service._entry_macros(row)
             item_name = f"Meal #{row.id}"
+            is_supplement = False
             if row.item_type == "ingredient":
-                ing = IngredientModel.get_or_none(IngredientModel.id == row.item_id)
-                if ing:
+                ing = ing_map.get(row.item_id)
+                if ing is not None:
                     item_name = ing.name
+                    is_supplement = bool(getattr(ing, "is_supplement", False))
+                    macros = calc_ingredient_macros(ing, row.quantity)
+                else:
+                    macros = self.meal_service._entry_macros(row)
+                    item_name = macros.get("name", item_name)
+                    is_supplement = bool(macros.get("is_supplement", False))
             elif row.item_type == "recipe":
-                rec = RecipeModel.get_or_none(RecipeModel.id == row.item_id)
-                if rec:
+                rec = rec_map.get(row.item_id)
+                if rec is not None:
                     item_name = rec.name
+                    macros = {
+                        key: round((getattr(rec, key) or 0.0) * row.quantity, 2)
+                        for key in MACRO_KEYS
+                    }
+                else:
+                    macros = self.meal_service._entry_macros(row)
+                    item_name = macros.get("name", item_name)
+            else:
+                macros = self.meal_service._entry_macros(row)
 
             kcal = float(macros.get("kcal", 0.0))
             protein = float(macros.get("protein", 0.0))
             carbs = float(macros.get("carbs", 0.0))
             fat = float(macros.get("fat", 0.0))
 
+            # Skip zero-calorie/zero-macro supplements (e.g., Creatine) from nutrition-log
+            if is_supplement and kcal == 0.0 and protein == 0.0 and carbs == 0.0 and fat == 0.0:
+                continue
+
             meal_type_val = getattr(row, "meal_type", "tentempie") or "tentempie"
-            meal_type_map = {
-                "desayuno": ("BREAKFAST", "08:00:00Z", "08:30:00Z"),
-                "tentempie": ("SNACK", "11:00:00Z", "11:30:00Z"),
-                "comida": ("LUNCH", "14:00:00Z", "14:30:00Z"),
-                "merienda": ("BEFORE_DINNER", "18:00:00Z", "18:30:00Z"),
-                "cena": ("DINNER", "21:00:00Z", "21:30:00Z"),
-            }
             gh_meal_type, start_time_suffix, end_time_suffix = meal_type_map.get(
                 meal_type_val, ("SNACK", "12:00:00Z", "12:30:00Z")
             )
@@ -139,7 +190,7 @@ class GoogleHealthService:
                     ],
                 }
             }
-            self.client.post_nutrition_datapoint(datapoint)
+            datapoints_to_post.append(datapoint)
             synced_meals.append({
                 "meal_id": row.id,
                 "name": item_name,
@@ -151,6 +202,12 @@ class GoogleHealthService:
                 "carbs": carbs,
                 "fat": fat,
             })
+
+        if len(datapoints_to_post) == 1:
+            self.client.post_nutrition_datapoint(datapoints_to_post[0])
+        elif len(datapoints_to_post) > 1:
+            with ThreadPoolExecutor(max_workers=min(4, len(datapoints_to_post))) as pool:
+                list(pool.map(self.client.post_nutrition_datapoint, datapoints_to_post))
 
         return {
             "status": "ok",
@@ -177,12 +234,18 @@ class GoogleHealthService:
 
         return {"status": "ok", "deleted_count": len(names)}
 
-    def fetch_sleep(self, date: Optional[str] = None, days: int = 1) -> Dict[str, Any]:
+    def fetch_sleep(
+        self,
+        date: Optional[str] = None,
+        days: int = 1,
+        raw_points: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
         """Fetch sleep sessions from Google Health and store them in sleep_logs."""
         self.client._ensure_authenticated()
         valid_date = self._parse_date(date)
 
-        raw_points = self.client.get_sleep_datapoints()
+        if raw_points is None:
+            raw_points = self.client.get_sleep_datapoints()
         saved_records: List[SleepRecord] = []
 
         for pt in raw_points:
@@ -221,7 +284,7 @@ class GoogleHealthService:
             except Exception:
                 pass
 
-            row, _ = SleepLog.get_or_create(
+            row, created = SleepLog.get_or_create(
                 date=log_date,
                 start_time=st,
                 defaults={
@@ -233,11 +296,19 @@ class GoogleHealthService:
                     "source": "google_health",
                 },
             )
-            row.duration_minutes = duration
-            row.deep_sleep_minutes = deep
-            row.rem_sleep_minutes = rem
-            row.light_sleep_minutes = light
-            row.save()
+            if not created and (
+                row.end_time != et
+                or row.duration_minutes != duration
+                or row.deep_sleep_minutes != deep
+                or row.rem_sleep_minutes != rem
+                or row.light_sleep_minutes != light
+            ):
+                row.end_time = et
+                row.duration_minutes = duration
+                row.deep_sleep_minutes = deep
+                row.rem_sleep_minutes = rem
+                row.light_sleep_minutes = light
+                row.save()
             saved_records.append(
                 SleepRecord(
                     id=row.id,
@@ -259,12 +330,18 @@ class GoogleHealthService:
             "records": [asdict(r) for r in saved_records],
         }
 
-    def fetch_weight(self, date: Optional[str] = None, days: int = 7) -> Dict[str, Any]:
+    def fetch_weight(
+        self,
+        date: Optional[str] = None,
+        days: int = 7,
+        raw_points: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
         """Fetch weight measurements from Google Health and store them in weight_logs."""
         self.client._ensure_authenticated()
         valid_date = self._parse_date(date)
 
-        raw_points = self.client.get_weight_datapoints()
+        if raw_points is None:
+            raw_points = self.client.get_weight_datapoints()
         saved_records: List[WeightRecord] = []
 
         for pt in raw_points:
@@ -316,13 +393,19 @@ class GoogleHealthService:
             "records": [asdict(r) for r in saved_records],
         }
 
-    def fetch_steps(self, date: Optional[str] = None, days: int = 1) -> Dict[str, Any]:
+    def fetch_steps(
+        self,
+        date: Optional[str] = None,
+        days: int = 1,
+        raw_points: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
         """Fetch step count data from Google Health and store/update in step_logs."""
         self.client._ensure_authenticated()
         valid_date = self._parse_date(date)
         iso_date = self._date_to_iso(valid_date)
 
-        raw_points = self.client.get_steps_datapoints()
+        if raw_points is None:
+            raw_points = self.client.get_steps_datapoints()
         daily_steps: Dict[str, int] = {}
 
         for pt in raw_points:
@@ -376,7 +459,7 @@ class GoogleHealthService:
                 "source": "google_health",
             },
         )
-        if not created:
+        if not created and (row.steps != total_steps_for_date or row.source != "google_health"):
             row.steps = total_steps_for_date
             row.source = "google_health"
             row.save()
@@ -391,7 +474,9 @@ class GoogleHealthService:
                         "source": "google_health",
                     },
                 )
-                if not other_created:
+                if not other_created and (
+                    other_row.steps != st_count or other_row.source != "google_health"
+                ):
                     other_row.steps = st_count
                     other_row.source = "google_health"
                     other_row.save()
@@ -405,11 +490,30 @@ class GoogleHealthService:
 
     def sync_all(self, date: Optional[str] = None) -> Dict[str, Any]:
         """Perform full bidirectional synchronization (push meals, pull sleep, weight, and steps)."""
+        self.client._ensure_authenticated()
         valid_date = self._parse_date(date)
-        meals_res = self.sync_meals(valid_date)
-        sleep_res = self.fetch_sleep(valid_date)
-        weight_res = self.fetch_weight(valid_date)
-        steps_res = self.fetch_steps(valid_date)
+
+        def _safe_get_nutrition() -> Optional[List[Dict[str, Any]]]:
+            try:
+                return self.client.get_nutrition_datapoints()
+            except Exception:
+                return None
+
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            fut_nutrition = pool.submit(_safe_get_nutrition)
+            fut_sleep = pool.submit(self.client.get_sleep_datapoints)
+            fut_weight = pool.submit(self.client.get_weight_datapoints)
+            fut_steps = pool.submit(self.client.get_steps_datapoints)
+
+            raw_nutrition = fut_nutrition.result()
+            raw_sleep = fut_sleep.result()
+            raw_weight = fut_weight.result()
+            raw_steps = fut_steps.result()
+
+        meals_res = self.sync_meals(valid_date, raw_nutrition_points=raw_nutrition)
+        sleep_res = self.fetch_sleep(valid_date, raw_points=raw_sleep)
+        weight_res = self.fetch_weight(valid_date, raw_points=raw_weight)
+        steps_res = self.fetch_steps(valid_date, raw_points=raw_steps)
 
         return {
             "status": "ok",
