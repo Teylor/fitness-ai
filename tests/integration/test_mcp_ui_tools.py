@@ -11,10 +11,11 @@ def test_get_ui_form_default_hub():
     assert "Fitness AI Hub" in res["html"]
     assert "meal" in res["supported_types"]
     assert "workout" in res["supported_types"]
+    assert "exercise" in res["supported_types"]
 
 
 def test_get_ui_form_specific_views():
-    for ftype in ("meal", "recipe", "ingredient", "workout", "summary"):
+    for ftype in ("meal", "recipe", "ingredient", "workout", "exercise", "summary"):
         res = get_ui_form(ftype)
         assert res["status"] == "ok"
         assert res["form_type"] == ftype

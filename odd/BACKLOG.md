@@ -45,6 +45,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `ui-exercises-prs` | `odd/tasks/ui-exercises-prs.md` | 2026-11 |
 | `meal-types` | `odd/tasks/meal-types.md` | 2026-11 |
 | `steps-google-health-pull` | `odd/tasks/steps-google-health-pull.md` | 2026-11 |
 | `google-health-autosync` | `odd/tasks/google-health-autosync.md` | 2026-11 |

@@ -89,6 +89,7 @@ The system runs 24/7 on a local PC (server mode). An AI agent (Hermes Agent) con
 - **FR6.2** The PR triple (`max_weight`, `max_reps`, `estimated_1rm`) comes from the set with the highest estimated 1RM. Estimated 1RM: a set with `reps = 1` uses the **exact weight** (direct attempt); any other set uses the Epley formula `weight × (1 + reps/30)`.
 - **FR6.3** The PR row is created/updated only when the new estimated 1RM is **strictly greater** than the stored one.
 - **FR6.4** A PR records the date and the session that produced it (session link is nullable; deleting the session nulls it, deleting the exercise removes the PR).
+- **FR6.5** Exercise performance metrics queries (`WorkoutService.get_exercise_stats` / `list_exercises(include_prs=True)`) extract both the highest Estimated 1RM PR (`estimated_1rm`) and the Max Weight set (`max_weight` with `max_weight_reps` and session date) across all historical sets.
 
 ### FR7 — Health & Activity Tracking (Google Health)
 
@@ -104,6 +105,7 @@ The system runs 24/7 on a local PC (server mode). An AI agent (Hermes Agent) con
 - **FR8.2** The UI provides tabbed navigation: Daily Summary (goal comparison, progress bars, macro breakdown), Meals (with live ingredient/recipe search and delete action), Training (exercises and sets), Steps, Sleep, Weight, and Catalog management (inline creation, edition, and deletion).
 - **FR8.3** Direct HTTP endpoints (`/ui`, `/ui/{form_type}`, `/api/{tool_name}`) allow browser interaction and asynchronous tool execution directly from UI widgets.
 - **FR8.4** The web UI header and Daily Summary views provide one-click "Sincronizar Google Health" actions to trigger full synchronization and refresh metrics.
+- **FR8.5** A dedicated Exercises section (`/ui/exercise`) displays catalog exercises with muscle group, exercise type, estimated 1RM PR badge, heaviest weight set badge with repetitions, search and muscle group filter, and inline exercise creation form.
 
 ### FR9 — Catalog & Log Deletions
 

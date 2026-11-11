@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-VALID_FORM_TYPES = ("hub", "meal", "recipe", "ingredient", "workout", "summary")
+VALID_FORM_TYPES = ("hub", "meal", "recipe", "ingredient", "workout", "exercise", "summary")
 
 
 def generate_html(form_type: Optional[str] = "hub") -> str:
@@ -315,11 +315,12 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
     <!-- Navigation Tabs -->
     <nav class="nav-tabs" role="tablist">
-      <button class="tab-btn {'active' if active_tab == 'meal' else ''}" onclick="switchTab('meal')">🥗 Comidas</button>
-      <button class="tab-btn {'active' if active_tab == 'recipe' else ''}" onclick="switchTab('recipe')">🍲 Recetas</button>
-      <button class="tab-btn {'active' if active_tab == 'ingredient' else ''}" onclick="switchTab('ingredient')">🥑 Ingredientes</button>
-      <button class="tab-btn {'active' if active_tab == 'workout' else ''}" onclick="switchTab('workout')">🏋️ Entrenamientos</button>
-      <button class="tab-btn {'active' if active_tab == 'summary' else ''}" onclick="switchTab('summary')">📊 Resumen</button>
+      <button class="tab-btn {'active' if active_tab == 'meal' else ''}" data-tab="meal" onclick="switchTab('meal')">🥗 Comidas</button>
+      <button class="tab-btn {'active' if active_tab == 'recipe' else ''}" data-tab="recipe" onclick="switchTab('recipe')">🍲 Recetas</button>
+      <button class="tab-btn {'active' if active_tab == 'ingredient' else ''}" data-tab="ingredient" onclick="switchTab('ingredient')">🥑 Ingredientes</button>
+      <button class="tab-btn {'active' if active_tab == 'workout' else ''}" data-tab="workout" onclick="switchTab('workout')">🏋️ Entrenamientos</button>
+      <button class="tab-btn {'active' if active_tab == 'exercise' else ''}" data-tab="exercise" onclick="switchTab('exercise')">💪 Ejercicios</button>
+      <button class="tab-btn {'active' if active_tab == 'summary' else ''}" data-tab="summary" onclick="switchTab('summary')">📊 Resumen</button>
     </nav>
 
     <!-- TAB 1: MEAL LOGGER -->
@@ -561,7 +562,88 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       <div id="workout-result" class="result-box"></div>
     </section>
 
-    <!-- TAB 5: DAILY SUMMARY -->
+    <!-- TAB 5: EXERCISES & PRS -->
+    <section id="tab-exercise" class="tab-content {'active' if active_tab == 'exercise' else ''}">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+        <h2>💪 Ejercicios y Récords Personales</h2>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <input type="text" id="exercise-search-input" placeholder="Buscar ejercicio..." style="width: 180px; padding: 6px 10px;" oninput="filterExercises()">
+          <select id="exercise-group-filter" style="width: 160px; padding: 6px 10px;" onchange="filterExercises()">
+            <option value="">Todos los grupos</option>
+            <option value="pecho">Pecho</option>
+            <option value="espalda">Espalda</option>
+            <option value="pierna">Pierna</option>
+            <option value="hombro">Hombro</option>
+            <option value="brazos">Brazos</option>
+            <option value="core">Core</option>
+            <option value="cardio">Cardio</option>
+            <option value="unknown">Otros</option>
+          </select>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="fetchExercisesList()">🔄 Actualizar</button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="toggleNewExerciseForm()">+ Nuevo Ejercicio</button>
+        </div>
+      </div>
+
+      <!-- Formulario para Añadir Ejercicio -->
+      <div id="exercise-create-container" style="display: none; margin-bottom: 20px; background: rgba(15, 23, 42, 0.6); padding: 16px; border: 1px solid var(--border); border-radius: var(--radius);">
+        <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--text);">➕ Añadir Nuevo Ejercicio</h3>
+        <form id="form-create-exercise" onsubmit="submitNewExercise(event)">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="new-exercise-name">Nombre del Ejercicio</label>
+              <input type="text" id="new-exercise-name" required placeholder="Ej: Press banca con mancuernas">
+            </div>
+            <div class="form-group">
+              <label for="new-exercise-muscle">Grupo Muscular</label>
+              <input type="text" id="new-exercise-muscle" placeholder="Ej: pecho, hombro, pierna..." list="exercise-muscle-datalist">
+              <datalist id="exercise-muscle-datalist">
+                <option value="pecho">
+                <option value="espalda">
+                <option value="pierna">
+                <option value="hombro">
+                <option value="brazos">
+                <option value="core">
+                <option value="cardio">
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label for="new-exercise-type">Tipo de Ejercicio</label>
+              <select id="new-exercise-type">
+                <option value="weight_reps" selected>Peso y Repeticiones (Fuerza)</option>
+                <option value="time">Tiempo (Duración)</option>
+                <option value="distance">Distancia</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top: 12px; display: flex; gap: 8px;">
+            <button type="submit" class="btn btn-primary btn-sm">Guardar Ejercicio</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleNewExerciseForm(false)">Cancelar</button>
+          </div>
+        </form>
+        <div id="exercise-create-result" class="result-box" style="margin-top: 10px;"></div>
+      </div>
+
+      <!-- Tabla de Ejercicios y Récords -->
+      <div class="table-container">
+        <table id="exercises-catalog-table">
+          <thead>
+            <tr>
+              <th>Ejercicio</th>
+              <th>Grupo Muscular</th>
+              <th>Tipo</th>
+              <th style="min-width: 140px;">1RM Estimado (PR)</th>
+              <th style="min-width: 180px;">Récord de Peso (Max Set)</th>
+            </tr>
+          </thead>
+          <tbody id="exercises-catalog-body">
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+      </div>
+      <div id="exercises-catalog-empty" style="display: none; color: var(--text-muted); padding: 16px; text-align: center;">No hay ejercicios registrados.</div>
+    </section>
+
+    <!-- TAB 6: DAILY SUMMARY -->
     <section id="tab-summary" class="tab-content {'active' if active_tab == 'summary' else ''}">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;">
         <h2>📊 Resumen Diario</h2>
@@ -616,12 +698,13 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     function switchTab(tabName) {{
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.textContent.toLowerCase().includes(tabName));
+      const activeBtn = document.querySelector(`.tab-btn[data-tab="${{tabName}}"]`) || Array.from(document.querySelectorAll('.tab-btn')).find(b => b.textContent.toLowerCase().includes(tabName));
       if (activeBtn) activeBtn.classList.add('active');
       const target = document.getElementById('tab-' + tabName);
       if (target) target.classList.add('active');
       if (tabName === 'ingredient') fetchIngredientsList();
       if (tabName === 'recipe') fetchRecipesList();
+      if (tabName === 'exercise') fetchExercisesList();
       if (tabName === 'summary') fetchSummary();
     }}
 
@@ -691,7 +774,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       div.style.cssText = 'background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px;';
       div.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <input type="text" class="ex-name" required value="${{name}}" style="font-weight: 700; width: 60%;" placeholder="Nombre del ejercicio...">
+          <input type="text" class="ex-name" required value="${{name}}" list="exercises-datalist" style="font-weight: 700; width: 60%;" placeholder="Nombre del ejercicio...">
           <button type="button" class="btn btn-danger btn-sm" onclick="document.getElementById('${{id}}').remove()">Eliminar Ejercicio</button>
         </div>
         <div class="table-container">
@@ -1153,6 +1236,139 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       document.getElementById('btn-cancel-recipe').style.display = 'none';
     }}
 
+    // EXERCISES CATALOG & PR TRACKING
+    let allExercises = [];
+
+    async function fetchExercisesList() {{
+      const tbody = document.getElementById('exercises-catalog-body');
+      const emptyMsg = document.getElementById('exercises-catalog-empty');
+      if (!tbody) return;
+      try {{
+        const resp = await fetch('/api/list_exercises?include_prs=true');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        if (data.status === 'ok') {{
+          allExercises = data.exercises || [];
+          renderExercisesTable(allExercises);
+          updateExerciseDatalist();
+        }}
+      }} catch (err) {{
+        tbody.innerHTML = `<tr><td colspan="5" style="color: var(--text-muted); text-align: center;">No se pudo conectar con el catálogo de ejercicios (${{err.message}}).</td></tr>`;
+      }}
+    }}
+
+    function updateExerciseDatalist() {{
+      let dl = document.getElementById('exercises-datalist');
+      if (!dl) {{
+        dl = document.createElement('datalist');
+        dl.id = 'exercises-datalist';
+        document.body.appendChild(dl);
+      }}
+      dl.innerHTML = '';
+      allExercises.forEach(ex => {{
+        const opt = document.createElement('option');
+        opt.value = ex.name;
+        dl.appendChild(opt);
+      }});
+    }}
+
+    function filterExercises() {{
+      const search = (document.getElementById('exercise-search-input')?.value || '').trim().toLowerCase();
+      const group = (document.getElementById('exercise-group-filter')?.value || '').trim().toLowerCase();
+
+      const filtered = allExercises.filter(ex => {{
+        const matchSearch = !search || (ex.name && ex.name.toLowerCase().includes(search));
+        const matchGroup = !group || (ex.muscle_group && ex.muscle_group.toLowerCase() === group);
+        return matchSearch && matchGroup;
+      }});
+      renderExercisesTable(filtered);
+    }}
+
+    function renderExercisesTable(list) {{
+      const tbody = document.getElementById('exercises-catalog-body');
+      const emptyMsg = document.getElementById('exercises-catalog-empty');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      if (!list || list.length === 0) {{
+        if (emptyMsg) emptyMsg.style.display = 'block';
+        return;
+      }}
+      if (emptyMsg) emptyMsg.style.display = 'none';
+
+      list.forEach(ex => {{
+        const tr = document.createElement('tr');
+        const muscle = ex.muscle_group && ex.muscle_group !== 'unknown' ? ex.muscle_group : 'General';
+
+        let typeBadge = '<span class="badge badge-info">Fuerza (Peso/Reps)</span>';
+        if (ex.type === 'time') {{
+          typeBadge = '<span class="badge" style="background: #1e3a8a; color: #93c5fd;">Tiempo</span>';
+        }} else if (ex.type === 'distance') {{
+          typeBadge = '<span class="badge" style="background: #4c1d95; color: #c4b5fd;">Distancia</span>';
+        }}
+
+        let prHtml = '<span style="color: var(--text-muted);">-</span>';
+        let maxWeightHtml = '<span style="color: var(--text-muted);">-</span>';
+
+        if (ex.pr) {{
+          if (ex.pr.estimated_1rm) {{
+            const e1rmDate = ex.pr.estimated_1rm_date ? `<div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">📅 ${{escapeHtml(ex.pr.estimated_1rm_date)}}</div>` : '';
+            prHtml = `
+              <div style="display: inline-flex; flex-direction: column;">
+                <span class="badge badge-ok" style="font-size: 0.85rem; padding: 3px 8px;">🏆 ${{ex.pr.estimated_1rm}} kg</span>
+                ${{e1rmDate}}
+              </div>
+            `;
+          }}
+          if (ex.pr.max_weight !== undefined && ex.pr.max_weight !== null) {{
+            const maxDate = ex.pr.max_weight_date ? `<div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">📅 ${{escapeHtml(ex.pr.max_weight_date)}}</div>` : '';
+            maxWeightHtml = `
+              <div style="display: inline-flex; flex-direction: column;">
+                <span class="badge badge-warning" style="font-size: 0.85rem; padding: 3px 8px;">💪 ${{ex.pr.max_weight}} kg × ${{ex.pr.max_weight_reps || 1}} reps</span>
+                ${{maxDate}}
+              </div>
+            `;
+          }}
+        }}
+
+        tr.innerHTML = `
+          <td><strong style="color: var(--text); font-size: 0.95rem;">${{escapeHtml(ex.name)}}</strong></td>
+          <td><span class="badge" style="background: #334155; color: #cbd5e1; text-transform: capitalize;">${{escapeHtml(muscle)}}</span></td>
+          <td>${{typeBadge}}</td>
+          <td>${{prHtml}}</td>
+          <td>${{maxWeightHtml}}</td>
+        `;
+        tbody.appendChild(tr);
+      }});
+    }}
+
+    function toggleNewExerciseForm(force) {{
+      const container = document.getElementById('exercise-create-container');
+      if (!container) return;
+      const isVisible = container.style.display !== 'none';
+      const show = force !== undefined ? force : !isVisible;
+      container.style.display = show ? 'block' : 'none';
+      if (show) {{
+        document.getElementById('new-exercise-name')?.focus();
+      }}
+    }}
+
+    async function submitNewExercise(e) {{
+      e.preventDefault();
+      const name = (document.getElementById('new-exercise-name')?.value || '').trim();
+      const muscle = (document.getElementById('new-exercise-muscle')?.value || '').trim() || 'unknown';
+      const type = document.getElementById('new-exercise-type')?.value || 'weight_reps';
+
+      if (!name) return;
+      const payload = {{ name: name, muscle_group: muscle, type: type }};
+      const prompt = `Crea el ejercicio "${{name}}" (grupo: ${{muscle}}, tipo: ${{type}})`;
+      const res = await executeAction('create_exercise', payload, 'exercise-create-result', prompt);
+      if (res && res.status === 'ok') {{
+        document.getElementById('form-create-exercise').reset();
+        setTimeout(() => toggleNewExerciseForm(false), 1200);
+        await fetchExercisesList();
+      }}
+    }}
+
     // Form handlers
     function submitMeal(e) {{
       e.preventDefault();
@@ -1586,6 +1802,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     // Initial fetch of catalogs and summary
     fetchIngredientsList();
     fetchRecipesList();
+    fetchExercisesList();
     fetchSummary();
   </script>
 </body>
