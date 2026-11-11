@@ -167,3 +167,16 @@ def test_list_ingredients_pagination(db, ingredient_service):
     assert len(page) == 5
     all_items = ingredient_service.list(limit=100)
     assert [x.id for x in page] == [x.id for x in all_items[2:7]]
+
+
+def test_create_and_update_ingredient_is_supplement(db, ingredient_service):
+    supp = ingredient_service.create(
+        Ingredient(name="Creatina Monohidrato", unit="gr", price=2.5, is_supplement=True)
+    )
+    assert supp.is_supplement is True
+
+    fetched = ingredient_service.get_by_id(supp.id)
+    assert fetched.is_supplement is True
+
+    updated = ingredient_service.update(supp.id, is_supplement=False)
+    assert updated.is_supplement is False

@@ -56,6 +56,7 @@ A food item with macros and price, expressed per base unit.
 | carbs | REAL | NOT NULL DEFAULT 0 | Grams per base unit |
 | fat | REAL | NOT NULL DEFAULT 0 | Grams per base unit |
 | price | REAL | NOT NULL DEFAULT 0 | Cost per base unit |
+| is_supplement | INTEGER | NOT NULL DEFAULT 0 | Flag marking supplement items (Creatine, Omega 3, etc.) |
 | provisional | INTEGER | NOT NULL DEFAULT 0 | Data not yet confirmed |
 | created_at | TEXT | NOT NULL DEFAULT `datetime('now')` | |
 | updated_at | TEXT | NOT NULL DEFAULT `datetime('now')` | |

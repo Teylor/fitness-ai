@@ -491,6 +491,12 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             <label for="ing-price">Precio (€ por unidad base)</label>
             <input type="number" id="ing-price" step="any" min="0" placeholder="0.0">
           </div>
+          <div class="form-group" style="justify-content: flex-end; padding-bottom: 6px;">
+            <label for="ing-is-supplement" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text); font-size: 0.9rem;">
+              <input type="checkbox" id="ing-is-supplement" style="width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer;">
+              <span>💊 Es suplemento (ej: Creatina, Omega 3...)</span>
+            </label>
+          </div>
         </div>
         <div style="margin-top: 14px; display: flex; gap: 8px;">
           <button type="submit" id="btn-submit-ingredient" class="btn">Guardar Ingrediente</button>
@@ -504,7 +510,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
           <h3 style="font-size: 1.1rem; color: var(--text);">📋 Ingredientes Guardados</h3>
           <div style="display: flex; gap: 8px; align-items: center;">
-            <input type="text" id="ing-search-input" placeholder="Buscar ingrediente..." style="width: 200px; padding: 6px 10px;" oninput="filterIngredients()">
+            <input type="text" id="ing-search-input" placeholder="Buscar ingrediente o suplemento..." style="width: 220px; padding: 6px 10px;" oninput="filterIngredients()">
             <button type="button" class="btn btn-secondary btn-sm" onclick="fetchIngredientsList()">🔄 Actualizar</button>
           </div>
         </div>
@@ -529,6 +535,34 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           </table>
         </div>
         <div id="ingredients-catalog-empty" style="display: none; color: var(--text-muted); padding: 12px; text-align: center;">No hay ingredientes guardados.</div>
+      </div>
+
+      <!-- Sección aparte: Agua y Suplementos -->
+      <div style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+          <h3 style="font-size: 1.1rem; color: var(--cyan);">💧💊 Agua y Suplementos</h3>
+          <span class="badge badge-info">Agua diaria: 3L (1.25 €)</span>
+        </div>
+        <div class="table-container">
+          <table id="supplements-catalog-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Unidad / Consumo</th>
+                <th>Kcal</th>
+                <th>P (g)</th>
+                <th>C (g)</th>
+                <th>G (g)</th>
+                <th>Precio</th>
+                <th>Tipo</th>
+                <th style="width: 80px;">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="supplements-catalog-body">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -679,6 +713,15 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <div id="summary-meals-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
           <table style="display: none;"><tbody id="summary-meals-body"></tbody></table>
           <div id="summary-meals-empty" style="display: none; color: var(--text-muted); padding: 12px; text-align: center;">No hay comidas registradas para este día.</div>
+        </div>
+
+        <!-- 3b. Water & Supplements -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h3 style="font-size: 0.95rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">💧💊 Agua y Suplementos</h3>
+            <span id="summary-water-supplements-badge" class="badge badge-info" style="font-size: 0.8rem;">Subtotal: 1.25 €</span>
+          </div>
+          <div id="summary-water-supplements-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
         </div>
 
         <!-- 4. Day's Workouts -->
@@ -1028,36 +1071,78 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
     function renderIngredientsTable(list) {{
       const tbody = document.getElementById('ingredients-catalog-body');
+      const suppTbody = document.getElementById('supplements-catalog-body');
       const emptyMsg = document.getElementById('ingredients-catalog-empty');
       if (!tbody) return;
       tbody.innerHTML = '';
-      if (!list || list.length === 0) {{
+
+      const regularList = (list || []).filter(i => !i.is_supplement);
+      const supplementList = (list || []).filter(i => i.is_supplement);
+
+      if (regularList.length === 0) {{
         if (emptyMsg) emptyMsg.style.display = 'block';
-        return;
+      }} else {{
+        if (emptyMsg) emptyMsg.style.display = 'none';
+        regularList.forEach(ing => {{
+          const tr = document.createElement('tr');
+          const badge = ing.provisional
+            ? '<span class="badge" style="background:#78350f; color:#fde68a;">Provisional</span>'
+            : '<span class="badge badge-ok">Confirmado</span>';
+          const priceStr = ing.price ? `${{parseFloat(ing.price).toFixed(2)}} €` : '-';
+          tr.innerHTML = `
+            <td><strong>${{escapeHtml(ing.name)}}</strong></td>
+            <td>${{escapeHtml(ing.unit)}}</td>
+            <td>${{ing.kcal || 0}}</td>
+            <td>${{ing.protein || 0}}</td>
+            <td>${{ing.carbs || 0}}</td>
+            <td>${{ing.fat || 0}}</td>
+            <td>${{priceStr}}</td>
+            <td>${{badge}}</td>
+            <td style="white-space: nowrap;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="startEditIngredient(${{ing.id}})">✏️ Editar</button>
+              <button type="button" class="btn btn-secondary btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3); margin-left: 0.35rem;" onclick="deleteIngredient(${{ing.id}}, '${{escapeHtml(ing.name)}}')">🗑️ Eliminar</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        }});
       }}
-      if (emptyMsg) emptyMsg.style.display = 'none';
-      list.forEach(ing => {{
-        const tr = document.createElement('tr');
-        const badge = ing.provisional
-          ? '<span class="badge" style="background:#78350f; color:#fde68a;">Provisional</span>'
-          : '<span class="badge badge-ok">Confirmado</span>';
-        const priceStr = ing.price ? `${{parseFloat(ing.price).toFixed(2)}} €` : '-';
-        tr.innerHTML = `
-          <td><strong>${{escapeHtml(ing.name)}}</strong></td>
-          <td>${{escapeHtml(ing.unit)}}</td>
-          <td>${{ing.kcal || 0}}</td>
-          <td>${{ing.protein || 0}}</td>
-          <td>${{ing.carbs || 0}}</td>
-          <td>${{ing.fat || 0}}</td>
-          <td>${{priceStr}}</td>
-          <td>${{badge}}</td>
-          <td style="white-space: nowrap;">
-            <button type="button" class="btn btn-secondary btn-sm" onclick="startEditIngredient(${{ing.id}})">✏️ Editar</button>
-            <button type="button" class="btn btn-secondary btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3); margin-left: 0.35rem;" onclick="deleteIngredient(${{ing.id}}, '${{escapeHtml(ing.name)}}')">🗑️ Eliminar</button>
-          </td>
+
+      if (suppTbody) {{
+        suppTbody.innerHTML = '';
+        const waterTr = document.createElement('tr');
+        waterTr.innerHTML = `
+          <td><strong>💧 Agua (Consumo diario)</strong></td>
+          <td>3 L / día</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>0</td>
+          <td>1.25 €</td>
+          <td><span class="badge badge-info">💧 Agua</span></td>
+          <td style="color: var(--text-muted); font-size: 0.8rem;">Fijo diario</td>
         `;
-        tbody.appendChild(tr);
-      }});
+        suppTbody.appendChild(waterTr);
+
+        supplementList.forEach(ing => {{
+          const tr = document.createElement('tr');
+          const priceStr = ing.price ? `${{parseFloat(ing.price).toFixed(2)}} €` : '-';
+          tr.innerHTML = `
+            <td><strong>💊 ${{escapeHtml(ing.name)}}</strong></td>
+            <td>${{escapeHtml(ing.unit)}}</td>
+            <td>${{ing.kcal || 0}}</td>
+            <td>${{ing.protein || 0}}</td>
+            <td>${{ing.carbs || 0}}</td>
+            <td>${{ing.fat || 0}}</td>
+            <td>${{priceStr}}</td>
+            <td><span class="badge badge-warning">💊 Suplemento</span></td>
+            <td style="white-space: nowrap;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="startEditIngredient(${{ing.id}})">✏️ Editar</button>
+              <button type="button" class="btn btn-secondary btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3); margin-left: 0.35rem;" onclick="deleteIngredient(${{ing.id}}, '${{escapeHtml(ing.name)}}')">🗑️ Eliminar</button>
+            </td>
+          `;
+          suppTbody.appendChild(tr);
+        }});
+      }}
     }}
 
     async function deleteIngredient(id, name) {{
@@ -1101,6 +1186,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       document.getElementById('ing-carbs').value = ing.carbs !== undefined ? ing.carbs : 0;
       document.getElementById('ing-fat').value = ing.fat !== undefined ? ing.fat : 0;
       document.getElementById('ing-price').value = ing.price !== undefined ? ing.price : 0;
+      const suppEl = document.getElementById('ing-is-supplement');
+      if (suppEl) suppEl.checked = !!ing.is_supplement;
 
       document.getElementById('ing-edit-label').textContent = ing.name;
       document.getElementById('ing-edit-id').textContent = id;
@@ -1113,6 +1200,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     function cancelEditIngredient() {{
       editingIngredientId = null;
       document.getElementById('form-ingredient').reset();
+      const suppEl = document.getElementById('ing-is-supplement');
+      if (suppEl) suppEl.checked = false;
       document.getElementById('ing-edit-banner').style.display = 'none';
       document.getElementById('btn-submit-ingredient').textContent = 'Guardar Ingrediente';
       document.getElementById('btn-cancel-ingredient').style.display = 'none';
@@ -1389,6 +1478,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     async function submitIngredient(e) {{
       e.preventDefault();
       const isUpdating = editingIngredientId !== null;
+      const isSupplement = !!document.getElementById('ing-is-supplement')?.checked;
       const payload = {{
         name: document.getElementById('ing-name').value,
         unit: document.getElementById('ing-unit').value,
@@ -1396,7 +1486,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         protein: parseFloat(document.getElementById('ing-protein').value) || 0,
         carbs: parseFloat(document.getElementById('ing-carbs').value) || 0,
         fat: parseFloat(document.getElementById('ing-fat').value) || 0,
-        price: parseFloat(document.getElementById('ing-price').value) || 0
+        price: parseFloat(document.getElementById('ing-price').value) || 0,
+        is_supplement: isSupplement
       }};
       let toolName = 'create_ingredient';
       let prompt = `Crea el ingrediente ${{payload.name}} (${{payload.unit}}): ${{payload.kcal}} kcal, ${{payload.protein}}g P, ${{payload.carbs}}g C, ${{payload.fat}}g G`;
@@ -1490,9 +1581,11 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         if (mealData && mealData.status === 'ok') {{
           renderSummaryNutrition(mealData);
           renderSummaryMeals(mealData.meals || [], mealData.spend || 0);
+          renderSummaryWaterAndSupplements(mealData.water_and_supplements || null, mealData.meals || []);
         }} else {{
           renderSummaryNutrition({{}});
-          renderSummaryMeals([], 0);
+          renderSummaryMeals([], 1.25);
+          renderSummaryWaterAndSupplements(null, []);
         }}
 
         if (woData && woData.status === 'ok') {{
@@ -1637,14 +1730,15 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (!container) return;
       container.innerHTML = '';
 
-      if (!meals || meals.length === 0) {{
+      const regularMeals = (meals || []).filter(m => !m.is_supplement);
+      if (regularMeals.length === 0) {{
         if (emptyMsg) emptyMsg.style.display = 'block';
         return;
       }}
       if (emptyMsg) emptyMsg.style.display = 'none';
 
       MEAL_TYPE_SECTIONS.forEach(sec => {{
-        const typeMeals = meals.filter(m => {{
+        const typeMeals = regularMeals.filter(m => {{
           const mt = (m.meal_type || (m.entry && m.entry.meal_type) || 'tentempie').toLowerCase();
           return mt === sec.key;
         }});
@@ -1721,6 +1815,100 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         `;
         container.appendChild(block);
       }});
+    }}
+
+    function renderSummaryWaterAndSupplements(waterAndSupplements, allMeals) {{
+      const container = document.getElementById('summary-water-supplements-container');
+      const badge = document.getElementById('summary-water-supplements-badge');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const supplements = (waterAndSupplements && waterAndSupplements.supplements)
+        ? waterAndSupplements.supplements
+        : (allMeals || []).filter(m => m.is_supplement);
+
+      let totalKcal = 0;
+      let totalP = 0;
+      let totalC = 0;
+      let totalF = 0;
+      let totalSpend = 1.25;
+
+      let rowsHtml = `
+        <tr>
+          <td><strong>💧 Agua (Consumo diario)</strong></td>
+          <td>3 L</td>
+          <td>0</td>
+          <td>0g / 0g / 0g</td>
+          <td>1.25 €</td>
+          <td><span class="badge badge-info">Fijo diario</span></td>
+        </tr>
+      `;
+
+      supplements.forEach(m => {{
+        const entryId = m.entry ? m.entry.id : m.id;
+        const name = m.name || (m.entry && (m.entry.item_name || m.entry.item_type)) || 'Suplemento';
+        const qty = m.quantity || (m.entry && m.entry.quantity) || 0;
+        const unit = m.unit || (m.entry && m.entry.unit) || 'gr';
+        const price = m.price ? `${{parseFloat(m.price).toFixed(2)}} €` : '-';
+        const kcal = m.kcal || 0;
+        const p = m.protein || 0;
+        const c = m.carbs || 0;
+        const f = m.fat || 0;
+
+        totalKcal += kcal;
+        totalP += p;
+        totalC += c;
+        totalF += f;
+        if (m.price) totalSpend += parseFloat(m.price);
+
+        const deleteBtn = entryId
+          ? `<button type="button" class="btn btn-secondary btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3);" onclick="deleteMeal(${{entryId}}, '${{escapeHtml(name)}}')">🗑️ Eliminar</button>`
+          : '-';
+
+        rowsHtml += `
+          <tr>
+            <td><strong>💊 ${{escapeHtml(name)}}</strong></td>
+            <td>${{qty}} ${{escapeHtml(unit)}}</td>
+            <td>${{kcal}}</td>
+            <td>${{p}}g / ${{c}}g / ${{f}}g</td>
+            <td>${{price}}</td>
+            <td>${{deleteBtn}}</td>
+          </tr>
+        `;
+      }});
+
+      if (badge) {{
+        badge.textContent = `Subtotal: ${{totalSpend.toFixed(2)}} €`;
+      }}
+
+      const block = document.createElement('div');
+      block.style.cssText = 'background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px;';
+      block.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
+          <div style="font-weight: 700; color: var(--cyan); font-size: 0.95rem;">💧💊 Agua (3L) y Suplementos <span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">(${{1 + supplements.length}})</span></div>
+          <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">
+            <span style="color: var(--primary); font-weight: 700;">${{Math.round(totalKcal * 10) / 10}} kcal</span> • P: ${{Math.round(totalP * 10) / 10}}g | C: ${{Math.round(totalC * 10) / 10}}g | G: ${{Math.round(totalF * 10) / 10}}g • ${{totalSpend.toFixed(2)}} €
+          </div>
+        </div>
+        <div class="table-container" style="margin-top: 4px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Elemento</th>
+                <th>Cantidad</th>
+                <th>Kcal</th>
+                <th>P / C / G</th>
+                <th>Precio</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${{rowsHtml}}
+            </tbody>
+          </table>
+        </div>
+      `;
+      container.appendChild(block);
     }}
 
     async function deleteMeal(entryId, name) {{

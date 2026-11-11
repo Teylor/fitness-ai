@@ -46,6 +46,7 @@ class Ingredient(BaseModel):
     carbs = FloatField(default=0)
     fat = FloatField(default=0)
     price = FloatField(default=0)
+    is_supplement = BooleanField(default=False)
     provisional = BooleanField(default=False)
     created_at = DateTimeField(default=SQL("datetime('now')"))
     updated_at = DateTimeField(default=SQL("datetime('now')"))

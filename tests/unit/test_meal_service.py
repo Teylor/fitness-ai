@@ -97,7 +97,8 @@ def test_get_day_summary(db, meal_service, ingredient_service, goal_service):
     summary = meal_service.get_day_summary("10-05-2026")
 
     assert summary["consumed"] == {"kcal": 720.0, "protein": 14.0, "carbs": 156.0, "fat": 1.2}
-    assert summary["spend"] == 0.18
+    # 0.18 (rice) + 1.25 (3L daily water) = 1.43
+    assert summary["spend"] == 1.43
     assert summary["goal"]["date"] == "10-05-2026"
     assert summary["goal"]["kcal"] == 2500
     assert summary["remaining"] == {
@@ -109,6 +110,8 @@ def test_get_day_summary(db, meal_service, ingredient_service, goal_service):
     assert len(summary["meals"]) == 1
     assert summary["meals"][0]["kcal"] == 720.0
     assert summary["meals"][0]["price"] == 0.18
+    assert summary["water_and_supplements"]["water"]["quantity"] == 3.0
+    assert summary["water_and_supplements"]["water"]["price"] == 1.25
 
 
 def test_get_day_summary_no_goal_uses_default(db, meal_service, goal_service):
@@ -119,10 +122,11 @@ def test_get_day_summary_no_goal_uses_default(db, meal_service, goal_service):
     summary = meal_service.get_day_summary("10-05-2026")
 
     assert summary["consumed"] == {"kcal": 0, "protein": 0, "carbs": 0, "fat": 0}
-    assert summary["spend"] == 0
+    assert summary["spend"] == 1.25
     assert summary["goal"]["kcal"] == 2000
     assert summary["remaining"]["kcal"] == 2000
     assert summary["meals"] == []
+    assert summary["water_and_supplements"]["spend"] == 1.25
 
 
 def test_delete_meal_entry(db, meal_service, ingredient_service):
@@ -220,3 +224,96 @@ def test_get_day_summary_groups_by_meal_type(db, meal_service, ingredient_servic
 
     assert len(by_type["cena"]["meals"]) == 0
     assert by_type["cena"]["kcal"] == 0.0
+
+
+def test_get_day_summary_separates_supplements_and_includes_daily_water(
+    db, meal_service, ingredient_service
+):
+    from src.services.goal_service import GoalService
+
+    GoalService().set_default(
+        DailyGoal(date="01-01-2026", kcal=2000, protein=150, carbs=200, fat=60)
+    )
+    banana = ingredient_service.create(
+        Ingredient(name="banana", unit="u", kcal=105, protein=1.3, carbs=27, fat=0.3, price=0.4)
+    )
+    creatine = ingredient_service.create(
+        Ingredient(
+            name="Creatina",
+            unit="gr",
+            kcal=0,
+            protein=0,
+            carbs=0,
+            fat=0,
+            price=30.0,  # per 1kg -> 5g = 0.15€
+            is_supplement=True,
+        )
+    )
+    omega3 = ingredient_service.create(
+        Ingredient(
+            name="Omega 3",
+            unit="u",
+            kcal=18,
+            protein=0,
+            carbs=0,
+            fat=2.0,
+            price=0.20,
+            is_supplement=True,
+        )
+    )
+
+    meal_service.register(
+        MealEntry(
+            date="16-05-2026",
+            item_type="ingredient",
+            item_id=banana.id,
+            quantity=1,
+            unit="u",
+            meal_type="desayuno",
+        )
+    )
+    meal_service.register(
+        MealEntry(
+            date="16-05-2026",
+            item_type="ingredient",
+            item_id=creatine.id,
+            quantity=5,
+            unit="gr",
+            meal_type="desayuno",
+        )
+    )
+    meal_service.register(
+        MealEntry(
+            date="16-05-2026",
+            item_type="ingredient",
+            item_id=omega3.id,
+            quantity=2,
+            unit="u",
+            meal_type="comida",
+        )
+    )
+
+    summary = meal_service.get_day_summary("16-05-2026")
+    # Consumed includes banana (105 kcal, 0.3g fat) + 2x Omega 3 (36 kcal, 4g fat)
+    assert summary["consumed"]["kcal"] == 141.0
+    assert summary["consumed"]["fat"] == 4.3
+
+    # Regular meals_by_type only contains banana (supplements excluded)
+    assert len(summary["meals_by_type"]["desayuno"]["meals"]) == 1
+    assert summary["meals_by_type"]["desayuno"]["meals"][0]["name"] == "banana"
+    assert len(summary["meals_by_type"]["comida"]["meals"]) == 0
+
+    # Water and supplements section contains 3L water @ 1.25€ + Creatina + Omega 3
+    ws = summary["water_and_supplements"]
+    assert ws["water"]["quantity"] == 3.0
+    assert ws["water"]["price"] == 1.25
+    assert len(ws["supplements"]) == 2
+    assert {s["name"] for s in ws["supplements"]} == {"Creatina", "Omega 3"}
+    assert ws["kcal"] == 36.0
+    assert ws["fat"] == 4.0
+    # 1.25 (water) + 0.15 (5g creatine) + 0.40 (2x omega3) = 1.80
+    assert ws["spend"] == 1.80
+
+    # Total daily spend = 0.40 (banana) + 1.80 (water + supplements) = 2.20
+    assert summary["spend"] == 2.20
+

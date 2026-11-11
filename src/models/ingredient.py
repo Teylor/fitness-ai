@@ -16,6 +16,7 @@ class Ingredient:
     carbs: float = 0.0
     fat: float = 0.0
     price: float = 0.0
+    is_supplement: bool = False
     provisional: bool = False
     id: Optional[int] = None
     created_at: Optional[str] = None

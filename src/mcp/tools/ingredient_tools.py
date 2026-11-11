@@ -16,6 +16,7 @@ def create_ingredient(
     carbs: float = 0,
     fat: float = 0,
     price: float = 0,
+    is_supplement: bool = False,
     provisional: bool = False,
 ) -> dict:
     """Create a new ingredient or return the existing one if duplicate (idempotent)."""
@@ -30,6 +31,7 @@ def create_ingredient(
                 carbs=carbs,
                 fat=fat,
                 price=price,
+                is_supplement=bool(is_supplement),
                 provisional=provisional,
             )
         )
@@ -54,6 +56,7 @@ def update_ingredient(
     carbs: float = None,
     fat: float = None,
     price: float = None,
+    is_supplement: bool = None,
     provisional: bool = None,
 ) -> dict:
     """Update fields on an existing ingredient."""
@@ -73,6 +76,8 @@ def update_ingredient(
         fields["fat"] = fat
     if price is not None:
         fields["price"] = price
+    if is_supplement is not None:
+        fields["is_supplement"] = bool(is_supplement)
     if provisional is not None:
         fields["provisional"] = provisional
 

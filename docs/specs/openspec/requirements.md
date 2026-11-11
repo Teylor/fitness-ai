@@ -51,6 +51,7 @@ The system runs 24/7 on a local PC (server mode). An AI agent (Hermes Agent) con
   - **opaque**: carry direct `price` / macro values.
 - **FR1.4** Duplicate creation is prevented by normalized name (case- and accent-insensitive): ingredients unique by `(name, unit)`, recipes by `name`. Creation tools are **idempotent** — a duplicate returns the existing item as success, not an error.
 - **FR1.5** An ingredient in use by a recipe cannot be deleted (conflict).
+- **FR1.6** Ingredients support a boolean flag `is_supplement` (default `false`) to distinguish supplements (e.g., Creatine, Omega 3) from culinary ingredients.
 
 ### FR2 — Meal logging
 
@@ -60,6 +61,7 @@ The system runs 24/7 on a local PC (server mode). An AI agent (Hermes Agent) con
 - **FR2.4** The day summary reports: consumed macros, total spend, the applicable goal, remaining macros (goal − consumed), the per-meal breakdown with each meal's computed macros, and grouped subtotals by `meal_type`.
 - **FR2.5** Macros of a compound recipe are applied as `stored_value × quantity` (recipe values act as a per-unit multiplier); ingredient macros scale per the unit convention (see `api-spec.md`).
 - **FR2.6** Meals support a category `meal_type` (`desayuno`, `comida`, `merienda`, `cena`, `tentempie`, defaulting to `tentempie`). Both MCP registration and the Web UI allow selecting the meal type.
+- **FR2.7** Every day includes a fixed daily water intake of **3L at 1.25€** (`water_and_supplements.water`), added to the daily `spend`. Supplements (`is_supplement = true`) and the 3L daily water are grouped into a dedicated **"Agua y Suplementos"** section in both the Ingredients Catalog and the Daily Summary.
 
 ### FR3 — Daily goals
 
