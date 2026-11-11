@@ -30,6 +30,7 @@
 
 | Priority | Feature | Description | Reference |
 |:---:|---------|-------------|-----------|
+| `P1` | `sync-optimization` | Optimize Google Health synchronization performance, pagination, and incremental sync windows | — |
 | `P1` | `google-health-ui-data-mismatch` | Fix discrepancy between UI displayed metrics and Google Health synchronized data | — |
 | `P3` | `android-apk-remote-access` | Package dashboard into Android APK (Capacitor/PWA) and enable remote API access via Cloudflare Tunnel / Tailscale | [ADR-003](docs/architecture/ssd-decisions.md#adr-003-mobile-access-strategy-android-apk--remote-api) |
 
@@ -46,6 +47,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `fix-steps` | `odd/tasks/fix-steps.md` | 2026-11 |
 | `supplements-and-water` | `odd/tasks/supplements-and-water.md` | 2026-11 |
 | `ui-exercises-prs` | `odd/tasks/ui-exercises-prs.md` | 2026-11 |
 | `meal-types` | `odd/tasks/meal-types.md` | 2026-11 |
