@@ -484,6 +484,74 @@ async def test_ui_exercises_tab_and_prs_integration(db):
         assert press["pr"]["estimated_1rm"] == 26.7
 
 
+@pytest.mark.anyio
+async def test_ui_supplements_and_water_integration(db):
+    server = create_server()
+    app = server.streamable_http_app()
+    transport = httpx2.ASGITransport(app=app)
+
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
+        # 1. Verify UI HTML has supplement checkbox and Agua y Suplementos sections
+        ui_res = await client.get("/ui/ingredient")
+        assert ui_res.status_code == 200
+        assert 'id="ing-is-supplement"' in ui_res.text
+        assert "Agua y Suplementos" in ui_res.text
+        assert "supplements-catalog-table" in ui_res.text
+        assert "summary-water-supplements-container" in ui_res.text
+
+        # 2. Set daily goal
+        await client.post(
+            "/api/set_daily_goal",
+            json={"date": "20-05-2026", "kcal": 2000.0, "protein": 150.0, "carbs": 200.0, "fat": 60.0},
+        )
+
+        # 3. Create supplement ingredient
+        supp_res = await client.post(
+            "/api/create_ingredient",
+            json={
+                "name": "Creatina",
+                "unit": "gr",
+                "kcal": 0.0,
+                "protein": 0.0,
+                "carbs": 0.0,
+                "fat": 0.0,
+                "price": 30.0,
+                "is_supplement": True,
+            },
+        )
+        assert supp_res.status_code == 200
+        assert supp_res.json()["ingredient"]["is_supplement"] is True
+
+        # 4. Log supplement meal entry
+        meal_res = await client.post(
+            "/api/register_meal",
+            json={
+                "item_name": "Creatina",
+                "quantity": 5,
+                "unit": "gr",
+                "item_type": "ingredient",
+                "date": "20-05-2026",
+            },
+        )
+        assert meal_res.status_code == 200
+
+        # 5. Verify day summary includes water (3L, 1.25€) and supplement
+        sum_res = await client.get("/api/get_day_summary?date=20-05-2026")
+        assert sum_res.status_code == 200
+        sum_data = sum_res.json()
+        assert sum_data["status"] == "ok"
+        assert "water_and_supplements" in sum_data
+        ws = sum_data["water_and_supplements"]
+        assert ws["water"]["quantity"] == 3.0
+        assert ws["water"]["price"] == 1.25
+        assert len(ws["supplements"]) == 1
+        assert ws["supplements"][0]["name"] == "Creatina"
+        # 1.25 (water) + 0.15 (5g of 3.0€/100g creatine) = 1.40
+        assert ws["spend"] == 1.40
+        assert sum_data["spend"] == 1.40
+
+
+
 
 
 

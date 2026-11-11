@@ -16,6 +16,8 @@ from src.utils.macros import calc_ingredient_macros
 ITEM_TYPES = ("ingredient", "recipe")
 MACRO_KEYS = ("kcal", "protein", "carbs", "fat")
 ALLOWED_MEAL_TYPES = ("desayuno", "comida", "merienda", "cena", "tentempie")
+DAILY_WATER_LITERS = 3.0
+DAILY_WATER_PRICE = 1.25
 
 
 class MealService:
@@ -72,15 +74,22 @@ class MealService:
                 )
             res = calc_ingredient_macros(item, row.quantity)
             res["name"] = item.name
+            res["is_supplement"] = bool(getattr(item, "is_supplement", False))
             return res
         item = RecipeModel.get_by_id(row.item_id)
         if item is None:
-            return {**{key: 0.0 for key in MACRO_KEYS}, "price": 0.0, "name": f"recipe-{row.item_id}"}
+            return {
+                **{key: 0.0 for key in MACRO_KEYS},
+                "price": 0.0,
+                "name": f"recipe-{row.item_id}",
+                "is_supplement": False,
+            }
         res = {
             key: round((getattr(item, key) or 0.0) * row.quantity, 2)
             for key in MACRO_KEYS
         } | {"price": round((item.price or 0.0) * row.quantity, 2)}
         res["name"] = item.name
+        res["is_supplement"] = False
         return res
 
     def register(self, entry: MealEntry) -> MealEntry:
@@ -123,14 +132,14 @@ class MealService:
         return meals
 
     def get_day_summary(self, date: str) -> dict:
-        """Day summary: consumed, goal, remaining, spend, individual meals, and meals by type."""
+        """Day summary: consumed, goal, remaining, spend, individual meals, meals by type, and water/supplements."""
         meals = self.get_day_entries(date)
         consumed = {
             key: round(sum(m[key] for m in meals), 2) for key in MACRO_KEYS
         }
-        spend = round(sum(m["price"] for m in meals), 2)
+        spend = round(sum(m["price"] for m in meals) + DAILY_WATER_PRICE, 2)
 
-        # Categorize meals by meal_type
+        # Categorize regular meals by meal_type (excluding supplements)
         meals_by_type = {
             mt: {
                 "meals": [],
@@ -142,7 +151,11 @@ class MealService:
             }
             for mt in ALLOWED_MEAL_TYPES
         }
+        supplement_meals = []
         for m in meals:
+            if m.get("is_supplement"):
+                supplement_meals.append(m)
+                continue
             mt = m.get("meal_type") or m["entry"].get("meal_type", "tentempie")
             if mt not in meals_by_type:
                 meals_by_type[mt] = {
@@ -157,6 +170,27 @@ class MealService:
             for key in MACRO_KEYS:
                 meals_by_type[mt][key] = round(meals_by_type[mt][key] + m[key], 2)
             meals_by_type[mt]["spend"] = round(meals_by_type[mt]["spend"] + m.get("price", 0.0), 2)
+
+        water_and_supplements = {
+            "water": {
+                "name": "Agua (3L)",
+                "quantity": DAILY_WATER_LITERS,
+                "unit": "L",
+                "price": DAILY_WATER_PRICE,
+                "kcal": 0.0,
+                "protein": 0.0,
+                "carbs": 0.0,
+                "fat": 0.0,
+            },
+            "supplements": supplement_meals,
+            "kcal": round(sum(m["kcal"] for m in supplement_meals), 2),
+            "protein": round(sum(m["protein"] for m in supplement_meals), 2),
+            "carbs": round(sum(m["carbs"] for m in supplement_meals), 2),
+            "fat": round(sum(m["fat"] for m in supplement_meals), 2),
+            "spend": round(
+                DAILY_WATER_PRICE + sum(m.get("price", 0.0) for m in supplement_meals), 2
+            ),
+        }
 
         goal_row = GoalService().get_goal(date)
         goal = {
@@ -174,6 +208,7 @@ class MealService:
             "remaining": remaining,
             "meals": meals,
             "meals_by_type": meals_by_type,
+            "water_and_supplements": water_and_supplements,
         }
 
     def update(self, entry_id: int, **fields) -> MealEntry:

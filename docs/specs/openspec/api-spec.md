@@ -67,10 +67,11 @@ Create an ingredient; a duplicate (same normalized `name`+`unit`) returns the ex
 | `carbs` | float | | `0` | carbs per unit (g) |
 | `fat` | float | | `0` | fat per unit (g) |
 | `price` | float | | `0` | price per unit |
+| `is_supplement` | bool | | `False` | mark ingredient as a supplement (Creatine, Omega 3, etc.) |
 | `provisional` | bool | | `False` | mark data as unverified |
 
 ```json
-{"status": "ok", "ingredient": {"id": 1, "name": "chicken breast", "unit": "gr", "kcal": 1.2, "protein": 0.23, "carbs": 0.0, "fat": 0.03, "price": 0.004, "provisional": false, "created_at": "2026-11-09 08:00:00", "updated_at": "2026-11-09 08:00:00"}}
+{"status": "ok", "ingredient": {"id": 1, "name": "chicken breast", "unit": "gr", "kcal": 1.2, "protein": 0.23, "carbs": 0.0, "fat": 0.03, "price": 0.004, "is_supplement": false, "provisional": false, "created_at": "2026-11-09 08:00:00", "updated_at": "2026-11-09 08:00:00"}}
 ```
 
 Errors: `invalid_input` (bad unit), `internal`.
@@ -82,7 +83,7 @@ Update any subset of an ingredient's fields (all optional; at least one expected
 | Arg | Type | Req | Default | Description |
 |---|---|---|---|---|
 | `ingredient_id` | int | ✔ | — | Ingredient to update |
-| `name`, `unit`, `kcal`, `protein`, `carbs`, `fat`, `price`, `provisional` | … | | `null` | Only the provided fields change |
+| `name`, `unit`, `kcal`, `protein`, `carbs`, `fat`, `price`, `is_supplement`, `provisional` | … | | `null` | Only the provided fields change |
 
 ```json
 {"status": "ok", "ingredient": {"id": 1, "name": "chicken breast", "unit": "gr", "...": "..."}}

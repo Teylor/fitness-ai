@@ -27,6 +27,7 @@ class IngredientService:
             carbs=ingredient.carbs or 0,
             fat=ingredient.fat or 0,
             price=ingredient.price or 0,
+            is_supplement=bool(ingredient.is_supplement),
             provisional=ingredient.provisional,
         )
         return self._to_domain(row)
@@ -122,6 +123,7 @@ class IngredientService:
             carbs=row.carbs,
             fat=row.fat,
             price=row.price,
+            is_supplement=bool(getattr(row, "is_supplement", False)),
             provisional=row.provisional,
             created_at=str(row.created_at) if row.created_at is not None else None,
             updated_at=str(row.updated_at) if row.updated_at is not None else None,
