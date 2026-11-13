@@ -29,3 +29,4 @@
 ## 5. Verification
 - **Tests**: Full pytest suite passing (`189 passed`).
 - **Asset sizes**: `favicon.ico` (16/32/48px), `favicon-32x32.png` (32x32px), and `apple-touch-icon.png` (180x180px) served with HTTP 200.
+
