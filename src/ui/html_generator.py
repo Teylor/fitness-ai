@@ -615,6 +615,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             <option value="core">Core</option>
             <option value="cardio">Cardio</option>
             <option value="unknown">Otros</option>
+          
           </select>
           <button type="button" class="btn btn-secondary btn-sm" onclick="fetchExercisesList()">🔄 Actualizar</button>
           <button type="button" class="btn btn-primary btn-sm" onclick="toggleNewExerciseForm()">+ Nuevo Ejercicio</button>
@@ -641,6 +642,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
                 <option value="brazos">
                 <option value="core">
                 <option value="cardio">
+              
               </datalist>
             </div>
             <div class="form-group">
@@ -670,6 +672,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
               <th>Tipo</th>
               <th style="min-width: 140px;">1RM Estimado (PR)</th>
               <th style="min-width: 180px;">Récord de Peso (Max Set)</th>
+              <th style="min-width: 260px;">Editar</th>
             </tr>
           </thead>
           <tbody id="exercises-catalog-body">
@@ -1376,7 +1379,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           updateExerciseDatalist();
         }}
       }} catch (err) {{
-        tbody.innerHTML = `<tr><td colspan="5" style="color: var(--text-muted); text-align: center;">No se pudo conectar con el catálogo de ejercicios (${{err.message}}).</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="color: var(--text-muted); text-align: center;">No se pudo conectar con el catálogo de ejercicios (${{err.message}}).</td></tr>`;
       }}
     }}
 
@@ -1392,6 +1395,18 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         const opt = document.createElement('option');
         opt.value = ex.name;
         dl.appendChild(opt);
+      }});
+      let gdl = document.getElementById('muscle-group-datalist');
+      if (!gdl) {{
+        gdl = document.createElement('datalist');
+        gdl.id = 'muscle-group-datalist';
+        document.body.appendChild(gdl);
+      }}
+      gdl.innerHTML = '';
+      groups.forEach(g => {{
+        const opt = document.createElement('option');
+        opt.value = g;
+        gdl.appendChild(opt);
       }});
     }}
 
@@ -1453,12 +1468,24 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           }}
         }}
 
+        const muscleValue = (ex.muscle_group || 'unknown');
         tr.innerHTML = `
           <td><strong style="color: var(--text); font-size: 0.95rem;">${{escapeHtml(ex.name)}}</strong></td>
           <td><span class="badge" style="background: #334155; color: #cbd5e1; text-transform: capitalize;">${{escapeHtml(muscle)}}</span></td>
           <td>${{typeBadge}}</td>
           <td>${{prHtml}}</td>
           <td>${{maxWeightHtml}}</td>
+          <td>
+            <div style="display: flex; gap: 4px; align-items: center;">
+              <input type="text" class="ex-edit-muscle" list="muscle-group-datalist" value="${{escapeHtml(muscleValue)}}" placeholder="Grupo muscular" style="width: 100px; padding: 4px 6px; font-size: 0.8rem;">
+              <select class="ex-edit-type" style="padding: 4px 6px; font-size: 0.8rem;">
+                <option value="weight_reps"${{ex.type === 'weight_reps' ? ' selected' : ''}}>Peso/Reps</option>
+                <option value="time"${{ex.type === 'time' ? ' selected' : ''}}>Tiempo</option>
+                <option value="distance"${{ex.type === 'distance' ? ' selected' : ''}}>Distancia</option>
+              </select>
+              <button type="button" class="btn btn-sm btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="saveExerciseEdit(${{ex.id}}, this)">💾</button>
+            </div>
+          </td>
         `;
         tbody.appendChild(tr);
       }});
@@ -1473,6 +1500,41 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (show) {{
         document.getElementById('new-exercise-name')?.focus();
       }}
+    }}
+
+    async function saveExerciseEdit(exerciseId, btn) {{
+      const tr = btn ? btn.closest('tr') : null;
+      if (!tr) return;
+      const muscleInput = tr.querySelector('.ex-edit-muscle');
+      const typeSelect = tr.querySelector('.ex-edit-type');
+      const payload = {{
+        exercise_id: exerciseId,
+        muscle_group: (muscleInput ? muscleInput.value.trim() : '') || 'unknown',
+        type: typeSelect ? typeSelect.value : 'weight_reps'
+      }};
+      const original = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '...';
+      try {{
+        const resp = await fetch('/api/update_exercise', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify(payload)
+        }});
+        const data = await resp.json();
+        if (data.status === 'ok') {{
+          btn.textContent = '✅';
+          await fetchExercisesList();
+        }} else {{
+          btn.textContent = '❌';
+        }}
+      }} catch (err) {{
+        btn.textContent = '❌';
+      }}
+      setTimeout(() => {{
+        btn.textContent = original;
+        btn.disabled = false;
+      }}, 1500);
     }}
 
     async function submitNewExercise(e) {{
