@@ -841,7 +841,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
     // Dynamic Workout Exercises & Sets
     let exerciseCount = 0;
-    function addExerciseBlock(name = 'Press de Banca') {{
+    function addExerciseBlock(name = '') {{
       exerciseCount++;
       const id = 'ex-' + exerciseCount;
       const container = document.getElementById('workout-exercises-container');
@@ -898,7 +898,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         tr.querySelector('.set-num').textContent = idx + 1;
       }});
     }}
-    addExerciseBlock('Press de Banca');
+    addExerciseBlock();
 
     // Universal Dispatch & Result Display
     async function executeAction(toolName, payload, resultElementId, promptDescription) {{
