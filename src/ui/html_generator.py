@@ -694,7 +694,37 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       <div id="summary-cards" style="display: flex; flex-direction: column; gap: 20px;">
         <!-- 1. Macro Goals, Consumed & Remaining -->
         <div>
-          <h3 style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">🎯 Objetivos vs Consumido vs Restante</h3>
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+            <h3 style="font-size: 0.95rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">🎯 Objetivos vs Consumido vs Restante</h3>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-day-off" onclick="toggleDayOffUI()" title="Alternar entre objetivos de Día de Entreno y Day Off">🏋️ Día Entreno</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-config-goals" onclick="toggleGoalProfilesPanel()">⚙️ Objetivos</button>
+            </div>
+          </div>
+          <div id="goal-profiles-panel" style="display: none; background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 12px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+              <form id="form-goal-training" onsubmit="saveGoalProfile(event, false)" style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="font-weight: 700; font-size: 0.85rem; color: var(--primary);">🏋️ Objetivo Día de Entreno (Default)</div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                  <div><label style="font-size: 0.72rem;">Kcal</label><input type="number" id="goal-tr-kcal" step="any" min="0" required placeholder="2500"></div>
+                  <div><label style="font-size: 0.72rem;">Proteína (g)</label><input type="number" id="goal-tr-protein" step="any" min="0" required placeholder="180"></div>
+                  <div><label style="font-size: 0.72rem;">Carbs (g)</label><input type="number" id="goal-tr-carbs" step="any" min="0" required placeholder="280"></div>
+                  <div><label style="font-size: 0.72rem;">Grasas (g)</label><input type="number" id="goal-tr-fat" step="any" min="0" required placeholder="70"></div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm" style="align-self: flex-start;">Guardar Entreno</button>
+              </form>
+              <form id="form-goal-dayoff" onsubmit="saveGoalProfile(event, true)" style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="font-weight: 700; font-size: 0.85rem; color: var(--warning);">🏖️ Objetivo Day Off (Descanso)</div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                  <div><label style="font-size: 0.72rem;">Kcal</label><input type="number" id="goal-off-kcal" step="any" min="0" required placeholder="2100"></div>
+                  <div><label style="font-size: 0.72rem;">Proteína (g)</label><input type="number" id="goal-off-protein" step="any" min="0" required placeholder="180"></div>
+                  <div><label style="font-size: 0.72rem;">Carbs (g)</label><input type="number" id="goal-off-carbs" step="any" min="0" required placeholder="180"></div>
+                  <div><label style="font-size: 0.72rem;">Grasas (g)</label><input type="number" id="goal-off-fat" step="any" min="0" required placeholder="70"></div>
+                </div>
+                <button type="submit" class="btn btn-secondary btn-sm" style="align-self: flex-start; border-color: var(--warning); color: #fcd34d;">Guardar Day Off</button>
+              </form>
+            </div>
+          </div>
           <div class="macro-preview" id="summary-macros" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));"></div>
         </div>
 
@@ -1585,6 +1615,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
         if (mealData && mealData.status === 'ok') {{
           renderSummaryNutrition(mealData);
+          populateGoalProfiles(mealData.goal_profiles || null);
           renderSummaryMeals(mealData.meals || [], mealData.spend || 0);
           renderSummaryWaterAndSupplements(mealData.water_and_supplements || null, mealData.meals || []);
         }} else {{
@@ -1614,9 +1645,113 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       }}
     }}
 
+    let currentSummaryIsDayOff = false;
+
+    function toggleGoalProfilesPanel(force) {{
+      const panel = document.getElementById('goal-profiles-panel');
+      if (!panel) return;
+      const show = force !== undefined ? force : panel.style.display === 'none';
+      panel.style.display = show ? 'block' : 'none';
+    }}
+
+    function populateGoalProfiles(profiles) {{
+      if (!profiles) return;
+      const tr = profiles.training_default;
+      if (tr) {{
+        const k = document.getElementById('goal-tr-kcal');
+        const p = document.getElementById('goal-tr-protein');
+        const c = document.getElementById('goal-tr-carbs');
+        const f = document.getElementById('goal-tr-fat');
+        if (k && tr.kcal !== undefined) k.value = tr.kcal;
+        if (p && tr.protein !== undefined) p.value = tr.protein;
+        if (c && tr.carbs !== undefined) c.value = tr.carbs;
+        if (f && tr.fat !== undefined) f.value = tr.fat;
+      }}
+      const off = profiles.day_off_default;
+      if (off) {{
+        const k = document.getElementById('goal-off-kcal');
+        const p = document.getElementById('goal-off-protein');
+        const c = document.getElementById('goal-off-carbs');
+        const f = document.getElementById('goal-off-fat');
+        if (k && off.kcal !== undefined) k.value = off.kcal;
+        if (p && off.protein !== undefined) p.value = off.protein;
+        if (c && off.carbs !== undefined) c.value = off.carbs;
+        if (f && off.fat !== undefined) f.value = off.fat;
+      }}
+    }}
+
+    async function saveGoalProfile(e, isDayOff) {{
+      e.preventDefault();
+      const prefix = isDayOff ? 'goal-off' : 'goal-tr';
+      const payload = {{
+        kcal: parseFloat(document.getElementById(`${{prefix}}-kcal`).value) || 0,
+        protein: parseFloat(document.getElementById(`${{prefix}}-protein`).value) || 0,
+        carbs: parseFloat(document.getElementById(`${{prefix}}-carbs`).value) || 0,
+        fat: parseFloat(document.getElementById(`${{prefix}}-fat`).value) || 0,
+        default: !isDayOff,
+        day_off_default: isDayOff
+      }};
+      try {{
+        const res = await fetch('/api/set_daily_goal', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify(payload)
+        }});
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          showToast(isDayOff ? '🏖️ Objetivo Day Off guardado.' : '🏋️ Objetivo Día de Entreno guardado.', 'ok');
+          await fetchSummary();
+        }} else {{
+          showToast(data.message || 'Error al guardar objetivos', 'error');
+        }}
+      }} catch (err) {{
+        showToast(`Error de conexión: ${{err.message}}`, 'error');
+      }}
+    }}
+
+    async function toggleDayOffUI() {{
+      const rawDate = document.getElementById('summary-date').value;
+      const date = toBackendDate(rawDate) || toBackendDate(formatTodayIso(false));
+      const targetState = !currentSummaryIsDayOff;
+      try {{
+        const res = await fetch('/api/toggle_day_off', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ date: date, is_day_off: targetState }})
+        }});
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          showToast(data.is_day_off ? `🏖️ Day Off activado para ${{date}}` : `🏋️ Día de Entreno activado para ${{date}}`, 'ok');
+          await fetchSummary();
+        }} else if (data.code === 'not_found') {{
+          toggleGoalProfilesPanel(true);
+          showToast('Configura primero tus objetivos de Day Off en el panel superior.', 'info');
+        }} else {{
+          showToast(data.message || 'Error al cambiar modo Day Off', 'error');
+        }}
+      }} catch (err) {{
+        showToast(`Error de conexión: ${{err.message}}`, 'error');
+      }}
+    }}
+
     function renderSummaryNutrition(data) {{
       const c = data.consumed || {{ kcal: 0, protein: 0, carbs: 0, fat: 0 }};
       const g = data.goal || {{ kcal: 0, protein: 0, carbs: 0, fat: 0 }};
+      currentSummaryIsDayOff = !!g.is_day_off;
+      const toggleBtn = document.getElementById('btn-toggle-day-off');
+      if (toggleBtn) {{
+        if (currentSummaryIsDayOff) {{
+          toggleBtn.innerHTML = '🏖️ Day Off';
+          toggleBtn.style.background = 'rgba(245, 158, 11, 0.2)';
+          toggleBtn.style.borderColor = 'var(--warning)';
+          toggleBtn.style.color = '#fcd34d';
+        }} else {{
+          toggleBtn.innerHTML = '🏋️ Día Entreno';
+          toggleBtn.style.background = '';
+          toggleBtn.style.borderColor = '';
+          toggleBtn.style.color = '';
+        }}
+      }}
       const rem = data.remaining || {{
         kcal: Math.round(((g.kcal || 0) - c.kcal) * 10) / 10,
         protein: Math.round(((g.protein || 0) - c.protein) * 10) / 10,
