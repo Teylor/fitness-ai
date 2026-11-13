@@ -8,7 +8,11 @@ from mcp.server.mcpserver import MCPServer
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, Response
 
-from src.mcp.tools.exercise_tools import create_exercise, list_exercises
+from src.mcp.tools.exercise_tools import (
+    create_exercise,
+    list_exercises,
+    update_exercise,
+)
 from src.mcp.tools.goal_tools import get_daily_goal, set_daily_goal, toggle_day_off
 from src.mcp.tools.ingredient_tools import (
     create_ingredient,
@@ -74,9 +78,10 @@ def create_server() -> MCPServer:
     server.add_tool(get_personal_record, name="get_personal_record")
     server.add_tool(get_workouts_by_day, name="get_workouts_by_day")
 
-    # Exercise tools (2)
+    # Exercise tools (3)
     server.add_tool(list_exercises, name="list_exercises")
     server.add_tool(create_exercise, name="create_exercise")
+    server.add_tool(update_exercise, name="update_exercise")
 
     # UI tool (1)
     server.add_tool(get_ui_form, name="get_ui_form")

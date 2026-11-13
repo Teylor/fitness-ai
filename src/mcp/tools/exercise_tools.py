@@ -44,6 +44,24 @@ def list_exercises(
         return {"status": "error", "code": "internal", "message": str(exc)}
 
 
+def update_exercise(
+    exercise_id: int,
+    muscle_group: Optional[str] = None,
+    type: Optional[str] = None,
+) -> dict:
+    """Partially update an exercise's muscle group and/or type."""
+    service = ExerciseService()
+    try:
+        updated = service.update(
+            exercise_id, muscle_group=muscle_group, type=type
+        )
+        return {"status": "ok", "exercise": asdict(updated)}
+    except ToolError as err:
+        return err.to_dict()
+    except Exception as exc:
+        return {"status": "error", "code": "internal", "message": str(exc)}
+
+
 def create_exercise(
     name: str,
     muscle_group: str = "unknown",
