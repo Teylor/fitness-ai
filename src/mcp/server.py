@@ -1,11 +1,12 @@
 """MCP server setup and tool registration."""
 
 import dataclasses
+from pathlib import Path
 from typing import Any
 
 from mcp.server.mcpserver import MCPServer
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, JSONResponse
+from starlette.responses import HTMLResponse, JSONResponse, Response
 
 from src.mcp.tools.exercise_tools import create_exercise, list_exercises
 from src.mcp.tools.goal_tools import get_daily_goal, set_daily_goal
@@ -89,6 +90,30 @@ def create_server() -> MCPServer:
     server.add_tool(get_health_metrics, name="get_health_metrics")
 
     # Custom HTTP web routes for interactive artifacts
+    assets_dir = Path(__file__).resolve().parent.parent / "ui" / "assets"
+
+    def _serve_asset(filename: str, media_type: str) -> Response:
+        asset_path = assets_dir / filename
+        if not asset_path.is_file():
+            return Response(status_code=404)
+        return Response(
+            content=asset_path.read_bytes(),
+            media_type=media_type,
+            headers={"Cache-Control": "no-cache"},
+        )
+
+    @server.custom_route("/favicon.ico", methods=["GET"])
+    async def favicon_ico_handler(request: Request) -> Response:
+        return _serve_asset("favicon.ico", "image/x-icon")
+
+    @server.custom_route("/favicon-32x32.png", methods=["GET"])
+    async def favicon_png_handler(request: Request) -> Response:
+        return _serve_asset("favicon-32x32.png", "image/png")
+
+    @server.custom_route("/apple-touch-icon.png", methods=["GET"])
+    async def apple_touch_icon_handler(request: Request) -> Response:
+        return _serve_asset("apple-touch-icon.png", "image/png")
+
     @server.custom_route("/ui", methods=["GET"])
     async def ui_hub_handler(request: Request) -> HTMLResponse:
         form_type = request.query_params.get("form", "hub")
