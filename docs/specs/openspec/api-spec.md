@@ -34,7 +34,7 @@
 | Meals (3) | `register_meal`, `get_day_summary`, `delete_meal` |
 | Goals (2) | `set_daily_goal`, `get_daily_goal` |
 | Workouts (4) | `register_workout`, `get_last_workout`, `get_personal_record`, `get_workouts_by_day` |
-| Exercises (2) | `list_exercises`, `create_exercise` |
+| Exercises (3) | `list_exercises`, `create_exercise`, `update_exercise` |
 | UI Artifacts (1) | `get_ui_form` |
 | Health & Activity (7) | `sync_meals_to_google_health`, `fetch_google_health_sleep`, `fetch_google_health_weight`, `fetch_google_health_steps`, `sync_google_health`, `log_steps`, `get_health_metrics` |
 
@@ -437,6 +437,22 @@ Create an exercise; idempotent — an exact or normalized duplicate returns the 
 ```
 
 Errors: `invalid_input` (empty name, bad type), `internal`.
+
+### `update_exercise`
+
+Partially update an existing exercise: only the fields passed are changed; omitted fields are left untouched.
+
+| Arg | Type | Req | Default | Description |
+|---|---|---|---|---|
+| `exercise_id` | int | ✔ | — | exercise to update |
+| `muscle_group` | str | | — | free-text muscle group (blank falls back to `"unknown"`) |
+| `type` | str | | — | `"weight_reps"` \| `"time"` \| `"distance"` |
+
+```json
+{"status": "ok", "exercise": {"id": 13, "name": "face pull", "muscle_group": "shoulders", "type": "weight_reps", "created_at": "..."}}
+```
+
+Errors: `not_found` (unknown exercise), `invalid_input` (bad type or blank muscle group), `internal`.
 
 ---
 

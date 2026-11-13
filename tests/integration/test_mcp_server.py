@@ -27,6 +27,7 @@ EXPECTED_TOOLS = {
     "get_workouts_by_day",
     "list_exercises",
     "create_exercise",
+    "update_exercise",
     "get_ui_form",
     "sync_meals_to_google_health",
     "fetch_google_health_sleep",
@@ -44,12 +45,12 @@ def test_create_server_returns_configured_mcp_server():
     assert server.name == "fitness-ai"
 
 
-def test_server_registers_all_twenty_seven_tools():
+def test_server_registers_all_twenty_nine_tools():
     server = create_server()
     tools = server._tool_manager.list_tools()
     tool_names = {t.name for t in tools}
 
-    assert len(tools) == 28
+    assert len(tools) == 29
     assert tool_names == EXPECTED_TOOLS
 
 

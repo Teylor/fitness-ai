@@ -1,6 +1,10 @@
 """Integration tests: MCP exercise tools."""
 
-from src.mcp.tools.exercise_tools import create_exercise, list_exercises
+from src.mcp.tools.exercise_tools import (
+    create_exercise,
+    list_exercises,
+    update_exercise,
+)
 
 
 def test_create_exercise_tool(db):
@@ -50,6 +54,30 @@ def test_list_exercises_tool(db):
     page = list_exercises(limit=1, offset=1)
     assert page["count"] == 1
     assert page["exercises"][0]["name"] == "Squat"
+
+
+def test_update_exercise_tool(db):
+    created = create_exercise(name="Bench Press", muscle_group="chest")
+    res = update_exercise(
+        exercise_id=created["exercise"]["id"], muscle_group="pecho", type="time"
+    )
+    assert res["status"] == "ok"
+    assert res["exercise"]["muscle_group"] == "pecho"
+    assert res["exercise"]["type"] == "time"
+    assert res["exercise"]["id"] == created["exercise"]["id"]
+
+
+def test_update_exercise_unknown_id_error(db):
+    res = update_exercise(exercise_id=999, muscle_group="chest")
+    assert res["status"] == "error"
+    assert res["code"] == "invalid_input"
+
+
+def test_update_exercise_invalid_type_error(db):
+    created = create_exercise(name="Bench Press")
+    res = update_exercise(exercise_id=created["exercise"]["id"], type="distance_m")
+    assert res["status"] == "error"
+    assert res["code"] == "invalid_input"
 
 
 def test_list_exercises_with_prs(db):
