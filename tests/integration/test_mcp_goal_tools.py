@@ -1,6 +1,6 @@
 """Integration tests: MCP goal tools."""
 
-from src.mcp.tools.goal_tools import get_daily_goal, set_daily_goal
+from src.mcp.tools.goal_tools import get_daily_goal, set_daily_goal, toggle_day_off
 
 
 def test_set_daily_goal_tool(db):
@@ -65,3 +65,37 @@ def test_get_daily_goal_fallback(db):
     res_inherited = get_daily_goal(date="22-05-2026")
     assert res_inherited["status"] == "ok"
     assert res_inherited["goal"]["kcal"] == 1950.0
+
+
+def test_day_off_goal_tools_flow(db):
+    set_daily_goal(
+        kcal=2600.0,
+        protein=185.0,
+        carbs=300.0,
+        fat=75.0,
+        default=True,
+    )
+    off_def = set_daily_goal(
+        kcal=2100.0,
+        protein=185.0,
+        carbs=175.0,
+        fat=75.0,
+        day_off_default=True,
+    )
+    assert off_def["status"] == "ok"
+    assert off_def["goal"]["is_day_off_default"] is True
+    assert off_def["profiles"]["training_default"]["kcal"] == 2600.0
+    assert off_def["profiles"]["day_off_default"]["kcal"] == 2100.0
+
+    # Toggle Day Off ON for 23-05-2026
+    toggled_on = toggle_day_off(date="23-05-2026", is_day_off=True)
+    assert toggled_on["status"] == "ok"
+    assert toggled_on["is_day_off"] is True
+    assert toggled_on["goal"]["kcal"] == 2100.0
+
+    # Toggle Day Off OFF (flip) -> reverts to 2600.0
+    toggled_off = toggle_day_off(date="23-05-2026")
+    assert toggled_off["status"] == "ok"
+    assert toggled_off["is_day_off"] is False
+    assert toggled_off["goal"]["kcal"] == 2600.0
+

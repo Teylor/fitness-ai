@@ -580,6 +580,59 @@ async def test_ui_favicon_routes_and_head_links(db):
         assert apple_res.content.startswith(b"\x89PNG")
 
 
+@pytest.mark.anyio
+async def test_ui_day_off_toggle_and_goal_profiles(db):
+    server = create_server()
+    app = server.streamable_http_app()
+    transport = httpx2.ASGITransport(app=app)
+
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
+        ui_res = await client.get("/ui/summary")
+        assert ui_res.status_code == 200
+        assert "btn-toggle-day-off" in ui_res.text
+        assert "goal-profiles-panel" in ui_res.text
+        assert "toggleDayOffUI" in ui_res.text
+
+        # Configure training default & day off default
+        tr_res = await client.post(
+            "/api/set_daily_goal",
+            json={"kcal": 2500.0, "protein": 180.0, "carbs": 280.0, "fat": 70.0, "default": True},
+        )
+        assert tr_res.status_code == 200
+        assert tr_res.json()["status"] == "ok"
+
+        off_res = await client.post(
+            "/api/set_daily_goal",
+            json={"kcal": 2050.0, "protein": 180.0, "carbs": 165.0, "fat": 70.0, "day_off_default": True},
+        )
+        assert off_res.status_code == 200
+        assert off_res.json()["status"] == "ok"
+
+        # Toggle Day Off ON for 25-11-2026
+        tog_on = await client.post(
+            "/api/toggle_day_off",
+            json={"date": "25-11-2026", "is_day_off": True},
+        )
+        assert tog_on.status_code == 200
+        assert tog_on.json()["is_day_off"] is True
+        assert tog_on.json()["goal"]["kcal"] == 2050.0
+
+        sum_on = await client.get("/api/get_day_summary?date=25-11-2026")
+        assert sum_on.status_code == 200
+        assert sum_on.json()["goal"]["kcal"] == 2050.0
+        assert sum_on.json()["goal"]["is_day_off"] is True
+
+        # Toggle Day Off OFF
+        tog_off = await client.post(
+            "/api/toggle_day_off",
+            json={"date": "25-11-2026", "is_day_off": False},
+        )
+        assert tog_off.status_code == 200
+        assert tog_off.json()["is_day_off"] is False
+        assert tog_off.json()["goal"]["kcal"] == 2500.0
+
+
+
 
 
 

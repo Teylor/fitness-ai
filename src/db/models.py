@@ -109,6 +109,8 @@ class DailyGoal(BaseModel):
     carbs = FloatField()
     fat = FloatField()
     is_default = BooleanField(default=False)
+    is_day_off = BooleanField(default=False)
+    is_day_off_default = BooleanField(default=False)
     created_at = DateTimeField(default=SQL("datetime('now')"))
 
     class Meta:

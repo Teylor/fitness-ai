@@ -192,19 +192,22 @@ class MealService:
             ),
         }
 
-        goal_row = GoalService().get_goal(date)
+        goal_service = GoalService()
+        goal_row = goal_service.get_goal(date)
         goal = {
             "date": goal_row.date,
             "kcal": goal_row.kcal,
             "protein": goal_row.protein,
             "carbs": goal_row.carbs,
             "fat": goal_row.fat,
+            "is_day_off": goal_row.is_day_off,
         }
         remaining = {key: round(goal[key] - consumed[key], 2) for key in MACRO_KEYS}
         return {
             "consumed": consumed,
             "spend": spend,
             "goal": goal,
+            "goal_profiles": goal_service.get_goal_profiles(),
             "remaining": remaining,
             "meals": meals,
             "meals_by_type": meals_by_type,

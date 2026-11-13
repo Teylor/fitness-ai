@@ -20,6 +20,7 @@ EXPECTED_TOOLS = {
     "delete_meal",
     "set_daily_goal",
     "get_daily_goal",
+    "toggle_day_off",
     "register_workout",
     "get_last_workout",
     "get_personal_record",
@@ -48,7 +49,7 @@ def test_server_registers_all_twenty_seven_tools():
     tools = server._tool_manager.list_tools()
     tool_names = {t.name for t in tools}
 
-    assert len(tools) == 27
+    assert len(tools) == 28
     assert tool_names == EXPECTED_TOOLS
 
 

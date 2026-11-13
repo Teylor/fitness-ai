@@ -96,3 +96,31 @@ def test_invalid_goal_date_raises(db, goal_service):
         goal_service.set_goal(make_goal("2026-05-10"))
     assert exc_info.value.code == "invalid_input"
     assert "invalid date" in str(exc_info.value)
+
+
+def test_day_off_default_and_toggle_isolation(db, goal_service):
+    goal_service.set_default(make_goal("10-05-2026", kcal=2500, protein=180, carbs=280, fat=70))
+    goal_service.set_day_off_default(make_goal("01-01-1900", kcal=2000, protein=180, carbs=150, fat=70))
+
+    # Enable Day Off on 10-05-2026 (even though it held the training default)
+    off_goal = goal_service.toggle_day_off("10-05-2026", is_day_off=True)
+    assert off_goal.is_day_off is True
+    assert off_goal.kcal == 2000
+
+    # Next day 11-05-2026 must still inherit Training Day default (not Day Off!)
+    next_day = goal_service.get_goal("11-05-2026")
+    assert next_day.is_day_off is False
+    assert next_day.kcal == 2500
+
+    # Disable Day Off on 10-05-2026 -> reverts to Training Day default
+    restored = goal_service.toggle_day_off("10-05-2026", is_day_off=False)
+    assert restored.is_day_off is False
+    assert restored.kcal == 2500
+
+
+def test_toggle_day_off_without_day_off_default_raises(db, goal_service):
+    goal_service.set_default(make_goal("01-01-2026", kcal=2400))
+    with pytest.raises(NotFoundError) as exc_info:
+        goal_service.toggle_day_off("10-05-2026", is_day_off=True)
+    assert exc_info.value.code == "not_found"
+
