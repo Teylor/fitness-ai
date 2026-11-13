@@ -560,9 +560,9 @@ async def test_ui_favicon_routes_and_head_links(db):
     async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
         ui_res = await client.get("/ui")
         assert ui_res.status_code == 200
-        assert '<link rel="icon" type="image/x-icon" href="/favicon.ico">' in ui_res.text
-        assert '<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">' in ui_res.text
-        assert '<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">' in ui_res.text
+        assert '<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">' in ui_res.text
+        assert '<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2">' in ui_res.text
+        assert '<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">' in ui_res.text
 
         ico_res = await client.get("/favicon.ico")
         assert ico_res.status_code == 200

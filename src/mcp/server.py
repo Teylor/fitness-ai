@@ -99,7 +99,7 @@ def create_server() -> MCPServer:
         return Response(
             content=asset_path.read_bytes(),
             media_type=media_type,
-            headers={"Cache-Control": "public, max-age=86400"},
+            headers={"Cache-Control": "no-cache"},
         )
 
     @server.custom_route("/favicon.ico", methods=["GET"])
