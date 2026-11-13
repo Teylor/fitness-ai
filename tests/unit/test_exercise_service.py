@@ -114,3 +114,56 @@ def test_list_pagination(db, exercise_service):
     assert len(page) == 5
     all_items = exercise_service.list(limit=100)
     assert [x.id for x in page] == [x.id for x in all_items[2:7]]
+
+
+def test_update_exercise_muscle_group(db, exercise_service):
+    created = exercise_service.create(Exercise(name="Bench Press", muscle_group="chest"))
+    updated = exercise_service.update(created.id, muscle_group="pecho")
+    assert updated.muscle_group == "pecho"
+    assert updated.type == "weight_reps"
+    stored = exercise_service.get_by_id(created.id)
+    assert stored.muscle_group == "pecho"
+
+
+def test_update_exercise_type(db, exercise_service):
+    created = exercise_service.create(Exercise(name="Plank"))
+    updated = exercise_service.update(created.id, type="time")
+    assert updated.type == "time"
+    assert updated.muscle_group == "unknown"
+
+
+def test_update_exercise_both_fields(db, exercise_service):
+    created = exercise_service.create(Exercise(name="Squat"))
+    updated = exercise_service.update(created.id, muscle_group="legs", type="distance")
+    assert updated.muscle_group == "legs"
+    assert updated.type == "distance"
+
+
+def test_update_exercise_unknown_id_raises(db, exercise_service):
+    with pytest.raises(ValidationError) as exc_info:
+        exercise_service.update(999, muscle_group="chest")
+    assert exc_info.value.code == "invalid_input"
+    assert isinstance(exc_info.value, ValueError)
+
+
+def test_update_exercise_invalid_type_raises(db, exercise_service):
+    created = exercise_service.create(Exercise(name="Bench Press"))
+    with pytest.raises(ValidationError) as exc_info:
+        exercise_service.update(created.id, type="distance_m")
+    assert exc_info.value.code == "invalid_input"
+    assert isinstance(exc_info.value, ValueError)
+
+
+def test_update_exercise_blank_muscle_group_raises(db, exercise_service):
+    created = exercise_service.create(Exercise(name="Bench Press"))
+    with pytest.raises(ValidationError) as exc_info:
+        exercise_service.update(created.id, muscle_group="   ")
+    assert exc_info.value.code == "invalid_input"
+    assert isinstance(exc_info.value, ValueError)
+
+
+def test_update_exercise_none_fields_no_change(db, exercise_service):
+    created = exercise_service.create(Exercise(name="Bench Press", muscle_group="chest"))
+    updated = exercise_service.update(created.id)
+    assert updated.muscle_group == "chest"
+    assert updated.type == "weight_reps"

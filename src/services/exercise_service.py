@@ -34,6 +34,33 @@ class ExerciseService:
         )
         return self._to_domain(row)
 
+    def update(
+        self,
+        exercise_id: int,
+        muscle_group: Optional[str] = None,
+        type: Optional[str] = None,
+    ) -> Exercise:
+        """Partially update an exercise's muscle group and/or type.
+
+        Raises ValidationError for an unknown id, an invalid type, or a blank
+        muscle_group. Omitted fields (None) stay unchanged.
+        """
+        row = ExerciseModel.get_or_none(ExerciseModel.id == exercise_id)
+        if row is None:
+            raise ValidationError(f"exercise id {exercise_id} not found")
+        if type is not None and type not in VALID_TYPES:
+            raise ValidationError(
+                f"invalid type '{type}' (expected weight_reps/time/distance)"
+            )
+        if muscle_group is not None and not muscle_group.strip():
+            raise ValidationError("muscle_group cannot be blank")
+        if type is not None:
+            row.type = type
+        if muscle_group is not None:
+            row.muscle_group = muscle_group.strip()
+        row.save()
+        return self._to_domain(row)
+
     def get_by_id(self, exercise_id: int) -> Optional[Exercise]:
         """Return the exercise or None if it does not exist."""
         row = ExerciseModel.get_or_none(ExerciseModel.id == exercise_id)
