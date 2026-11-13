@@ -30,6 +30,7 @@
 
 | Priority | Feature | Description | Reference |
 |:---:|---------|-------------|-----------|
+| `P1` | `exercise-muscle-group-and-workout-defaults` | Remove default "Press de Banca" in workout form, allow assigning/editing muscle group on exercises, and ensure muscle group filter works accurately | — |
 | `P3` | `android-apk-remote-access` | Package dashboard into Android APK (Capacitor/PWA) and enable remote API access via Cloudflare Tunnel / Tailscale | [ADR-003](docs/architecture/ssd-decisions.md#adr-003-mobile-access-strategy-android-apk--remote-api) |
 
 ---
