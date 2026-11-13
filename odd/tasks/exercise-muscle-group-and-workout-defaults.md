@@ -22,19 +22,19 @@ edit control.
    in the catalog (including custom free-text groups), case-insensitive exact match.
 
 ### Acceptance criteria
-- [ ] C1: The workout form starts with exactly one exercise block with an empty name; the generated
+- [x] C1: The workout form starts with exactly one exercise block with an empty name; the generated
       UI HTML contains no "Press de Banca" string.
-- [ ] C2: `ExerciseService.update(exercise_id, muscle_group=None, type=None)` partially updates an
+- [x] C2: `ExerciseService.update(exercise_id, muscle_group=None, type=None)` partially updates an
       existing exercise; unknown id, invalid type, or blank muscle_group raise ValidationError;
       omitted fields stay unchanged. Unit tests cover all paths.
-- [ ] C3: `update_exercise` MCP tool is registered and reachable at `/api/update_exercise`; it
+- [x] C3: `update_exercise` MCP tool is registered and reachable at `/api/update_exercise`; it
       returns the updated exercise dict; integration tests cover ok + error paths.
-- [ ] C4: The Exercises tab table has a per-row muscle group editor (datalist of existing groups +
+- [x] C4: The Exercises tab table has a per-row muscle group editor (datalist of existing groups +
       free text) and a type select, saving via POST `/api/update_exercise` and refreshing the row.
-- [ ] C5: The muscle group filter options are derived from catalog groups (unique, alphabetical,
+- [x] C5: The muscle group filter options are derived from catalog groups (unique, alphabetical,
       custom groups included, unknown shown as "Otros"); filtering is case-insensitive exact match;
       the current selection survives list refreshes.
-- [ ] C6: `docs/specs/openspec/` updated: `update_exercise` endpoint in api-spec.md and the
+- [x] C6: `docs/specs/openspec/` updated: `update_exercise` endpoint in api-spec.md and the
       Exercises section requirement (FR8.5) mentions inline editing + dynamic filter.
 
 ## Clarify
@@ -72,34 +72,41 @@ edit control.
 - D5: The workout form keeps exactly one initial block via `addExerciseBlock()` with `name = ''`.
 
 ## Tasks
-- [ ] T1: Remove the hardcoded "Press de Banca" default: `addExerciseBlock(name = '')` and the
+- [x] T1: Remove the hardcoded "Press de Banca" default: `addExerciseBlock(name = '')` and the
   initial `addExerciseBlock('')` call (one clean empty block). → files: src/ui/html_generator.py →
   verify: generated workout HTML contains no "Press de Banca"; full `pytest tests -q` green.
-- [ ] T2: Add `ExerciseService.update(exercise_id, muscle_group=None, type=None)` with validation,
+- [x] T2: Add `ExerciseService.update(exercise_id, muscle_group=None, type=None)` with validation,
   plus unit tests (update muscle_group, update type, both, unknown id raises, invalid type
   raises, blank muscle_group raises, None fields unchanged). → files:
   src/services/exercise_service.py, tests/unit/test_exercise_service.py → verify:
   `pytest tests/unit/test_exercise_service.py -v` green with the new tests.
-- [ ] T3: Add `update_exercise` MCP tool and register it in `server.py`; integration tests for ok,
+- [x] T3: Add `update_exercise` MCP tool and register it in `server.py`; integration tests for ok,
   unknown id, and invalid type paths. → files: src/mcp/tools/exercise_tools.py, src/mcp/server.py,
   tests/integration/test_mcp_exercise_tools.py → verify:
   `pytest tests/integration/test_mcp_exercise_tools.py -v` green.
-- [ ] T4: Inline muscle group editor in the Exercises tab table: per-row group input (datalist of
+- [x] T4: Inline muscle group editor in the Exercises tab table: per-row group input (datalist of
   existing groups + free text) and type select with a save button posting
   `/api/update_exercise`, re-fetching the list on success. → files: src/ui/html_generator.py →
   verify: full `pytest tests -q` green; generated exercise HTML contains the row editor and the
   `update_exercise` handler.
-- [ ] T5: Dynamic muscle group filter: build the filter options from catalog groups (unique,
+- [x] T5: Dynamic muscle group filter: build the filter options from catalog groups (unique,
   alphabetical, unknown as "Otros"), keep the selected value across refreshes; remove the
   hardcoded option list. → files: src/ui/html_generator.py → verify: full `pytest tests -q` green;
   filter options derive from the catalog (no hardcoded group list in the generated HTML).
-- [ ] T6: Update openspec: add the `update_exercise` endpoint to api-spec.md and mention inline
+- [x] T6: Update openspec: add the `update_exercise` endpoint to api-spec.md and mention inline
   muscle group editing + dynamic filter in requirements.md (FR8.5). → files:
   docs/specs/openspec/api-spec.md, docs/specs/openspec/requirements.md → verify: both docs mention
   `update_exercise` / dynamic filter; no residual hardcoded-group references.
 
 ## Verification
-> (filled at close)
+- **Tests**: Full pytest suite passing (`203 passed`) - final run after T6; TDD RED-GREEN for T2/T3.
+- **C1/T1**: Generated workout HTML contains no "Press de Banca"; form starts with one empty exercise block.
+- **C2/T2**: `ExerciseService.update()` partial update; 7 new unit tests (muscle_group, type, both, unknown id, invalid type, blank group, None unchanged) green.
+- **C3/T3**: `update_exercise` registered (29 MCP tools), reachable at `/api/update_exercise`; integration tests cover ok, unknown id, invalid type.
+- **C4/T4**: Exercises tab table has per-row editor (muscle group datalist + type select + save button) posting `/api/update_exercise` and refreshing the list.
+- **C5/T5**: Filter options derived from catalog groups via `catalogGroups()` (unique, alphabetical, custom groups, "Otros" for unknown); no hardcoded group list in generated HTML; selection preserved across refreshes.
+- **C6/T6**: `api-spec.md` documents the `update_exercise` endpoint and "Exercises (3)"; `requirements.md` FR8.5 mentions inline editing + dynamic filter.
 
 ## Close
-> (filled at close)
+- Closed 2026-11: all tasks ✅ and Verification filled.
+- Backlog item moved to Done; branch `feat/exercise-muscle-group-and-workout-defaults` pushed, PR opened to `main` (backlog rule 8).
