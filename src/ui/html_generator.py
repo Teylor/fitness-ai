@@ -607,15 +607,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <input type="text" id="exercise-search-input" placeholder="Buscar ejercicio..." style="width: 180px; padding: 6px 10px;" oninput="filterExercises()">
           <select id="exercise-group-filter" style="width: 160px; padding: 6px 10px;" onchange="filterExercises()">
             <option value="">Todos los grupos</option>
-            <option value="pecho">Pecho</option>
-            <option value="espalda">Espalda</option>
-            <option value="pierna">Pierna</option>
-            <option value="hombro">Hombro</option>
-            <option value="brazos">Brazos</option>
-            <option value="core">Core</option>
-            <option value="cardio">Cardio</option>
-            <option value="unknown">Otros</option>
-          
+            <!-- Group options are built dynamically from the catalog in JS -->
           </select>
           <button type="button" class="btn btn-secondary btn-sm" onclick="fetchExercisesList()">🔄 Actualizar</button>
           <button type="button" class="btn btn-primary btn-sm" onclick="toggleNewExerciseForm()">+ Nuevo Ejercicio</button>
@@ -635,14 +627,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
               <label for="new-exercise-muscle">Grupo Muscular</label>
               <input type="text" id="new-exercise-muscle" placeholder="Ej: pecho, hombro, pierna..." list="exercise-muscle-datalist">
               <datalist id="exercise-muscle-datalist">
-                <option value="pecho">
-                <option value="espalda">
-                <option value="pierna">
-                <option value="hombro">
-                <option value="brazos">
-                <option value="core">
-                <option value="cardio">
-              
+                <!-- Filled dynamically from catalog groups in JS -->
               </datalist>
             </div>
             <div class="form-group">
@@ -1377,6 +1362,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           allExercises = data.exercises || [];
           renderExercisesTable(allExercises);
           updateExerciseDatalist();
+          updateExerciseGroupFilter();
         }}
       }} catch (err) {{
         tbody.innerHTML = `<tr><td colspan="6" style="color: var(--text-muted); text-align: center;">No se pudo conectar con el catálogo de ejercicios (${{err.message}}).</td></tr>`;
@@ -1396,6 +1382,21 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         opt.value = ex.name;
         dl.appendChild(opt);
       }});
+
+      // Muscle group datalists: unique groups actually present in the catalog
+      const groups = catalogGroups();
+      let muscleDl = document.getElementById('exercise-muscle-datalist');
+      if (!muscleDl) {{
+        muscleDl = document.createElement('datalist');
+        muscleDl.id = 'exercise-muscle-datalist';
+        document.body.appendChild(muscleDl);
+      }}
+      muscleDl.innerHTML = '';
+      groups.forEach(g => {{
+        const opt = document.createElement('option');
+        opt.value = g;
+        muscleDl.appendChild(opt);
+      }});
       let gdl = document.getElementById('muscle-group-datalist');
       if (!gdl) {{
         gdl = document.createElement('datalist');
@@ -1408,6 +1409,37 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         opt.value = g;
         gdl.appendChild(opt);
       }});
+    }}
+
+    function catalogGroups() {{
+      const seen = new Set();
+      const groups = [];
+      allExercises.forEach(ex => {{
+        const raw = (ex.muscle_group || '').trim();
+        const g = raw.toLowerCase();
+        if (g && !seen.has(g)) {{
+          seen.add(g);
+          groups.push(raw);
+        }}
+      }});
+      groups.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+      return groups;
+    }}
+
+    function updateExerciseGroupFilter() {{
+      const sel = document.getElementById('exercise-group-filter');
+      if (!sel) return;
+      const current = sel.value;
+      const groups = catalogGroups();
+      const values = new Set(groups.map(g => g.toLowerCase()));
+      sel.innerHTML = '<option value="">Todos los grupos</option>';
+      groups.forEach(g => {{
+        const opt = document.createElement('option');
+        opt.value = g;
+        opt.textContent = g.toLowerCase() === 'unknown' ? 'Otros' : g;
+        sel.appendChild(opt);
+      }});
+      if (current && values.has(current.toLowerCase())) sel.value = current;
     }}
 
     function filterExercises() {{
