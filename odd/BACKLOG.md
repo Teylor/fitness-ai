@@ -38,6 +38,7 @@
 
 | Feature | File |
 |---------|---------|
+| `exercise-muscle-group-and-workout-defaults` | `odd/tasks/exercise-muscle-group-and-workout-defaults.md` |
 
 ---
 
@@ -45,7 +46,6 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
-| `exercise-muscle-group-and-workout-defaults` | `odd/tasks/exercise-muscle-group-and-workout-defaults.md` | 2026-11 |
 | `day-off-daily-goals` | `odd/tasks/day-off-daily-goals.md` | 2026-11 |
 | `ui-favicon` | `odd/tasks/ui-favicon.md` | 2026-11 |
 | `google-health-ui-data-mismatch` | `odd/tasks/fix-steps.md` | 2026-11 |

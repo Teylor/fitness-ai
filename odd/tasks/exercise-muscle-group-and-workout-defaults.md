@@ -98,6 +98,8 @@ edit control.
   docs/specs/openspec/api-spec.md, docs/specs/openspec/requirements.md → verify: both docs mention
   `update_exercise` / dynamic filter; no residual hardcoded-group references.
 
+- [ ] T7: Workout form starts with 1 empty set (no prefilled reps/weight); Exercises tab table fits without horizontal scroll; muscle group editor offers `Pecho`, `Hombro`, `Biceps`, `Triceps`, `Espalda`, `Pierna` (+ `Otros` / custom). → files: src/ui/html_generator.py → verify: full `pytest tests -q` green.
+
 ## Verification
 - **Tests**: Full pytest suite passing (`203 passed`) - final run after T6; TDD RED-GREEN for T2/T3.
 - **C1/T1**: Generated workout HTML contains no "Press de Banca"; form starts with one empty exercise block.
@@ -108,5 +110,4 @@ edit control.
 - **C6/T6**: `api-spec.md` documents the `update_exercise` endpoint and "Exercises (3)"; `requirements.md` FR8.5 mentions inline editing + dynamic filter.
 
 ## Close
-- Closed 2026-11: all tasks ✅ and Verification filled.
-- Backlog item moved to Done; branch `feat/exercise-muscle-group-and-workout-defaults` pushed, PR opened to `main` (backlog rule 8).
+- Reopened 2026-11: moved back to In progress for T7 UI refinements.

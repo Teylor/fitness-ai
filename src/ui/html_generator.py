@@ -240,6 +240,21 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       font-weight: 600;
     }}
 
+    #exercises-catalog-table {{
+      font-size: 0.84rem;
+    }}
+
+    #exercises-catalog-table th,
+    #exercises-catalog-table td {{
+      padding: 6px 6px;
+      vertical-align: middle;
+    }}
+
+    #exercises-catalog-table .badge {{
+      font-size: 0.72rem;
+      padding: 2px 6px;
+    }}
+
     .badge {{
       display: inline-block;
       padding: 2px 8px;
@@ -655,9 +670,9 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
               <th>Ejercicio</th>
               <th>Grupo Muscular</th>
               <th>Tipo</th>
-              <th style="min-width: 140px;">1RM Estimado (PR)</th>
-              <th style="min-width: 180px;">Récord de Peso (Max Set)</th>
-              <th style="min-width: 260px;">Editar</th>
+              <th>1RM Estimado (PR)</th>
+              <th>Récord de Peso (Max Set)</th>
+              <th>Editar</th>
             </tr>
           </thead>
           <tbody id="exercises-catalog-body">
@@ -850,23 +865,23 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         <button type="button" class="btn btn-secondary btn-sm" style="align-self: flex-start;" onclick="addSetRow('${{id}}')">+ Añadir Serie</button>
       `;
       container.appendChild(div);
-      addSetRow(id, 1, 10, 60);
-      addSetRow(id, 2, 8, 70);
+      addSetRow(id, 1, '', '');
     }}
 
-    function addSetRow(exBlockId, setNum, reps = 10, weight = 50) {{
+    function addSetRow(exBlockId, setNum, reps = '', weight = '') {{
       const tbody = document.querySelector(`#${{exBlockId}} .sets-table tbody`);
       const rowCount = tbody.children.length + 1;
       const num = setNum || rowCount;
       const tr = document.createElement('tr');
       const calc1rm = (w, r) => r === 1 ? w : Math.round(w * (1 + r / 30) * 100) / 100;
-      const initial1rm = calc1rm(weight, reps);
+      const hasValues = reps !== '' && weight !== '';
+      const initial1rm = hasValues ? `${{calc1rm(Number(weight), Number(reps))}} kg` : '-';
 
       tr.innerHTML = `
         <td><span class="badge badge-info set-num">${{num}}</span></td>
-        <td><input type="number" class="set-reps" value="${{reps}}" min="1" style="width: 80px;" oninput="updateSet1RM(this)"></td>
-        <td><input type="number" class="set-weight" value="${{weight}}" step="any" min="0" style="width: 90px;" oninput="updateSet1RM(this)"></td>
-        <td><span class="set-1rm" style="color: var(--primary); font-weight: 700;">${{initial1rm}} kg</span></td>
+        <td><input type="number" class="set-reps" required value="${{reps}}" placeholder="Reps" min="1" style="width: 80px;" oninput="updateSet1RM(this)"></td>
+        <td><input type="number" class="set-weight" required value="${{weight}}" placeholder="kg" step="any" min="0" style="width: 90px;" oninput="updateSet1RM(this)"></td>
+        <td><span class="set-1rm" style="color: var(--primary); font-weight: 700;">${{initial1rm}}</span></td>
         <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove(); renumberSets('${{exBlockId}}');">×</button></td>
       `;
       tbody.appendChild(tr);
@@ -874,8 +889,14 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
     function updateSet1RM(input) {{
       const tr = input.closest('tr');
-      const reps = parseFloat(tr.querySelector('.set-reps').value) || 0;
-      const weight = parseFloat(tr.querySelector('.set-weight').value) || 0;
+      const repsRaw = tr.querySelector('.set-reps').value;
+      const weightRaw = tr.querySelector('.set-weight').value;
+      if (repsRaw === '' || weightRaw === '') {{
+        tr.querySelector('.set-1rm').textContent = '-';
+        return;
+      }}
+      const reps = parseFloat(repsRaw) || 0;
+      const weight = parseFloat(weightRaw) || 0;
       const est1rm = reps === 1 ? weight : Math.round(weight * (1 + reps / 30) * 100) / 100;
       tr.querySelector('.set-1rm').textContent = `${{est1rm}} kg`;
     }}
@@ -1383,8 +1404,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         dl.appendChild(opt);
       }});
 
-      // Muscle group datalists: unique groups actually present in the catalog
-      const groups = catalogGroups();
+      // Muscle group datalists: predefined options + unique groups present in the catalog
+      const groups = allMuscleGroupOptions();
       let muscleDl = document.getElementById('exercise-muscle-datalist');
       if (!muscleDl) {{
         muscleDl = document.createElement('datalist');
@@ -1409,6 +1430,28 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         opt.value = g;
         gdl.appendChild(opt);
       }});
+    }}
+
+    const DEFAULT_MUSCLE_GROUPS = ['Pecho', 'Hombro', 'Biceps', 'Triceps', 'Espalda', 'Pierna'];
+
+    function allMuscleGroupOptions() {{
+      const seen = new Set();
+      const opts = [];
+      DEFAULT_MUSCLE_GROUPS.forEach(g => {{
+        const key = g.toLowerCase();
+        if (!seen.has(key)) {{
+          seen.add(key);
+          opts.push(g);
+        }}
+      }});
+      catalogGroups().forEach(g => {{
+        const key = g.toLowerCase();
+        if (key !== 'unknown' && !seen.has(key)) {{
+          seen.add(key);
+          opts.push(g);
+        }}
+      }});
+      return opts;
     }}
 
     function catalogGroups() {{
@@ -1469,7 +1512,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         const tr = document.createElement('tr');
         const muscle = ex.muscle_group && ex.muscle_group !== 'unknown' ? ex.muscle_group : 'General';
 
-        let typeBadge = '<span class="badge badge-info">Fuerza (Peso/Reps)</span>';
+        let typeBadge = '<span class="badge badge-info">Peso/Reps</span>';
         if (ex.type === 'time') {{
           typeBadge = '<span class="badge" style="background: #1e3a8a; color: #93c5fd;">Tiempo</span>';
         }} else if (ex.type === 'distance') {{
@@ -1481,19 +1524,19 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
         if (ex.pr) {{
           if (ex.pr.estimated_1rm) {{
-            const e1rmDate = ex.pr.estimated_1rm_date ? `<div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">📅 ${{escapeHtml(ex.pr.estimated_1rm_date)}}</div>` : '';
+            const e1rmDate = ex.pr.estimated_1rm_date ? `<div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">${{escapeHtml(ex.pr.estimated_1rm_date)}}</div>` : '';
             prHtml = `
               <div style="display: inline-flex; flex-direction: column;">
-                <span class="badge badge-ok" style="font-size: 0.85rem; padding: 3px 8px;">🏆 ${{ex.pr.estimated_1rm}} kg</span>
+                <span class="badge badge-ok">🏆 ${{ex.pr.estimated_1rm}} kg</span>
                 ${{e1rmDate}}
               </div>
             `;
           }}
           if (ex.pr.max_weight !== undefined && ex.pr.max_weight !== null) {{
-            const maxDate = ex.pr.max_weight_date ? `<div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">📅 ${{escapeHtml(ex.pr.max_weight_date)}}</div>` : '';
+            const maxDate = ex.pr.max_weight_date ? `<div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">${{escapeHtml(ex.pr.max_weight_date)}}</div>` : '';
             maxWeightHtml = `
               <div style="display: inline-flex; flex-direction: column;">
-                <span class="badge badge-warning" style="font-size: 0.85rem; padding: 3px 8px;">💪 ${{ex.pr.max_weight}} kg × ${{ex.pr.max_weight_reps || 1}} reps</span>
+                <span class="badge badge-warning">💪 ${{ex.pr.max_weight}}×${{ex.pr.max_weight_reps || 1}}</span>
                 ${{maxDate}}
               </div>
             `;
@@ -1501,21 +1544,29 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         }}
 
         const muscleValue = (ex.muscle_group || 'unknown');
+        const muscleKey = muscleValue.toLowerCase();
+        const groupOpts = allMuscleGroupOptions();
+        const muscleSelectOpts = groupOpts.map(g =>
+          `<option value="${{escapeHtml(g)}}"${{g.toLowerCase() === muscleKey ? ' selected' : ''}}>${{escapeHtml(g)}}</option>`
+        ).join('') + `<option value="unknown"${{muscleKey === 'unknown' ? ' selected' : ''}}>Otros</option>`;
+
         tr.innerHTML = `
-          <td><strong style="color: var(--text); font-size: 0.95rem;">${{escapeHtml(ex.name)}}</strong></td>
+          <td><strong style="color: var(--text); font-size: 0.88rem;">${{escapeHtml(ex.name)}}</strong></td>
           <td><span class="badge" style="background: #334155; color: #cbd5e1; text-transform: capitalize;">${{escapeHtml(muscle)}}</span></td>
           <td>${{typeBadge}}</td>
           <td>${{prHtml}}</td>
           <td>${{maxWeightHtml}}</td>
           <td>
             <div style="display: flex; gap: 4px; align-items: center;">
-              <input type="text" class="ex-edit-muscle" list="muscle-group-datalist" value="${{escapeHtml(muscleValue)}}" placeholder="Grupo muscular" style="width: 100px; padding: 4px 6px; font-size: 0.8rem;">
-              <select class="ex-edit-type" style="padding: 4px 6px; font-size: 0.8rem;">
+              <select class="ex-edit-muscle" style="width: 92px; padding: 3px 4px; font-size: 0.78rem;">
+                ${{muscleSelectOpts}}
+              </select>
+              <select class="ex-edit-type" style="width: 84px; padding: 3px 4px; font-size: 0.78rem;">
                 <option value="weight_reps"${{ex.type === 'weight_reps' ? ' selected' : ''}}>Peso/Reps</option>
                 <option value="time"${{ex.type === 'time' ? ' selected' : ''}}>Tiempo</option>
                 <option value="distance"${{ex.type === 'distance' ? ' selected' : ''}}>Distancia</option>
               </select>
-              <button type="button" class="btn btn-sm btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="saveExerciseEdit(${{ex.id}}, this)">💾</button>
+              <button type="button" class="btn btn-sm btn-secondary" style="padding: 3px 6px; font-size: 0.78rem;" onclick="saveExerciseEdit(${{ex.id}}, this)">💾</button>
             </div>
           </td>
         `;
