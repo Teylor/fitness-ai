@@ -551,6 +551,36 @@ async def test_ui_supplements_and_water_integration(db):
         assert sum_data["spend"] == 1.40
 
 
+@pytest.mark.anyio
+async def test_ui_favicon_routes_and_head_links(db):
+    server = create_server()
+    app = server.streamable_http_app()
+    transport = httpx2.ASGITransport(app=app)
+
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
+        ui_res = await client.get("/ui")
+        assert ui_res.status_code == 200
+        assert '<link rel="icon" type="image/x-icon" href="/favicon.ico">' in ui_res.text
+        assert '<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">' in ui_res.text
+        assert '<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">' in ui_res.text
+
+        ico_res = await client.get("/favicon.ico")
+        assert ico_res.status_code == 200
+        assert ico_res.headers.get("content-type", "").startswith("image/x-icon")
+        assert len(ico_res.content) > 0
+
+        png_res = await client.get("/favicon-32x32.png")
+        assert png_res.status_code == 200
+        assert png_res.headers.get("content-type", "").startswith("image/png")
+        assert png_res.content.startswith(b"\x89PNG")
+
+        apple_res = await client.get("/apple-touch-icon.png")
+        assert apple_res.status_code == 200
+        assert apple_res.headers.get("content-type", "").startswith("image/png")
+        assert apple_res.content.startswith(b"\x89PNG")
+
+
+
 
 
 

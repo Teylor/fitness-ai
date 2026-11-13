@@ -45,6 +45,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `ui-favicon` | `odd/tasks/ui-favicon.md` | 2026-11 |
 | `google-health-ui-data-mismatch` | `odd/tasks/fix-steps.md` | 2026-11 |
 | `sync-optimization` | `odd/tasks/sync-optimization.md` | 2026-11 |
 | `fix-steps` | `odd/tasks/fix-steps.md` | 2026-11 |
