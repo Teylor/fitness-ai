@@ -30,6 +30,7 @@
 
 | Priority | Feature | Description | Reference |
 |:---:|---------|-------------|-----------|
+| `P1` | `day-off-daily-goals` | Add a "Day Off" toggle for daily nutritional goals to switch between training-day and rest-day targets | — |
 | `P3` | `android-apk-remote-access` | Package dashboard into Android APK (Capacitor/PWA) and enable remote API access via Cloudflare Tunnel / Tailscale | [ADR-003](docs/architecture/ssd-decisions.md#adr-003-mobile-access-strategy-android-apk--remote-api) |
 
 ---
