@@ -910,6 +910,17 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     addExerciseBlock();
 
     // Universal Dispatch & Result Display
+    function summarizeSuccess(data, payload) {{
+      const d = data || {{}};
+      if (d.exercise && d.exercise.name) return `Ejercicio «${{d.exercise.name}}» guardado`;
+      if (d.ingredient && d.ingredient.name) return `Ingrediente «${{d.ingredient.name}}» guardado`;
+      if (d.recipe && d.recipe.name) return `Receta «${{d.recipe.name}}» guardada`;
+      if (d.goal) return `Objetivo actualizado`;
+      if (d.entry_id) return `Comida registrada`;
+      if (d.session) return `Entrenamiento registrado`;
+      return 'Operación completada con éxito';
+    }}
+
     async function executeAction(toolName, payload, resultElementId, promptDescription) {{
       const resEl = document.getElementById(resultElementId);
       resEl.style.display = 'flex';
@@ -928,8 +939,11 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
         if (data.status === 'ok') {{
           resEl.innerHTML = `
-            <strong>✅ Operación completada con éxito</strong>
-            <div>${{JSON.stringify(data, null, 2)}}</div>
+            <strong>✅ ${{summarizeSuccess(data, payload)}}</strong>
+            <details>
+              <summary>Ver respuesta completa</summary>
+              <pre>${{JSON.stringify(data, null, 2)}}</pre>
+            </details>
           `;
           return data;
         }} else {{
