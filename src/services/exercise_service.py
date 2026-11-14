@@ -102,8 +102,8 @@ class ExerciseService:
             q = normalize(search)
             rows = [r for r in rows if q in normalize(r.name)]
         if muscle_group:
-            mg = muscle_group.lower()
-            rows = [r for r in rows if r.muscle_group.lower() == mg]
+            mg = normalize(muscle_group)
+            rows = [r for r in rows if normalize(r.muscle_group) == mg]
         return [self._to_domain(r) for r in rows[offset : offset + limit]]
 
     @staticmethod

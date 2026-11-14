@@ -32,7 +32,6 @@
 |:---:|---------|-------------|-----------|
 | `P2` | `ui-hot-reload` | Reload `src.ui.html_generator` on `/ui` requests (e.g. via `importlib.reload`) so UI edits apply on browser refresh without restarting the MCP server | [server.py](src/mcp/server.py#L123-L131) |
 | `P2` | `ui-simplify-action-feedback` | Simplify the `✅ Operación completada con éxito` result box in `executeAction()` so it shows a concise summary instead of dumping the full raw JSON response | [html_generator.py](src/ui/html_generator.py#L914-L935) |
-| `P2` | `accent-insensitive-search` | Normalize accents/diacritics in UI filters/datalists and backend search queries (ingredients, recipes, exercises) so searching without accents matches accented names | — |
 | `P2` | `daily-creatine-tracking` | Track creatine as a daily supplement consumption alongside water (included/toggleable in daily summary & spend) | [supplements-and-water.md](odd/tasks/supplements-and-water.md) |
 | `P3` | `android-apk-remote-access` | Package dashboard into Android APK (Capacitor/PWA) and enable remote API access via Cloudflare Tunnel / Tailscale | [ADR-003](docs/architecture/ssd-decisions.md#adr-003-mobile-access-strategy-android-apk--remote-api) |
 
@@ -50,6 +49,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `accent-insensitive-search` | `odd/tasks/accent-insensitive-search.md` | 2026-11 |
 | `day-off-daily-goals` | `odd/tasks/day-off-daily-goals.md` | 2026-11 |
 | `ui-favicon` | `odd/tasks/ui-favicon.md` | 2026-11 |
 | `google-health-ui-data-mismatch` | `odd/tasks/fix-steps.md` | 2026-11 |

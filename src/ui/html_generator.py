@@ -1057,11 +1057,19 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       }}
     }}
 
+    function normalizeText(str) {{
+      return String(str || '')
+        .normalize('NFKD')
+        .replace(/[\\u0300-\\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+    }}
+
     function onMealItemInput() {{
-      const val = (document.getElementById('meal-item').value || '').trim().toLowerCase();
+      const val = normalizeText(document.getElementById('meal-item').value);
       const type = document.getElementById('meal-item-type').value;
       if (type === 'ingredient') {{
-        const matched = allIngredients.find(i => (i.name || '').toLowerCase() === val);
+        const matched = allIngredients.find(i => normalizeText(i.name) === val);
         if (matched && matched.unit) {{
           document.getElementById('meal-unit').value = matched.unit;
         }}
@@ -1081,8 +1089,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     }}
 
     function onRecipeItemInput(input) {{
-      const val = (input.value || '').trim().toLowerCase();
-      const matched = allIngredients.find(i => (i.name || '').toLowerCase() === val);
+      const val = normalizeText(input.value);
+      const matched = allIngredients.find(i => normalizeText(i.name) === val);
       if (matched && matched.unit) {{
         const tr = input.closest('tr');
         if (tr) {{
@@ -1213,8 +1221,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     }}
 
     function filterIngredients() {{
-      const query = (document.getElementById('ing-search-input').value || '').toLowerCase().trim();
-      const filtered = allIngredients.filter(i => (i.name || '').toLowerCase().includes(query));
+      const query = normalizeText(document.getElementById('ing-search-input').value);
+      const filtered = allIngredients.filter(i => normalizeText(i.name).includes(query));
       renderIngredientsTable(filtered);
     }}
 
@@ -1328,8 +1336,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     }}
 
     function filterRecipes() {{
-      const query = (document.getElementById('recipe-search-input').value || '').toLowerCase().trim();
-      const filtered = allRecipes.filter(r => (r.name || '').toLowerCase().includes(query));
+      const query = normalizeText(document.getElementById('recipe-search-input').value);
+      const filtered = allRecipes.filter(r => normalizeText(r.name).includes(query));
       renderRecipesTable(filtered);
     }}
 
@@ -1438,14 +1446,14 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const seen = new Set();
       const opts = [];
       DEFAULT_MUSCLE_GROUPS.forEach(g => {{
-        const key = g.toLowerCase();
+        const key = normalizeText(g);
         if (!seen.has(key)) {{
           seen.add(key);
           opts.push(g);
         }}
       }});
       catalogGroups().forEach(g => {{
-        const key = g.toLowerCase();
+        const key = normalizeText(g);
         if (key !== 'unknown' && !seen.has(key)) {{
           seen.add(key);
           opts.push(g);
@@ -1459,7 +1467,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const groups = [];
       allExercises.forEach(ex => {{
         const raw = (ex.muscle_group || '').trim();
-        const g = raw.toLowerCase();
+        const g = normalizeText(raw);
         if (g && !seen.has(g)) {{
           seen.add(g);
           groups.push(raw);
@@ -1474,24 +1482,24 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (!sel) return;
       const current = sel.value;
       const groups = catalogGroups();
-      const values = new Set(groups.map(g => g.toLowerCase()));
+      const values = new Set(groups.map(g => normalizeText(g)));
       sel.innerHTML = '<option value="">Todos los grupos</option>';
       groups.forEach(g => {{
         const opt = document.createElement('option');
         opt.value = g;
-        opt.textContent = g.toLowerCase() === 'unknown' ? 'Otros' : g;
+        opt.textContent = normalizeText(g) === 'unknown' ? 'Otros' : g;
         sel.appendChild(opt);
       }});
-      if (current && values.has(current.toLowerCase())) sel.value = current;
+      if (current && values.has(normalizeText(current))) sel.value = current;
     }}
 
     function filterExercises() {{
-      const search = (document.getElementById('exercise-search-input')?.value || '').trim().toLowerCase();
-      const group = (document.getElementById('exercise-group-filter')?.value || '').trim().toLowerCase();
+      const search = normalizeText(document.getElementById('exercise-search-input')?.value);
+      const group = normalizeText(document.getElementById('exercise-group-filter')?.value);
 
       const filtered = allExercises.filter(ex => {{
-        const matchSearch = !search || (ex.name && ex.name.toLowerCase().includes(search));
-        const matchGroup = !group || (ex.muscle_group && ex.muscle_group.toLowerCase() === group);
+        const matchSearch = !search || (ex.name && normalizeText(ex.name).includes(search));
+        const matchGroup = !group || (ex.muscle_group && normalizeText(ex.muscle_group) === group);
         return matchSearch && matchGroup;
       }});
       renderExercisesTable(filtered);
@@ -1544,10 +1552,10 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         }}
 
         const muscleValue = (ex.muscle_group || 'unknown');
-        const muscleKey = muscleValue.toLowerCase();
+        const muscleKey = normalizeText(muscleValue);
         const groupOpts = allMuscleGroupOptions();
         const muscleSelectOpts = groupOpts.map(g =>
-          `<option value="${{escapeHtml(g)}}"${{g.toLowerCase() === muscleKey ? ' selected' : ''}}>${{escapeHtml(g)}}</option>`
+          `<option value="${{escapeHtml(g)}}"${{normalizeText(g) === muscleKey ? ' selected' : ''}}>${{escapeHtml(g)}}</option>`
         ).join('') + `<option value="unknown"${{muscleKey === 'unknown' ? ' selected' : ''}}>Otros</option>`;
 
         tr.innerHTML = `
