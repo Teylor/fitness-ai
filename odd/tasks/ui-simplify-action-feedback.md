@@ -31,14 +31,14 @@ raw response accessible (collapsed) so no debugging info is lost, and preserving
 
 ### Acceptance Criteria
 
-- [ ] C1: The success branch shows a concise one-line summary (e.g. `Ejercicio «name» guardado`,
+- [x] C1: The success branch shows a concise one-line summary (e.g. `Ejercicio «name» guardado`,
       `Ingrediente «name» guardado`, `Comida registrada`) instead of a bare full-JSON dump as the
       primary message.
-- [ ] C2: The full raw JSON response remains available, collapsed in a `<details>` element
+- [x] C2: The full raw JSON response remains available, collapsed in a `<details>` element
       (default closed) — no information lost.
-- [ ] C3: `executeAction` still `return data` (callers that read the returned object keep working).
-- [ ] C4: The error / fallback path (Hermes prompt copy mode) is unchanged.
-- [ ] C5: Full suite green (`pytest tests -q`) and the new behavior is covered by an integration
+- [x] C3: `executeAction` still `return data` (callers that read the returned object keep working).
+- [x] C4: The error / fallback path (Hermes prompt copy mode) is unchanged.
+- [x] C5: Full suite green (`pytest tests -q`) and the new behavior is covered by an integration
       test asserting on the generated UI HTML/JS.
 
 ## Clarify
@@ -74,20 +74,22 @@ raw response accessible (collapsed) so no debugging info is lost, and preserving
 
 ## Tasks
 
-- [ ] T1: Add `test_ui_execute_action_summary(db)` to `tests/integration/test_ui_web_routes.py`:
+- [x] T1: Add `test_ui_execute_action_summary(db)` to `tests/integration/test_ui_web_routes.py`:
       GET a `/ui/...` page and assert the generated JS defines `summarizeSuccess`, the success
       branch uses it, the raw JSON is wrapped in `<details>` (not a bare `<div>` dump), and
       `return data` is still present. → files: tests/integration/test_ui_web_routes.py → verify:
       `pytest tests/integration/test_ui_web_routes.py -q` RED on the new assertions vs current code.
-- [ ] T2: Rewrite the `executeAction()` success branch in `src/ui/html_generator.py`: add the
+- [x] T2: Rewrite the `executeAction()` success branch in `src/ui/html_generator.py`: add the
       `summarizeSuccess` helper (f-string doubled braces), render `✅ ${summary}` + collapsed
       `<details>` raw JSON, keep `return data`. → files: src/ui/html_generator.py → verify: T1 test
       GREEN, then full `pytest tests -q` green.
 
 ## Verification
 
-> (filled at close)
+- **Tests**: Full pytest suite passing (`204 passed in 3.17s`), including `test_ui_execute_action_summary` in `tests/integration/test_ui_web_routes.py`.
+- **C1–C4**: `summarizeSuccess(data, payload)` renders a concise one-line summary (`✅ ${summary}`), keeps the full JSON collapsed inside `<details>`, preserves `return data`, and leaves the error/fallback path untouched.
 
 ## Close
 
-> (filled at close)
+- Closed 2026-11: T1–T2 ✅ and Verification filled.
+- Backlog item moved to Done; branch `feat/ui-simplify-action-feedback` committed and pushed.

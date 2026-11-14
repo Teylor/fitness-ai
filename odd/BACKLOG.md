@@ -42,7 +42,6 @@
 | Feature | File |
 |---------|---------|
 | `exercise-muscle-group-and-workout-defaults` | `odd/tasks/exercise-muscle-group-and-workout-defaults.md` |
-| `ui-simplify-action-feedback` | `odd/tasks/ui-simplify-action-feedback.md` |
 
 ---
 
@@ -50,6 +49,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `ui-simplify-action-feedback` | `odd/tasks/ui-simplify-action-feedback.md` | 2026-11 |
 | `day-off-daily-goals` | `odd/tasks/day-off-daily-goals.md` | 2026-11 |
 | `ui-favicon` | `odd/tasks/ui-favicon.md` | 2026-11 |
 | `google-health-ui-data-mismatch` | `odd/tasks/fix-steps.md` | 2026-11 |
