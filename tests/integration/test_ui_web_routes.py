@@ -663,7 +663,9 @@ async def test_ui_accent_insensitive_search_helpers(db):
         assert res.status_code == 200
         html = res.text
         assert "function normalizeText(" in html
+        assert "function attachAutocomplete(" in html
         assert "normalize('NFKD')" in html
+        assert "normalizeText(opt.value).includes(q)" in html
         assert "normalizeText(i.name).includes(query)" in html
         assert "normalizeText(r.name).includes(query)" in html
         assert "normalizeText(ex.name).includes(search)" in html
