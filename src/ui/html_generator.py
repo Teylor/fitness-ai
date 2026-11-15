@@ -24,7 +24,11 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>Fitness AI - Hermes Hub</title>
+  <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
@@ -2515,6 +2519,10 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     fetchRecipesList();
     fetchExercisesList();
     fetchSummary();
+
+    if ('serviceWorker' in navigator) {{
+      navigator.serviceWorker.register('/sw.js').catch(() => {{}});
+    }}
   </script>
 </body>
 </html>

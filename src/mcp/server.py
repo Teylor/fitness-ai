@@ -126,6 +126,52 @@ def create_server() -> MCPServer:
     async def apple_touch_icon_handler(request: Request) -> Response:
         return _serve_asset("apple-touch-icon.png", "image/png")
 
+    @server.custom_route("/icon-192.png", methods=["GET"])
+    async def icon_192_handler(request: Request) -> Response:
+        return _serve_asset("icon-192.png", "image/png")
+
+    @server.custom_route("/icon-512.png", methods=["GET"])
+    async def icon_512_handler(request: Request) -> Response:
+        return _serve_asset("icon-512.png", "image/png")
+
+    @server.custom_route("/manifest.webmanifest", methods=["GET"])
+    async def manifest_handler(request: Request) -> JSONResponse:
+        return JSONResponse(
+            {
+                "name": "Fitness AI",
+                "short_name": "Fitness AI",
+                "description": "Nutrition, workout, and daily health tracker",
+                "start_url": "/ui",
+                "scope": "/",
+                "display": "standalone",
+                "background_color": "#0f172a",
+                "theme_color": "#0f172a",
+                "icons": [
+                    {"src": "/icon-192.png", "sizes": "192x192", "type": "image/png"},
+                    {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png"},
+                ],
+            },
+            media_type="application/manifest+json",
+            headers={"Cache-Control": "no-cache"},
+        )
+
+    @server.custom_route("/sw.js", methods=["GET"])
+    async def service_worker_handler(request: Request) -> Response:
+        sw_code = (
+            "self.addEventListener('install', () => self.skipWaiting());\n"
+            "self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));\n"
+            "self.addEventListener('fetch', (e) => {\n"
+            "  const url = new URL(e.request.url);\n"
+            "  if (url.pathname.startsWith('/api/') || e.request.method !== 'GET') return;\n"
+            "  e.respondWith(fetch(e.request));\n"
+            "});\n"
+        )
+        return Response(
+            content=sw_code,
+            media_type="application/javascript",
+            headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"},
+        )
+
     @server.custom_route("/ui", methods=["GET"])
     async def ui_hub_handler(request: Request) -> HTMLResponse:
         form_type = request.query_params.get("form", "hub")
