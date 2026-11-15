@@ -707,6 +707,42 @@ async def test_ui_daily_creatine_toggle_integration(db):
         assert off.json()["spend"] == 1.25
 
 
+@pytest.mark.anyio
+async def test_ui_pwa_manifest_sw_and_icons(db):
+    server = create_server()
+    app = server.streamable_http_app()
+    transport = httpx2.ASGITransport(app=app)
+
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
+        ui_res = await client.get("/ui")
+        assert ui_res.status_code == 200
+        html = ui_res.text
+        assert '<link rel="manifest" href="/manifest.webmanifest">' in html
+        assert '<meta name="theme-color" content="#0f172a">' in html
+        assert "navigator.serviceWorker.register('/sw.js')" in html
+
+        mf_res = await client.get("/manifest.webmanifest")
+        assert mf_res.status_code == 200
+        assert "application/manifest+json" in mf_res.headers.get("content-type", "")
+        mf = mf_res.json()
+        assert mf["name"] == "Fitness AI"
+        assert mf["start_url"] == "/ui"
+        assert mf["display"] == "standalone"
+        assert {ic["src"] for ic in mf["icons"]} >= {"/icon-192.png", "/icon-512.png"}
+
+        sw_res = await client.get("/sw.js")
+        assert sw_res.status_code == 200
+        assert "javascript" in sw_res.headers.get("content-type", "")
+        assert sw_res.headers.get("service-worker-allowed") == "/"
+        assert "/api/" in sw_res.text
+
+        for icon_path in ("/icon-192.png", "/icon-512.png"):
+            ic_res = await client.get(icon_path)
+            assert ic_res.status_code == 200
+            assert ic_res.headers.get("content-type", "").startswith("image/png")
+            assert ic_res.content[:4] == b"\x89PNG"
+
+
 
 
 

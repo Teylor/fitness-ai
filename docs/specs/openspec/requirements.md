@@ -109,6 +109,7 @@ The system runs 24/7 on a local PC (server mode). An AI agent (Hermes Agent) con
 - **FR8.3** Direct HTTP endpoints (`/ui`, `/ui/{form_type}`, `/api/{tool_name}`) allow browser interaction and asynchronous tool execution directly from UI widgets.
 - **FR8.4** The web UI header and Daily Summary views provide one-click "Sincronizar Google Health" actions to trigger full synchronization and refresh metrics.
 - **FR8.5** A dedicated Exercises section (`/ui/exercise`) displays catalog exercises with muscle group, exercise type, estimated 1RM PR badge, heaviest weight set badge with repetitions, search and muscle group filter (options built dynamically from the groups actually present in the catalog, current selection preserved across refreshes), an inline per-row editor (muscle group input with datalist of existing groups plus free text, type select, saved via `POST /api/update_exercise` and row refresh), and an inline exercise creation form.
+- **FR8.6** The web UI is installable as a **PWA** (`/manifest.webmanifest`, `/sw.js`, `/icon-192.png`, `/icon-512.png`, mobile meta tags) and `MCP_HOST` / `MCP_PORT` are configurable via `.env` for private remote access over **Tailscale** (`tailscale serve`).
 
 ### FR9 — Catalog & Log Deletions
 

@@ -30,8 +30,8 @@ class Settings:
     migrations_dir: str = "src/db/migrations"
 
     # MCP Server
-    mcp_host: str = "127.0.0.1"
-    mcp_port: int = 9700
+    mcp_host: str = os.environ.get("MCP_HOST", "127.0.0.1")
+    mcp_port: int = int(os.environ.get("MCP_PORT", "9700"))
 
     # Google Health API
     google_health_api_url: str = os.environ.get(
