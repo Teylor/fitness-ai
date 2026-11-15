@@ -31,7 +31,7 @@
 |---|---|
 | Ingredients (4) | `create_ingredient`, `update_ingredient`, `delete_ingredient`, `list_ingredients` |
 | Recipes (4) | `create_recipe`, `update_recipe`, `delete_recipe`, `list_recipes` |
-| Meals (3) | `register_meal`, `get_day_summary`, `delete_meal` |
+| Meals (4) | `register_meal`, `get_day_summary`, `delete_meal`, `toggle_daily_creatine` |
 | Goals (2) | `set_daily_goal`, `get_daily_goal` |
 | Workouts (4) | `register_workout`, `get_last_workout`, `get_personal_record`, `get_workouts_by_day` |
 | Exercises (3) | `list_exercises`, `create_exercise`, `update_exercise` |
@@ -270,6 +270,21 @@ Delete a logged meal entry by its primary key ID.
 ```
 
 Errors: `not_found`, `invalid_input`, `internal`.
+
+### `toggle_daily_creatine`
+
+Enable, disable, or flip automatic daily creatine tracking for a `DD-MM-YYYY` date (defaults to today; enabled by default when no override exists).
+
+| Arg | Type | Req | Default | Description |
+|---|---|---|---|---|
+| `date` | str | — | today | `DD-MM-YYYY` |
+| `enabled` | bool | — | flip | Explicit boolean state or omit to flip current state |
+
+```json
+{"status": "ok", "date": "20-11-2026", "enabled": false, "creatine": {...}, "spend": 1.25}
+```
+
+Errors: `invalid_input`, `internal`.
 
 ---
 

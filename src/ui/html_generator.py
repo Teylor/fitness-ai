@@ -255,6 +255,44 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       padding: 2px 6px;
     }}
 
+    .ac-list {{
+      position: fixed;
+      z-index: 999;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      max-height: 220px;
+      overflow-y: auto;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      display: none;
+    }}
+
+    .ac-item {{
+      padding: 7px 10px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      color: var(--text);
+      border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+    }}
+
+    .ac-item:last-child {{
+      border-bottom: none;
+    }}
+
+    .ac-item:hover, .ac-item.active {{
+      background: #334155;
+    }}
+
+    .ac-sub {{
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }}
+
     .badge {{
       display: inline-block;
       padding: 2px 8px;
@@ -369,7 +407,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           </div>
           <div class="form-group">
             <label for="meal-item">Nombre (ej: Arroz, Pechuga, Bowl)</label>
-            <input type="text" id="meal-item" list="meal-items-datalist" required placeholder="Buscar o escribir alimento..." oninput="onMealItemInput()">
+            <input type="text" id="meal-item" list="meal-items-datalist" autocomplete="off" required placeholder="Buscar o escribir alimento..." oninput="onMealItemInput()">
             <datalist id="meal-items-datalist"></datalist>
           </div>
           <div class="form-group">
@@ -559,7 +597,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       <div style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
           <h3 style="font-size: 1.1rem; color: var(--cyan);">💧💊 Agua y Suplementos</h3>
-          <span class="badge badge-info">Agua diaria: 3L (1.25 €)</span>
+          <span class="badge badge-info">Agua diaria: 3L (1.25 €) • Creatina diaria: 1 u (0.30 €)</span>
         </div>
         <div class="table-container">
           <table id="supplements-catalog-table">
@@ -826,7 +864,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const tbody = document.querySelector('#recipe-items-table tbody');
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><input type="text" class="rec-item-name" list="recipe-ingredients-datalist" required value="${{name}}" placeholder="Buscar ingrediente..." oninput="onRecipeItemInput(this)"></td>
+        <td><input type="text" class="rec-item-name" list="recipe-ingredients-datalist" autocomplete="off" required value="${{name}}" placeholder="Buscar ingrediente..." oninput="onRecipeItemInput(this)"></td>
         <td><input type="number" class="rec-item-qty" required value="${{qty}}" min="0.1" step="any"></td>
         <td>
           <select class="rec-item-unit">
@@ -838,6 +876,14 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()">×</button></td>
       `;
       tbody.appendChild(tr);
+      const recInput = tr.querySelector('.rec-item-name');
+      if (recInput) {{
+        attachAutocomplete(
+          recInput,
+          () => allIngredients.map(i => ({{ value: i.name, sub: `${{i.unit}} | ${{i.kcal || 0}} kcal` }})),
+          () => onRecipeItemInput(recInput)
+        );
+      }}
     }}
     // Start with 1 clean empty row instead of hardcoded chicken and rice
     addRecipeRow('', 100, 'gr');
@@ -853,7 +899,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       div.style.cssText = 'background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px;';
       div.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <input type="text" class="ex-name" required value="${{name}}" list="exercises-datalist" style="font-weight: 700; width: 60%;" placeholder="Nombre del ejercicio...">
+          <input type="text" class="ex-name" list="exercises-datalist" autocomplete="off" required value="${{name}}" style="font-weight: 700; width: 60%;" placeholder="Nombre del ejercicio...">
           <button type="button" class="btn btn-danger btn-sm" onclick="document.getElementById('${{id}}').remove()">Eliminar Ejercicio</button>
         </div>
         <div class="table-container">
@@ -865,6 +911,13 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         <button type="button" class="btn btn-secondary btn-sm" style="align-self: flex-start;" onclick="addSetRow('${{id}}')">+ Añadir Serie</button>
       `;
       container.appendChild(div);
+      const exInput = div.querySelector('.ex-name');
+      if (exInput) {{
+        attachAutocomplete(
+          exInput,
+          () => allExercises.map(ex => ({{ value: ex.name, sub: ex.muscle_group && ex.muscle_group !== 'unknown' ? ex.muscle_group : '' }}))
+        );
+      }}
       addSetRow(id, 1, '', '');
     }}
 
@@ -910,6 +963,17 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     addExerciseBlock();
 
     // Universal Dispatch & Result Display
+    function summarizeSuccess(data, payload) {{
+      const d = data || {{}};
+      if (d.exercise && d.exercise.name) return `Ejercicio «${{d.exercise.name}}» guardado`;
+      if (d.ingredient && d.ingredient.name) return `Ingrediente «${{d.ingredient.name}}» guardado`;
+      if (d.recipe && d.recipe.name) return `Receta «${{d.recipe.name}}» guardada`;
+      if (d.goal) return `Objetivo actualizado`;
+      if (d.entry_id) return `Comida registrada`;
+      if (d.session) return `Entrenamiento registrado`;
+      return 'Operación completada con éxito';
+    }}
+
     async function executeAction(toolName, payload, resultElementId, promptDescription) {{
       const resEl = document.getElementById(resultElementId);
       resEl.style.display = 'flex';
@@ -928,8 +992,11 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
         if (data.status === 'ok') {{
           resEl.innerHTML = `
-            <strong>✅ Operación completada con éxito</strong>
-            <div>${{JSON.stringify(data, null, 2)}}</div>
+            <strong>✅ ${{summarizeSuccess(data, payload)}}</strong>
+            <details>
+              <summary>Ver respuesta completa</summary>
+              <pre>${{JSON.stringify(data, null, 2)}}</pre>
+            </details>
           `;
           return data;
         }} else {{
@@ -1057,11 +1124,104 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       }}
     }}
 
+    function normalizeText(str) {{
+      return String(str || '')
+        .normalize('NFKD')
+        .replace(/[\\u0300-\\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+    }}
+
+    function attachAutocomplete(input, getOptions, onPick) {{
+      if (!input || input.dataset.acAttached) return;
+      input.dataset.acAttached = '1';
+      input.removeAttribute('list');
+      const listEl = document.createElement('div');
+      listEl.className = 'ac-list';
+      document.body.appendChild(listEl);
+      let activeIdx = -1;
+      let currentMatches = [];
+
+      function hide() {{
+        listEl.style.display = 'none';
+        activeIdx = -1;
+      }}
+
+      function pick(opt) {{
+        input.value = opt.value;
+        hide();
+        if (onPick) onPick(opt);
+      }}
+
+      function render() {{
+        const q = normalizeText(input.value);
+        const all = getOptions() || [];
+        currentMatches = (q ? all.filter(opt => normalizeText(opt.value).includes(q)) : all).slice(0, 30);
+        if (currentMatches.length === 0) {{
+          hide();
+          return;
+        }}
+        const rect = input.getBoundingClientRect();
+        listEl.style.left = rect.left + 'px';
+        listEl.style.top = (rect.bottom + 2) + 'px';
+        listEl.style.width = Math.max(rect.width, 200) + 'px';
+        listEl.innerHTML = '';
+        activeIdx = -1;
+        currentMatches.forEach((opt, idx) => {{
+          const item = document.createElement('div');
+          item.className = 'ac-item';
+          item.innerHTML = `<span>${{escapeHtml(opt.value)}}</span>${{opt.sub ? `<span class="ac-sub">${{escapeHtml(opt.sub)}}</span>` : ''}}`;
+          item.addEventListener('mousedown', (e) => {{
+            e.preventDefault();
+            pick(opt);
+          }});
+          listEl.appendChild(item);
+        }});
+        listEl.style.display = 'block';
+      }}
+
+      input.addEventListener('input', render);
+      input.addEventListener('focus', render);
+      input.addEventListener('blur', () => setTimeout(hide, 120));
+      input.addEventListener('keydown', (e) => {{
+        if (listEl.style.display === 'none') return;
+        const items = listEl.querySelectorAll('.ac-item');
+        if (e.key === 'ArrowDown') {{
+          e.preventDefault();
+          activeIdx = Math.min(activeIdx + 1, items.length - 1);
+          items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+        }} else if (e.key === 'ArrowUp') {{
+          e.preventDefault();
+          activeIdx = Math.max(activeIdx - 1, 0);
+          items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+        }} else if (e.key === 'Enter' && activeIdx >= 0 && currentMatches[activeIdx]) {{
+          e.preventDefault();
+          pick(currentMatches[activeIdx]);
+        }} else if (e.key === 'Escape') {{
+          hide();
+        }}
+      }});
+    }}
+
+    const mealItemEl = document.getElementById('meal-item');
+    if (mealItemEl) {{
+      attachAutocomplete(
+        mealItemEl,
+        () => {{
+          const type = document.getElementById('meal-item-type')?.value;
+          return type === 'recipe'
+            ? allRecipes.map(r => ({{ value: r.name, sub: `${{r.kcal || 0}} kcal` }}))
+            : allIngredients.map(i => ({{ value: i.name, sub: `${{i.unit}} | ${{i.kcal || 0}} kcal` }}));
+        }},
+        () => onMealItemInput()
+      );
+    }}
+
     function onMealItemInput() {{
-      const val = (document.getElementById('meal-item').value || '').trim().toLowerCase();
+      const val = normalizeText(document.getElementById('meal-item').value);
       const type = document.getElementById('meal-item-type').value;
       if (type === 'ingredient') {{
-        const matched = allIngredients.find(i => (i.name || '').toLowerCase() === val);
+        const matched = allIngredients.find(i => normalizeText(i.name) === val);
         if (matched && matched.unit) {{
           document.getElementById('meal-unit').value = matched.unit;
         }}
@@ -1081,8 +1241,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     }}
 
     function onRecipeItemInput(input) {{
-      const val = (input.value || '').trim().toLowerCase();
-      const matched = allIngredients.find(i => (i.name || '').toLowerCase() === val);
+      const val = normalizeText(input.value);
+      const matched = allIngredients.find(i => normalizeText(i.name) === val);
       if (matched && matched.unit) {{
         const tr = input.closest('tr');
         if (tr) {{
@@ -1166,6 +1326,25 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         `;
         suppTbody.appendChild(waterTr);
 
+        const catalogCreatina = (supplementList || []).find(i => normalizeText(i.name) === 'creatina');
+        const creatUnit = catalogCreatina ? (catalogCreatina.unit === 'u' ? '1 u / día' : `5 ${{escapeHtml(catalogCreatina.unit)}} / día`) : '1 u (5g) / día';
+        const creatPrice = catalogCreatina
+          ? (catalogCreatina.unit === 'u' ? (catalogCreatina.price || 0) : ((catalogCreatina.price || 0) * 5 / 100))
+          : 0.30;
+        const creatTr = document.createElement('tr');
+        creatTr.innerHTML = `
+          <td><strong>💊 Creatina (Consumo diario)</strong></td>
+          <td>${{creatUnit}}</td>
+          <td>${{catalogCreatina ? (catalogCreatina.kcal || 0) : 0}}</td>
+          <td>${{catalogCreatina ? (catalogCreatina.protein || 0) : 0}}</td>
+          <td>${{catalogCreatina ? (catalogCreatina.carbs || 0) : 0}}</td>
+          <td>${{catalogCreatina ? (catalogCreatina.fat || 0) : 0}}</td>
+          <td>${{creatPrice.toFixed(2)}} €</td>
+          <td><span class="badge badge-info">💊 Diario</span></td>
+          <td style="color: var(--text-muted); font-size: 0.8rem;">Activo por defecto</td>
+        `;
+        suppTbody.appendChild(creatTr);
+
         supplementList.forEach(ing => {{
           const tr = document.createElement('tr');
           const priceStr = ing.price ? `${{parseFloat(ing.price).toFixed(2)}} €` : '-';
@@ -1213,8 +1392,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     }}
 
     function filterIngredients() {{
-      const query = (document.getElementById('ing-search-input').value || '').toLowerCase().trim();
-      const filtered = allIngredients.filter(i => (i.name || '').toLowerCase().includes(query));
+      const query = normalizeText(document.getElementById('ing-search-input').value);
+      const filtered = allIngredients.filter(i => normalizeText(i.name).includes(query));
       renderIngredientsTable(filtered);
     }}
 
@@ -1328,8 +1507,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     }}
 
     function filterRecipes() {{
-      const query = (document.getElementById('recipe-search-input').value || '').toLowerCase().trim();
-      const filtered = allRecipes.filter(r => (r.name || '').toLowerCase().includes(query));
+      const query = normalizeText(document.getElementById('recipe-search-input').value);
+      const filtered = allRecipes.filter(r => normalizeText(r.name).includes(query));
       renderRecipesTable(filtered);
     }}
 
@@ -1438,14 +1617,14 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const seen = new Set();
       const opts = [];
       DEFAULT_MUSCLE_GROUPS.forEach(g => {{
-        const key = g.toLowerCase();
+        const key = normalizeText(g);
         if (!seen.has(key)) {{
           seen.add(key);
           opts.push(g);
         }}
       }});
       catalogGroups().forEach(g => {{
-        const key = g.toLowerCase();
+        const key = normalizeText(g);
         if (key !== 'unknown' && !seen.has(key)) {{
           seen.add(key);
           opts.push(g);
@@ -1459,7 +1638,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const groups = [];
       allExercises.forEach(ex => {{
         const raw = (ex.muscle_group || '').trim();
-        const g = raw.toLowerCase();
+        const g = normalizeText(raw);
         if (g && !seen.has(g)) {{
           seen.add(g);
           groups.push(raw);
@@ -1474,24 +1653,24 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (!sel) return;
       const current = sel.value;
       const groups = catalogGroups();
-      const values = new Set(groups.map(g => g.toLowerCase()));
+      const values = new Set(groups.map(g => normalizeText(g)));
       sel.innerHTML = '<option value="">Todos los grupos</option>';
       groups.forEach(g => {{
         const opt = document.createElement('option');
         opt.value = g;
-        opt.textContent = g.toLowerCase() === 'unknown' ? 'Otros' : g;
+        opt.textContent = normalizeText(g) === 'unknown' ? 'Otros' : g;
         sel.appendChild(opt);
       }});
-      if (current && values.has(current.toLowerCase())) sel.value = current;
+      if (current && values.has(normalizeText(current))) sel.value = current;
     }}
 
     function filterExercises() {{
-      const search = (document.getElementById('exercise-search-input')?.value || '').trim().toLowerCase();
-      const group = (document.getElementById('exercise-group-filter')?.value || '').trim().toLowerCase();
+      const search = normalizeText(document.getElementById('exercise-search-input')?.value);
+      const group = normalizeText(document.getElementById('exercise-group-filter')?.value);
 
       const filtered = allExercises.filter(ex => {{
-        const matchSearch = !search || (ex.name && ex.name.toLowerCase().includes(search));
-        const matchGroup = !group || (ex.muscle_group && ex.muscle_group.toLowerCase() === group);
+        const matchSearch = !search || (ex.name && normalizeText(ex.name).includes(search));
+        const matchGroup = !group || (ex.muscle_group && normalizeText(ex.muscle_group) === group);
         return matchSearch && matchGroup;
       }});
       renderExercisesTable(filtered);
@@ -1544,10 +1723,10 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         }}
 
         const muscleValue = (ex.muscle_group || 'unknown');
-        const muscleKey = muscleValue.toLowerCase();
+        const muscleKey = normalizeText(muscleValue);
         const groupOpts = allMuscleGroupOptions();
         const muscleSelectOpts = groupOpts.map(g =>
-          `<option value="${{escapeHtml(g)}}"${{g.toLowerCase() === muscleKey ? ' selected' : ''}}>${{escapeHtml(g)}}</option>`
+          `<option value="${{escapeHtml(g)}}"${{normalizeText(g) === muscleKey ? ' selected' : ''}}>${{escapeHtml(g)}}</option>`
         ).join('') + `<option value="unknown"${{muscleKey === 'unknown' ? ' selected' : ''}}>Otros</option>`;
 
         tr.innerHTML = `
@@ -2111,6 +2290,9 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const supplements = (waterAndSupplements && waterAndSupplements.supplements)
         ? waterAndSupplements.supplements
         : (allMeals || []).filter(m => m.is_supplement);
+      const creatine = (waterAndSupplements && waterAndSupplements.creatine)
+        ? waterAndSupplements.creatine
+        : null;
 
       let totalKcal = 0;
       let totalP = 0;
@@ -2128,6 +2310,41 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <td><span class="badge badge-info">Fijo diario</span></td>
         </tr>
       `;
+
+      let dailyItemCount = 1;
+      if (creatine && !creatine.already_logged) {{
+        dailyItemCount += 1;
+        const cEnabled = creatine.enabled !== false;
+        const cPrice = Number(creatine.price || 0);
+        const cKcal = Number(creatine.kcal || 0);
+        const cP = Number(creatine.protein || 0);
+        const cC = Number(creatine.carbs || 0);
+        const cF = Number(creatine.fat || 0);
+        if (cEnabled) {{
+          totalKcal += cKcal;
+          totalP += cP;
+          totalC += cC;
+          totalF += cF;
+          totalSpend += cPrice;
+        }}
+        const cQtyLabel = creatine.unit === 'u' ? `${{creatine.quantity || 1}} u (5g)` : `${{creatine.quantity || 5}} ${{escapeHtml(creatine.unit || 'gr')}}`;
+        const cRowStyle = cEnabled ? '' : 'opacity: 0.55;';
+        rowsHtml += `
+          <tr style="${{cRowStyle}}">
+            <td><strong>💊 ${{escapeHtml(creatine.name || 'Creatina')}} (Diario)</strong></td>
+            <td>${{cQtyLabel}}</td>
+            <td>${{cKcal}}</td>
+            <td>${{cP}}g / ${{cC}}g / ${{cF}}g</td>
+            <td>${{cEnabled ? `${{cPrice.toFixed(2)}} €` : '0.00 €'}}</td>
+            <td>
+              <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.8rem;">
+                <input type="checkbox" id="toggle-daily-creatine" ${{cEnabled ? 'checked' : ''}} onchange="toggleDailyCreatineUI(this.checked)">
+                <span>${{cEnabled ? 'Activa' : 'Omitida'}}</span>
+              </label>
+            </td>
+          </tr>
+        `;
+      }}
 
       supplements.forEach(m => {{
         const entryId = m.entry ? m.entry.id : m.id;
@@ -2170,7 +2387,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       block.style.cssText = 'background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px;';
       block.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
-          <div style="font-weight: 700; color: var(--cyan); font-size: 0.95rem;">💧💊 Agua (3L) y Suplementos <span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">(${{1 + supplements.length}})</span></div>
+          <div style="font-weight: 700; color: var(--cyan); font-size: 0.95rem;">💧💊 Agua (3L) y Suplementos <span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">(${{dailyItemCount + supplements.length}})</span></div>
           <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">
             <span style="color: var(--primary); font-weight: 700;">${{Math.round(totalKcal * 10) / 10}} kcal</span> • P: ${{Math.round(totalP * 10) / 10}}g | C: ${{Math.round(totalC * 10) / 10}}g | G: ${{Math.round(totalF * 10) / 10}}g • ${{totalSpend.toFixed(2)}} €
           </div>
@@ -2194,6 +2411,27 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         </div>
       `;
       container.appendChild(block);
+    }}
+
+    async function toggleDailyCreatineUI(enabled) {{
+      const rawDate = document.getElementById('summary-date')?.value;
+      const date = toBackendDate(rawDate) || toBackendDate(formatTodayIso(false));
+      try {{
+        const res = await fetch('/api/toggle_daily_creatine', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ date, enabled: !!enabled }})
+        }});
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          showToast(enabled ? 'Creatina diaria activada' : 'Creatina diaria desactivada', 'ok');
+          await fetchSummary();
+        }} else {{
+          showToast(data.message || 'Error al actualizar creatina diaria', 'error');
+        }}
+      }} catch (err) {{
+        showToast(`Error de conexión: ${{err.message}}`, 'error');
+      }}
     }}
 
     async function deleteMeal(entryId, name) {{

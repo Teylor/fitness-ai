@@ -215,6 +215,17 @@ class StepLog(BaseModel):
         table_name = "step_logs"
 
 
+class DailyCreatine(BaseModel):
+    """Per-day toggle for automatic daily creatine tracking (enabled by default)."""
+
+    date = CharField(unique=True)  # DD-MM-YYYY
+    enabled = BooleanField(default=True)
+    updated_at = DateTimeField(default=SQL("datetime('now')"))
+
+    class Meta:
+        table_name = "daily_creatine"
+
+
 # List of all models
 ALL_MODELS = [
     Ingredient,
@@ -222,6 +233,7 @@ ALL_MODELS = [
     RecipeItem,
     MealEntry,
     DailyGoal,
+    DailyCreatine,
     Exercise,
     WorkoutSession,
     ExerciseSet,

@@ -2,8 +2,10 @@
 
 from dataclasses import asdict
 from datetime import datetime
+from typing import Optional
 
 from src.db.models import (
+    DailyCreatine as DailyCreatineModel,
     Ingredient as IngredientModel,
     MealEntry as MealEntryModel,
     Recipe as RecipeModel,
@@ -11,6 +13,7 @@ from src.db.models import (
 from src.models.meal_entry import MealEntry
 from src.services.goal_service import GoalService
 from src.utils.errors import NotFoundError, ValidationError
+from src.utils.fuzzy import normalize
 from src.utils.macros import calc_ingredient_macros
 
 ITEM_TYPES = ("ingredient", "recipe")
@@ -18,6 +21,11 @@ MACRO_KEYS = ("kcal", "protein", "carbs", "fat")
 ALLOWED_MEAL_TYPES = ("desayuno", "comida", "merienda", "cena", "tentempie")
 DAILY_WATER_LITERS = 3.0
 DAILY_WATER_PRICE = 1.25
+DAILY_CREATINE_NAME = "Creatina (5g)"
+DAILY_CREATINE_QUANTITY = 1.0
+DAILY_CREATINE_UNIT = "u"
+DAILY_CREATINE_GRAMS = 5.0
+DAILY_CREATINE_PRICE = 0.30
 
 
 class MealService:
@@ -131,6 +139,63 @@ class MealService:
             meals.append({"entry": asdict(item), "meal_type": item.meal_type, **macros})
         return meals
 
+    def is_daily_creatine_enabled(self, date: str) -> bool:
+        """Return whether daily creatine is enabled for date (defaults to True)."""
+        self._parse_date(date)
+        row = DailyCreatineModel.get_or_none(DailyCreatineModel.date == date)
+        return True if row is None else bool(row.enabled)
+
+    def toggle_daily_creatine(
+        self, date: str, enabled: Optional[bool] = None
+    ) -> bool:
+        """Enable/disable or flip daily creatine for a given DD-MM-YYYY date."""
+        self._parse_date(date)
+        with DailyCreatineModel._meta.database.atomic():
+            row = DailyCreatineModel.get_or_none(DailyCreatineModel.date == date)
+            current = True if row is None else bool(row.enabled)
+            target = (not current) if enabled is None else bool(enabled)
+            if row is None:
+                DailyCreatineModel.create(date=date, enabled=target)
+            else:
+                row.enabled = target
+                row.updated_at = datetime.now()
+                row.save()
+        return target
+
+    @staticmethod
+    def resolve_daily_creatine() -> dict:
+        """Resolve daily creatine from catalog ('Creatina') or default 1 u (5g) @ 0.30€."""
+        match = None
+        for cand in IngredientModel.select():
+            if normalize(cand.name) == "creatina":
+                match = cand
+                break
+        if match is not None:
+            qty = 1.0 if match.unit == "u" else DAILY_CREATINE_GRAMS
+            macros = calc_ingredient_macros(match, qty)
+            return {
+                "name": match.name,
+                "quantity": qty,
+                "unit": match.unit,
+                "price": macros["price"],
+                "kcal": macros["kcal"],
+                "protein": macros["protein"],
+                "carbs": macros["carbs"],
+                "fat": macros["fat"],
+                "from_catalog": True,
+            }
+        return {
+            "name": DAILY_CREATINE_NAME,
+            "quantity": DAILY_CREATINE_QUANTITY,
+            "unit": DAILY_CREATINE_UNIT,
+            "price": DAILY_CREATINE_PRICE,
+            "kcal": 0.0,
+            "protein": 0.0,
+            "carbs": 0.0,
+            "fat": 0.0,
+            "from_catalog": False,
+        }
+
     def get_day_summary(self, date: str) -> dict:
         """Day summary: consumed, goal, remaining, spend, individual meals, meals by type, and water/supplements."""
         meals = self.get_day_entries(date)
@@ -171,6 +236,28 @@ class MealService:
                 meals_by_type[mt][key] = round(meals_by_type[mt][key] + m[key], 2)
             meals_by_type[mt]["spend"] = round(meals_by_type[mt]["spend"] + m.get("price", 0.0), 2)
 
+        creatine_enabled = self.is_daily_creatine_enabled(date)
+        creatine_already_logged = any(
+            normalize(m.get("name", "")) == "creatina" for m in supplement_meals
+        )
+        creatine_info = self.resolve_daily_creatine()
+        creatine_active = creatine_enabled and not creatine_already_logged
+        if creatine_active:
+            for key in MACRO_KEYS:
+                consumed[key] = round(consumed[key] + creatine_info[key], 2)
+            spend = round(spend + creatine_info["price"], 2)
+
+        creatine_payload = {
+            **creatine_info,
+            "enabled": creatine_enabled,
+            "already_logged": creatine_already_logged,
+        }
+        creatine_kcal = creatine_info["kcal"] if creatine_active else 0.0
+        creatine_protein = creatine_info["protein"] if creatine_active else 0.0
+        creatine_carbs = creatine_info["carbs"] if creatine_active else 0.0
+        creatine_fat = creatine_info["fat"] if creatine_active else 0.0
+        creatine_spend = creatine_info["price"] if creatine_active else 0.0
+
         water_and_supplements = {
             "water": {
                 "name": "Agua (3L)",
@@ -182,13 +269,17 @@ class MealService:
                 "carbs": 0.0,
                 "fat": 0.0,
             },
+            "creatine": creatine_payload,
             "supplements": supplement_meals,
-            "kcal": round(sum(m["kcal"] for m in supplement_meals), 2),
-            "protein": round(sum(m["protein"] for m in supplement_meals), 2),
-            "carbs": round(sum(m["carbs"] for m in supplement_meals), 2),
-            "fat": round(sum(m["fat"] for m in supplement_meals), 2),
+            "kcal": round(sum(m["kcal"] for m in supplement_meals) + creatine_kcal, 2),
+            "protein": round(sum(m["protein"] for m in supplement_meals) + creatine_protein, 2),
+            "carbs": round(sum(m["carbs"] for m in supplement_meals) + creatine_carbs, 2),
+            "fat": round(sum(m["fat"] for m in supplement_meals) + creatine_fat, 2),
             "spend": round(
-                DAILY_WATER_PRICE + sum(m.get("price", 0.0) for m in supplement_meals), 2
+                DAILY_WATER_PRICE
+                + creatine_spend
+                + sum(m.get("price", 0.0) for m in supplement_meals),
+                2,
             ),
         }
 
