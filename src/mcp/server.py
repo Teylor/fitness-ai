@@ -48,7 +48,7 @@ from src.mcp.tools.workout_tools import (
     get_workouts_by_day,
     register_workout,
 )
-from src.ui.html_generator import generate_html
+from src.ui import render_latest_html
 
 
 def create_server() -> MCPServer:
@@ -175,12 +175,12 @@ def create_server() -> MCPServer:
     @server.custom_route("/ui", methods=["GET"])
     async def ui_hub_handler(request: Request) -> HTMLResponse:
         form_type = request.query_params.get("form", "hub")
-        return HTMLResponse(generate_html(form_type))
+        return HTMLResponse(render_latest_html(form_type))
 
     @server.custom_route("/ui/{form_type}", methods=["GET"])
     async def ui_form_handler(request: Request) -> HTMLResponse:
         form_type = request.path_params.get("form_type", "hub")
-        return HTMLResponse(generate_html(form_type))
+        return HTMLResponse(render_latest_html(form_type))
 
     @server.custom_route("/api/{tool_name}", methods=["GET", "POST"])
     async def api_dispatch_handler(request: Request) -> JSONResponse:

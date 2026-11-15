@@ -743,6 +743,39 @@ async def test_ui_pwa_manifest_sw_and_icons(db):
             assert ic_res.content[:4] == b"\x89PNG"
 
 
+@pytest.mark.anyio
+async def test_ui_hot_reload_on_mtime_change(db, monkeypatch):
+    import importlib
+    import src.ui as ui_pkg
+    from src.ui import html_generator
+
+    reload_calls = []
+    orig_reload = importlib.reload
+
+    def spy_reload(mod):
+        reload_calls.append(mod)
+        return orig_reload(mod)
+
+    monkeypatch.setattr(importlib, "reload", spy_reload)
+    # Force an mtime mismatch on the next request
+    monkeypatch.setattr(ui_pkg, "_last_html_mtime_ns", -1)
+
+    server = create_server()
+    app = server.streamable_http_app()
+    transport = httpx2.ASGITransport(app=app)
+
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
+        res1 = await client.get("/ui")
+        assert res1.status_code == 200
+        assert len(reload_calls) == 1
+        assert reload_calls[0] is html_generator
+
+        # Subsequent request without mtime change does not reload again
+        res2 = await client.get("/ui/meal")
+        assert res2.status_code == 200
+        assert len(reload_calls) == 1
+
+
 
 
 

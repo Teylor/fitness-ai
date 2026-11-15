@@ -2,7 +2,8 @@
 
 from typing import Optional
 
-from src.ui.html_generator import VALID_FORM_TYPES, generate_html
+from src.ui import render_latest_html
+from src.ui.html_generator import VALID_FORM_TYPES
 
 
 def get_ui_form(form_type: Optional[str] = "hub") -> dict:
@@ -23,7 +24,7 @@ def get_ui_form(form_type: Optional[str] = "hub") -> dict:
             "message": f"invalid form_type '{form_type}'. Expected one of {list(VALID_FORM_TYPES)}",
         }
 
-    html = generate_html(selected)
+    html = render_latest_html(selected)
     return {
         "status": "ok",
         "form_type": selected,
