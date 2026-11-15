@@ -360,3 +360,40 @@ def test_daily_creatine_default_enabled_toggle_and_catalog_lookup(db, meal_servi
     assert s3["water_and_supplements"]["spend"] == 1.60
     assert s3["spend"] == 1.60
 
+
+def test_daily_supplements_default_off_and_toggle(db, meal_service, ingredient_service, goal_service):
+    goal_service.set_default(
+        DailyGoal(date="01-01-2026", kcal=2000, protein=150, carbs=200, fat=60)
+    )
+    omega3 = ingredient_service.create(
+        Ingredient(name="Omega 3", unit="u", kcal=18, protein=0, carbs=0, fat=2, price=0.20, is_supplement=True)
+    )
+    vitd = ingredient_service.create(
+        Ingredient(name="Vitamina D", unit="u", kcal=0, protein=0, carbs=0, fat=0, price=0.10, is_supplement=True)
+    )
+
+    # Default: both supplements are listed in daily_supplements with enabled=False (Creatina still True)
+    s1 = meal_service.get_day_summary("25-11-2026")
+    ds1 = s1["water_and_supplements"]["daily_supplements"]
+    assert {d["name"]: d["enabled"] for d in ds1} == {"Omega 3": False, "Vitamina D": False}
+    assert s1["water_and_supplements"]["creatine"]["enabled"] is True
+    assert s1["spend"] == 1.55  # 1.25 water + 0.30 creatine
+    assert s1["consumed"]["kcal"] == 0.0
+
+    # Toggle Omega 3 ON -> included in consumed & spend
+    assert meal_service.toggle_daily_supplement("25-11-2026", omega3.id, enabled=True) is True
+    s2 = meal_service.get_day_summary("25-11-2026")
+    ds2 = {d["name"]: d for d in s2["water_and_supplements"]["daily_supplements"]}
+    assert ds2["Omega 3"]["enabled"] is True
+    assert ds2["Vitamina D"]["enabled"] is False
+    assert s2["consumed"]["kcal"] == 18.0
+    assert s2["consumed"]["fat"] == 2.0
+    assert s2["water_and_supplements"]["spend"] == 1.75
+    assert s2["spend"] == 1.75
+
+    # Flip Omega 3 back OFF without explicit arg
+    assert meal_service.toggle_daily_supplement("25-11-2026", omega3.id) is False
+    s3 = meal_service.get_day_summary("25-11-2026")
+    assert s3["spend"] == 1.55
+    assert s3["consumed"]["kcal"] == 0.0
+

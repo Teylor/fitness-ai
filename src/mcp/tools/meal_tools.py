@@ -241,3 +241,31 @@ def toggle_daily_creatine(
     except Exception as exc:
         return {"status": "error", "code": "internal", "message": str(exc)}
 
+
+def toggle_daily_supplement(
+    ingredient_id: int,
+    date: Optional[str] = None,
+    enabled: Optional[bool] = None,
+) -> dict:
+    """Enable, disable, or flip a catalog supplement for a DD-MM-YYYY date (default today, default OFF)."""
+    meal_service = MealService()
+    if not date:
+        date = datetime.now().strftime("%d-%m-%Y")
+    try:
+        new_state = meal_service.toggle_daily_supplement(
+            date=date, ingredient_id=int(ingredient_id), enabled=enabled
+        )
+        summary = meal_service.get_day_summary(date)
+        return {
+            "status": "ok",
+            "date": date,
+            "ingredient_id": int(ingredient_id),
+            "enabled": new_state,
+            "daily_supplements": summary["water_and_supplements"]["daily_supplements"],
+            "spend": summary["spend"],
+        }
+    except ToolError as err:
+        return err.to_dict()
+    except Exception as exc:
+        return {"status": "error", "code": "internal", "message": str(exc)}
+

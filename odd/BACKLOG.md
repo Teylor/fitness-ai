@@ -45,6 +45,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `daily-supplements-toggle` | `odd/tasks/daily-supplements-toggle.md` | 2026-11 |
 | `ui-hot-reload` | `odd/tasks/ui-hot-reload.md` | 2026-11 |
 | `android-apk-remote-access` | `odd/tasks/android-apk-remote-access.md` | 2026-11 |
 | `daily-creatine-tracking` | `odd/tasks/daily-creatine-tracking.md` | 2026-11 |

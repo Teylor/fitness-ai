@@ -8,6 +8,7 @@ from src.mcp.tools.meal_tools import (
     get_day_summary,
     register_meal,
     toggle_daily_creatine,
+    toggle_daily_supplement,
 )
 from src.services.goal_service import GoalService
 from src.services.ingredient_service import IngredientService
@@ -176,6 +177,24 @@ def test_toggle_daily_creatine_tool(db):
     assert on["status"] == "ok"
     assert on["enabled"] is True
     assert on["spend"] == 1.55
+
+
+def test_toggle_daily_supplement_tool(db):
+    set_daily_goal(date="26-11-2026", kcal=2000, protein=150, carbs=200, fat=60)
+    ing = create_ingredient(
+        name="Omega 3", unit="u", kcal=18, protein=0, carbs=0, fat=2, price=0.20, is_supplement=True
+    )
+    ing_id = ing["ingredient"]["id"]
+
+    res_on = toggle_daily_supplement(ingredient_id=ing_id, date="26-11-2026", enabled=True)
+    assert res_on["status"] == "ok"
+    assert res_on["enabled"] is True
+    assert res_on["spend"] == 1.75
+
+    res_off = toggle_daily_supplement(ingredient_id=ing_id, date="26-11-2026")
+    assert res_off["status"] == "ok"
+    assert res_off["enabled"] is False
+    assert res_off["spend"] == 1.55
 
 
 

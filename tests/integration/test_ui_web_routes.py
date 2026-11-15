@@ -776,6 +776,46 @@ async def test_ui_hot_reload_on_mtime_change(db, monkeypatch):
         assert len(reload_calls) == 1
 
 
+@pytest.mark.anyio
+async def test_ui_daily_supplements_toggle_integration(db):
+    server = create_server()
+    app = server.streamable_http_app()
+    transport = httpx2.ASGITransport(app=app)
+
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
+        res = await client.get("/ui/summary")
+        assert res.status_code == 200
+        html = res.text
+        assert "toggleDailySupplementUI" in html
+        assert "/api/toggle_daily_supplement" in html
+
+        await client.post(
+            "/api/set_daily_goal",
+            json={"date": "27-11-2026", "kcal": 2200.0, "protein": 150.0, "carbs": 220.0, "fat": 70.0},
+        )
+        cr = await client.post(
+            "/api/create_ingredient",
+            json={"name": "Omega 3", "unit": "u", "kcal": 18, "protein": 0, "carbs": 0, "fat": 2, "price": 0.20, "is_supplement": True},
+        )
+        ing_id = cr.json()["ingredient"]["id"]
+
+        # Default OFF
+        s1 = await client.get("/api/get_day_summary?date=27-11-2026")
+        assert s1.status_code == 200
+        assert s1.json()["spend"] == 1.55
+        ds1 = s1.json()["water_and_supplements"]["daily_supplements"]
+        assert len(ds1) == 1 and ds1[0]["enabled"] is False
+
+        # Toggle ON via HTTP API
+        on = await client.post(
+            "/api/toggle_daily_supplement",
+            json={"ingredient_id": ing_id, "date": "27-11-2026", "enabled": True},
+        )
+        assert on.status_code == 200
+        assert on.json()["enabled"] is True
+        assert on.json()["spend"] == 1.75
+
+
 
 
 

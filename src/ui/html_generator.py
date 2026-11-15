@@ -2350,6 +2350,43 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         `;
       }}
 
+      const dailySupplements = (waterAndSupplements && Array.isArray(waterAndSupplements.daily_supplements))
+        ? waterAndSupplements.daily_supplements
+        : [];
+      dailySupplements.forEach(ds => {{
+        if (ds.already_logged) return;
+        dailyItemCount += 1;
+        const dsEnabled = !!ds.enabled;
+        const dsPrice = Number(ds.price || 0);
+        const dsKcal = Number(ds.kcal || 0);
+        const dsP = Number(ds.protein || 0);
+        const dsC = Number(ds.carbs || 0);
+        const dsF = Number(ds.fat || 0);
+        if (dsEnabled) {{
+          totalKcal += dsKcal;
+          totalP += dsP;
+          totalC += dsC;
+          totalF += dsF;
+          totalSpend += dsPrice;
+        }}
+        const dsStyle = dsEnabled ? '' : 'opacity: 0.55;';
+        rowsHtml += `
+          <tr style="${{dsStyle}}">
+            <td><strong>💊 ${{escapeHtml(ds.name)}}</strong></td>
+            <td>${{ds.quantity || 1}} ${{escapeHtml(ds.unit || 'u')}}</td>
+            <td>${{dsKcal}}</td>
+            <td>${{dsP}}g / ${{dsC}}g / ${{dsF}}g</td>
+            <td>${{dsEnabled ? `${{dsPrice.toFixed(2)}} €` : '0.00 €'}}</td>
+            <td>
+              <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.8rem;">
+                <input type="checkbox" class="toggle-daily-supplement" data-ingredient-id="${{ds.ingredient_id}}" ${{dsEnabled ? 'checked' : ''}} onchange="toggleDailySupplementUI(${{ds.ingredient_id}}, this.checked)">
+                <span>${{dsEnabled ? 'Activo' : 'Omitido'}}</span>
+              </label>
+            </td>
+          </tr>
+        `;
+      }});
+
       supplements.forEach(m => {{
         const entryId = m.entry ? m.entry.id : m.id;
         const name = m.name || (m.entry && (m.entry.item_name || m.entry.item_type)) || 'Suplemento';
@@ -2432,6 +2469,27 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           await fetchSummary();
         }} else {{
           showToast(data.message || 'Error al actualizar creatina diaria', 'error');
+        }}
+      }} catch (err) {{
+        showToast(`Error de conexión: ${{err.message}}`, 'error');
+      }}
+    }}
+
+    async function toggleDailySupplementUI(ingredientId, enabled) {{
+      const rawDate = document.getElementById('summary-date')?.value;
+      const date = toBackendDate(rawDate) || toBackendDate(formatTodayIso(false));
+      try {{
+        const res = await fetch('/api/toggle_daily_supplement', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ ingredient_id: ingredientId, date, enabled: !!enabled }})
+        }});
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          showToast(enabled ? 'Suplemento activado' : 'Suplemento omitido', 'ok');
+          await fetchSummary();
+        }} else {{
+          showToast(data.message || 'Error al actualizar suplemento', 'error');
         }}
       }} catch (err) {{
         showToast(`Error de conexión: ${{err.message}}`, 'error');
