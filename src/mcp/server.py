@@ -20,7 +20,12 @@ from src.mcp.tools.ingredient_tools import (
     list_ingredients,
     update_ingredient,
 )
-from src.mcp.tools.meal_tools import delete_meal, get_day_summary, register_meal
+from src.mcp.tools.meal_tools import (
+    delete_meal,
+    get_day_summary,
+    register_meal,
+    toggle_daily_creatine,
+)
 from src.mcp.tools.recipe_tools import (
     create_recipe,
     delete_recipe,
@@ -62,10 +67,11 @@ def create_server() -> MCPServer:
     server.add_tool(delete_recipe, name="delete_recipe")
     server.add_tool(list_recipes, name="list_recipes")
 
-    # Meal tools (3)
+    # Meal tools (4)
     server.add_tool(register_meal, name="register_meal")
     server.add_tool(get_day_summary, name="get_day_summary")
     server.add_tool(delete_meal, name="delete_meal")
+    server.add_tool(toggle_daily_creatine, name="toggle_daily_creatine")
 
     # Goal tools (3)
     server.add_tool(set_daily_goal, name="set_daily_goal")

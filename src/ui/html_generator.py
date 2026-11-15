@@ -597,7 +597,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       <div style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
           <h3 style="font-size: 1.1rem; color: var(--cyan);">💧💊 Agua y Suplementos</h3>
-          <span class="badge badge-info">Agua diaria: 3L (1.25 €)</span>
+          <span class="badge badge-info">Agua diaria: 3L (1.25 €) • Creatina diaria: 1 u (0.30 €)</span>
         </div>
         <div class="table-container">
           <table id="supplements-catalog-table">
@@ -1325,6 +1325,25 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <td style="color: var(--text-muted); font-size: 0.8rem;">Fijo diario</td>
         `;
         suppTbody.appendChild(waterTr);
+
+        const catalogCreatina = (supplementList || []).find(i => normalizeText(i.name) === 'creatina');
+        const creatUnit = catalogCreatina ? (catalogCreatina.unit === 'u' ? '1 u / día' : `5 ${{escapeHtml(catalogCreatina.unit)}} / día`) : '1 u (5g) / día';
+        const creatPrice = catalogCreatina
+          ? (catalogCreatina.unit === 'u' ? (catalogCreatina.price || 0) : ((catalogCreatina.price || 0) * 5 / 100))
+          : 0.30;
+        const creatTr = document.createElement('tr');
+        creatTr.innerHTML = `
+          <td><strong>💊 Creatina (Consumo diario)</strong></td>
+          <td>${{creatUnit}}</td>
+          <td>${{catalogCreatina ? (catalogCreatina.kcal || 0) : 0}}</td>
+          <td>${{catalogCreatina ? (catalogCreatina.protein || 0) : 0}}</td>
+          <td>${{catalogCreatina ? (catalogCreatina.carbs || 0) : 0}}</td>
+          <td>${{catalogCreatina ? (catalogCreatina.fat || 0) : 0}}</td>
+          <td>${{creatPrice.toFixed(2)}} €</td>
+          <td><span class="badge badge-info">💊 Diario</span></td>
+          <td style="color: var(--text-muted); font-size: 0.8rem;">Activo por defecto</td>
+        `;
+        suppTbody.appendChild(creatTr);
 
         supplementList.forEach(ing => {{
           const tr = document.createElement('tr');
@@ -2271,6 +2290,9 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const supplements = (waterAndSupplements && waterAndSupplements.supplements)
         ? waterAndSupplements.supplements
         : (allMeals || []).filter(m => m.is_supplement);
+      const creatine = (waterAndSupplements && waterAndSupplements.creatine)
+        ? waterAndSupplements.creatine
+        : null;
 
       let totalKcal = 0;
       let totalP = 0;
@@ -2288,6 +2310,41 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <td><span class="badge badge-info">Fijo diario</span></td>
         </tr>
       `;
+
+      let dailyItemCount = 1;
+      if (creatine && !creatine.already_logged) {{
+        dailyItemCount += 1;
+        const cEnabled = creatine.enabled !== false;
+        const cPrice = Number(creatine.price || 0);
+        const cKcal = Number(creatine.kcal || 0);
+        const cP = Number(creatine.protein || 0);
+        const cC = Number(creatine.carbs || 0);
+        const cF = Number(creatine.fat || 0);
+        if (cEnabled) {{
+          totalKcal += cKcal;
+          totalP += cP;
+          totalC += cC;
+          totalF += cF;
+          totalSpend += cPrice;
+        }}
+        const cQtyLabel = creatine.unit === 'u' ? `${{creatine.quantity || 1}} u (5g)` : `${{creatine.quantity || 5}} ${{escapeHtml(creatine.unit || 'gr')}}`;
+        const cRowStyle = cEnabled ? '' : 'opacity: 0.55;';
+        rowsHtml += `
+          <tr style="${{cRowStyle}}">
+            <td><strong>💊 ${{escapeHtml(creatine.name || 'Creatina')}} (Diario)</strong></td>
+            <td>${{cQtyLabel}}</td>
+            <td>${{cKcal}}</td>
+            <td>${{cP}}g / ${{cC}}g / ${{cF}}g</td>
+            <td>${{cEnabled ? `${{cPrice.toFixed(2)}} €` : '0.00 €'}}</td>
+            <td>
+              <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.8rem;">
+                <input type="checkbox" id="toggle-daily-creatine" ${{cEnabled ? 'checked' : ''}} onchange="toggleDailyCreatineUI(this.checked)">
+                <span>${{cEnabled ? 'Activa' : 'Omitida'}}</span>
+              </label>
+            </td>
+          </tr>
+        `;
+      }}
 
       supplements.forEach(m => {{
         const entryId = m.entry ? m.entry.id : m.id;
@@ -2330,7 +2387,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       block.style.cssText = 'background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px;';
       block.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
-          <div style="font-weight: 700; color: var(--cyan); font-size: 0.95rem;">💧💊 Agua (3L) y Suplementos <span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">(${{1 + supplements.length}})</span></div>
+          <div style="font-weight: 700; color: var(--cyan); font-size: 0.95rem;">💧💊 Agua (3L) y Suplementos <span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">(${{dailyItemCount + supplements.length}})</span></div>
           <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">
             <span style="color: var(--primary); font-weight: 700;">${{Math.round(totalKcal * 10) / 10}} kcal</span> • P: ${{Math.round(totalP * 10) / 10}}g | C: ${{Math.round(totalC * 10) / 10}}g | G: ${{Math.round(totalF * 10) / 10}}g • ${{totalSpend.toFixed(2)}} €
           </div>
@@ -2354,6 +2411,27 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         </div>
       `;
       container.appendChild(block);
+    }}
+
+    async function toggleDailyCreatineUI(enabled) {{
+      const rawDate = document.getElementById('summary-date')?.value;
+      const date = toBackendDate(rawDate) || toBackendDate(formatTodayIso(false));
+      try {{
+        const res = await fetch('/api/toggle_daily_creatine', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ date, enabled: !!enabled }})
+        }});
+        const data = await res.json();
+        if (data.status === 'ok') {{
+          showToast(enabled ? 'Creatina diaria activada' : 'Creatina diaria desactivada', 'ok');
+          await fetchSummary();
+        }} else {{
+          showToast(data.message || 'Error al actualizar creatina diaria', 'error');
+        }}
+      }} catch (err) {{
+        showToast(`Error de conexión: ${{err.message}}`, 'error');
+      }}
     }}
 
     async function deleteMeal(entryId, name) {{

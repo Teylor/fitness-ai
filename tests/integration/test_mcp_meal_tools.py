@@ -2,7 +2,13 @@
 
 from src.models.daily_goal import DailyGoal
 from src.mcp.tools.ingredient_tools import create_ingredient
-from src.mcp.tools.meal_tools import delete_meal, get_day_summary, register_meal
+from src.mcp.tools.goal_tools import set_daily_goal
+from src.mcp.tools.meal_tools import (
+    delete_meal,
+    get_day_summary,
+    register_meal,
+    toggle_daily_creatine,
+)
 from src.services.goal_service import GoalService
 from src.services.ingredient_service import IngredientService
 
@@ -157,6 +163,19 @@ def test_register_meal_with_meal_type_and_summary_breakdown(db):
     assert "meals_by_type" in summary
     assert summary["meals_by_type"]["merienda"]["kcal"] == 120.0
     assert len(summary["meals_by_type"]["merienda"]["meals"]) == 1
+
+
+def test_toggle_daily_creatine_tool(db):
+    set_daily_goal(date="20-11-2026", kcal=2000, protein=150, carbs=200, fat=60)
+    off = toggle_daily_creatine(date="20-11-2026", enabled=False)
+    assert off["status"] == "ok"
+    assert off["enabled"] is False
+    assert off["spend"] == 1.25
+
+    on = toggle_daily_creatine(date="20-11-2026")
+    assert on["status"] == "ok"
+    assert on["enabled"] is True
+    assert on["spend"] == 1.55
 
 
 

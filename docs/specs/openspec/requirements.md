@@ -62,6 +62,7 @@ The system runs 24/7 on a local PC (server mode). An AI agent (Hermes Agent) con
 - **FR2.5** Macros of a compound recipe are applied as `stored_value × quantity` (recipe values act as a per-unit multiplier); ingredient macros scale per the unit convention (see `api-spec.md`).
 - **FR2.6** Meals support a category `meal_type` (`desayuno`, `comida`, `merienda`, `cena`, `tentempie`, defaulting to `tentempie`). Both MCP registration and the Web UI allow selecting the meal type.
 - **FR2.7** Every day includes a fixed daily water intake of **3L at 1.25€** (`water_and_supplements.water`), added to the daily `spend`. Supplements (`is_supplement = true`) and the 3L daily water are grouped into a dedicated **"Agua y Suplementos"** section in both the Ingredients Catalog and the Daily Summary.
+- **FR2.8** Daily creatine (`water_and_supplements.creatine`) is enabled by default for every day (1 unit / 5g at 0.30€, or resolved from the `"Creatina"` catalog ingredient when present), toggleable per date via `toggle_daily_creatine` (`POST /api/toggle_daily_creatine`) without duplicating manually logged creatine entries.
 
 ### FR3 — Daily goals
 
