@@ -17,6 +17,7 @@ EXPECTED_18_TOOLS = {
     "register_meal",
     "get_day_summary",
     "delete_meal",
+    "toggle_daily_creatine",
     # Goals (2)
     "set_daily_goal",
     "get_daily_goal",
@@ -47,7 +48,7 @@ EXPECTED_18_TOOLS = {
 async def test_hermes_protocol_handshake_and_tool_discovery(hermes_client):
     """Verify that Hermes can connect, initialize session, and discover all tools."""
     tool_names = await hermes_client.list_tool_names()
-    assert len(tool_names) == 29
+    assert len(tool_names) == 30
     assert tool_names == EXPECTED_18_TOOLS
 
     tools = await hermes_client.list_tools()

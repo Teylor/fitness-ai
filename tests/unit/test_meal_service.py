@@ -97,8 +97,8 @@ def test_get_day_summary(db, meal_service, ingredient_service, goal_service):
     summary = meal_service.get_day_summary("10-05-2026")
 
     assert summary["consumed"] == {"kcal": 720.0, "protein": 14.0, "carbs": 156.0, "fat": 1.2}
-    # 0.18 (rice) + 1.25 (3L daily water) = 1.43
-    assert summary["spend"] == 1.43
+    # 0.18 (rice) + 1.25 (3L daily water) + 0.30 (daily creatine) = 1.73
+    assert summary["spend"] == 1.73
     assert summary["goal"]["date"] == "10-05-2026"
     assert summary["goal"]["kcal"] == 2500
     assert summary["remaining"] == {
@@ -122,11 +122,11 @@ def test_get_day_summary_no_goal_uses_default(db, meal_service, goal_service):
     summary = meal_service.get_day_summary("10-05-2026")
 
     assert summary["consumed"] == {"kcal": 0, "protein": 0, "carbs": 0, "fat": 0}
-    assert summary["spend"] == 1.25
+    assert summary["spend"] == 1.55
     assert summary["goal"]["kcal"] == 2000
     assert summary["remaining"]["kcal"] == 2000
     assert summary["meals"] == []
-    assert summary["water_and_supplements"]["spend"] == 1.25
+    assert summary["water_and_supplements"]["spend"] == 1.55
 
 
 def test_delete_meal_entry(db, meal_service, ingredient_service):
@@ -316,4 +316,47 @@ def test_get_day_summary_separates_supplements_and_includes_daily_water(
 
     # Total daily spend = 0.40 (banana) + 1.80 (water + supplements) = 2.20
     assert summary["spend"] == 2.20
+
+
+def test_daily_creatine_default_enabled_toggle_and_catalog_lookup(db, meal_service, ingredient_service, goal_service):
+    goal_service.set_default(
+        DailyGoal(date="01-01-2026", kcal=2000, protein=150, carbs=200, fat=60)
+    )
+
+    # 1. No catalog Creatina yet: fallback 1 u at 0.30€, enabled by default
+    s1 = meal_service.get_day_summary("17-05-2026")
+    c1 = s1["water_and_supplements"]["creatine"]
+    assert c1["enabled"] is True
+    assert c1["from_catalog"] is False
+    assert c1["quantity"] == 1.0
+    assert c1["unit"] == "u"
+    assert c1["price"] == 0.30
+    assert s1["spend"] == 1.55
+
+    # 2. Toggle OFF for 17-05-2026 -> spend drops back to 1.25€ (water only)
+    assert meal_service.toggle_daily_creatine("17-05-2026", enabled=False) is False
+    s2 = meal_service.get_day_summary("17-05-2026")
+    assert s2["water_and_supplements"]["creatine"]["enabled"] is False
+    assert s2["water_and_supplements"]["spend"] == 1.25
+    assert s2["spend"] == 1.25
+
+    # Another date still has creatine enabled by default
+    s_other = meal_service.get_day_summary("18-05-2026")
+    assert s_other["water_and_supplements"]["creatine"]["enabled"] is True
+    assert s_other["spend"] == 1.55
+
+    # 3. Toggle back ON without explicit arg (flips False -> True)
+    assert meal_service.toggle_daily_creatine("17-05-2026") is True
+
+    # 4. Add Creatina to catalog (1 u at 0.35€) -> uses catalog price
+    ingredient_service.create(
+        Ingredient(name="Creatina", unit="u", kcal=0, protein=0, carbs=0, fat=0, price=0.35, is_supplement=True)
+    )
+    s3 = meal_service.get_day_summary("17-05-2026")
+    c3 = s3["water_and_supplements"]["creatine"]
+    assert c3["from_catalog"] is True
+    assert c3["name"] == "Creatina"
+    assert c3["price"] == 0.35
+    assert s3["water_and_supplements"]["spend"] == 1.60
+    assert s3["spend"] == 1.60
 

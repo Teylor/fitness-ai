@@ -672,6 +672,41 @@ async def test_ui_accent_insensitive_search_helpers(db):
         assert "normalizeText(ex.muscle_group) === group" in html
 
 
+@pytest.mark.anyio
+async def test_ui_daily_creatine_toggle_integration(db):
+    server = create_server()
+    app = server.streamable_http_app()
+    transport = httpx2.ASGITransport(app=app)
+
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
+        res = await client.get("/ui/summary")
+        assert res.status_code == 200
+        html = res.text
+        assert "toggleDailyCreatineUI" in html
+        assert "/api/toggle_daily_creatine" in html
+        assert "Creatina diaria: 1 u (0.30 €)" in html
+
+        await client.post(
+            "/api/set_daily_goal",
+            json={"date": "22-11-2026", "kcal": 2200.0, "protein": 150.0, "carbs": 220.0, "fat": 70.0},
+        )
+
+        # Default enabled -> 1.25 (water) + 0.30 (creatine) = 1.55
+        s1 = await client.get("/api/get_day_summary?date=22-11-2026")
+        assert s1.status_code == 200
+        assert s1.json()["spend"] == 1.55
+        assert s1.json()["water_and_supplements"]["creatine"]["enabled"] is True
+
+        # Toggle OFF via HTTP API
+        off = await client.post(
+            "/api/toggle_daily_creatine",
+            json={"date": "22-11-2026", "enabled": False},
+        )
+        assert off.status_code == 200
+        assert off.json()["enabled"] is False
+        assert off.json()["spend"] == 1.25
+
+
 
 
 

@@ -217,3 +217,27 @@ def delete_meal(entry_id: int, async_sync: Optional[bool] = False) -> dict:
     except Exception as exc:
         return {"status": "error", "code": "internal", "message": str(exc)}
 
+
+def toggle_daily_creatine(
+    date: Optional[str] = None,
+    enabled: Optional[bool] = None,
+) -> dict:
+    """Enable, disable, or flip daily creatine tracking for a DD-MM-YYYY date (default today)."""
+    meal_service = MealService()
+    if not date:
+        date = datetime.now().strftime("%d-%m-%Y")
+    try:
+        new_state = meal_service.toggle_daily_creatine(date=date, enabled=enabled)
+        summary = meal_service.get_day_summary(date)
+        return {
+            "status": "ok",
+            "date": date,
+            "enabled": new_state,
+            "creatine": summary["water_and_supplements"]["creatine"],
+            "spend": summary["spend"],
+        }
+    except ToolError as err:
+        return err.to_dict()
+    except Exception as exc:
+        return {"status": "error", "code": "internal", "message": str(exc)}
+
