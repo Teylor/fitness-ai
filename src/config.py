@@ -32,6 +32,11 @@ class Settings:
     # MCP Server
     mcp_host: str = os.environ.get("MCP_HOST", "127.0.0.1")
     mcp_port: int = int(os.environ.get("MCP_PORT", "9700"))
+    tailscale_serve: bool = os.environ.get("TAILSCALE_SERVE", "true").strip().lower() not in (
+        "0",
+        "false",
+        "no",
+    )
 
     # Google Health API
     google_health_api_url: str = os.environ.get(
