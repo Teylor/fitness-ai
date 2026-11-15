@@ -30,7 +30,6 @@
 
 | Priority | Feature | Description | Reference |
 |:---:|---------|-------------|-----------|
-| `P2` | `ui-hot-reload` | Reload `src.ui.html_generator` on `/ui` requests (e.g. via `importlib.reload`) so UI edits apply on browser refresh without restarting the MCP server | [server.py](src/mcp/server.py#L123-L131) |
 
 ---
 
@@ -46,6 +45,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `ui-hot-reload` | `odd/tasks/ui-hot-reload.md` | 2026-11 |
 | `android-apk-remote-access` | `odd/tasks/android-apk-remote-access.md` | 2026-11 |
 | `daily-creatine-tracking` | `odd/tasks/daily-creatine-tracking.md` | 2026-11 |
 | `accent-insensitive-search` | `odd/tasks/accent-insensitive-search.md` | 2026-11 |
