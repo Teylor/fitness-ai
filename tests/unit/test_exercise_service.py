@@ -167,3 +167,14 @@ def test_update_exercise_none_fields_no_change(db, exercise_service):
     updated = exercise_service.update(created.id)
     assert updated.muscle_group == "chest"
     assert updated.type == "weight_reps"
+
+
+def test_list_exercises_accent_insensitive_search_and_muscle_group(db, exercise_service):
+    exercise_service.create(Exercise(name="Curl de Bíceps", muscle_group="Bíceps"))
+    exercise_service.create(Exercise(name="Extensión de Tríceps", muscle_group="Tríceps"))
+
+    by_search = exercise_service.list(search="biceps")
+    assert [e.name for e in by_search] == ["Curl de Bíceps"]
+
+    by_group = exercise_service.list(muscle_group="triceps")
+    assert [e.name for e in by_group] == ["Extensión de Tríceps"]

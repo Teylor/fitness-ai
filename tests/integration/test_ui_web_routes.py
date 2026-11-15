@@ -652,6 +652,24 @@ async def test_ui_execute_action_summary(db):
         assert "return data;" in html
 
 
+@pytest.mark.anyio
+async def test_ui_accent_insensitive_search_helpers(db):
+    server = create_server()
+    app = server.streamable_http_app()
+    transport = httpx2.ASGITransport(app=app)
+
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
+        res = await client.get("/ui/ingredient")
+        assert res.status_code == 200
+        html = res.text
+        assert "function normalizeText(" in html
+        assert "function attachAutocomplete(" in html
+        assert "normalize('NFKD')" in html
+        assert "normalizeText(opt.value).includes(q)" in html
+        assert "normalizeText(i.name).includes(query)" in html
+        assert "normalizeText(r.name).includes(query)" in html
+        assert "normalizeText(ex.name).includes(search)" in html
+        assert "normalizeText(ex.muscle_group) === group" in html
 
 
 

@@ -255,6 +255,44 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       padding: 2px 6px;
     }}
 
+    .ac-list {{
+      position: fixed;
+      z-index: 999;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      max-height: 220px;
+      overflow-y: auto;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      display: none;
+    }}
+
+    .ac-item {{
+      padding: 7px 10px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      color: var(--text);
+      border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+    }}
+
+    .ac-item:last-child {{
+      border-bottom: none;
+    }}
+
+    .ac-item:hover, .ac-item.active {{
+      background: #334155;
+    }}
+
+    .ac-sub {{
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }}
+
     .badge {{
       display: inline-block;
       padding: 2px 8px;
@@ -369,7 +407,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           </div>
           <div class="form-group">
             <label for="meal-item">Nombre (ej: Arroz, Pechuga, Bowl)</label>
-            <input type="text" id="meal-item" list="meal-items-datalist" required placeholder="Buscar o escribir alimento..." oninput="onMealItemInput()">
+            <input type="text" id="meal-item" list="meal-items-datalist" autocomplete="off" required placeholder="Buscar o escribir alimento..." oninput="onMealItemInput()">
             <datalist id="meal-items-datalist"></datalist>
           </div>
           <div class="form-group">
@@ -826,7 +864,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const tbody = document.querySelector('#recipe-items-table tbody');
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><input type="text" class="rec-item-name" list="recipe-ingredients-datalist" required value="${{name}}" placeholder="Buscar ingrediente..." oninput="onRecipeItemInput(this)"></td>
+        <td><input type="text" class="rec-item-name" list="recipe-ingredients-datalist" autocomplete="off" required value="${{name}}" placeholder="Buscar ingrediente..." oninput="onRecipeItemInput(this)"></td>
         <td><input type="number" class="rec-item-qty" required value="${{qty}}" min="0.1" step="any"></td>
         <td>
           <select class="rec-item-unit">
@@ -838,6 +876,14 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()">×</button></td>
       `;
       tbody.appendChild(tr);
+      const recInput = tr.querySelector('.rec-item-name');
+      if (recInput) {{
+        attachAutocomplete(
+          recInput,
+          () => allIngredients.map(i => ({{ value: i.name, sub: `${{i.unit}} | ${{i.kcal || 0}} kcal` }})),
+          () => onRecipeItemInput(recInput)
+        );
+      }}
     }}
     // Start with 1 clean empty row instead of hardcoded chicken and rice
     addRecipeRow('', 100, 'gr');
@@ -853,7 +899,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       div.style.cssText = 'background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px;';
       div.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <input type="text" class="ex-name" required value="${{name}}" list="exercises-datalist" style="font-weight: 700; width: 60%;" placeholder="Nombre del ejercicio...">
+          <input type="text" class="ex-name" list="exercises-datalist" autocomplete="off" required value="${{name}}" style="font-weight: 700; width: 60%;" placeholder="Nombre del ejercicio...">
           <button type="button" class="btn btn-danger btn-sm" onclick="document.getElementById('${{id}}').remove()">Eliminar Ejercicio</button>
         </div>
         <div class="table-container">
@@ -865,6 +911,13 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         <button type="button" class="btn btn-secondary btn-sm" style="align-self: flex-start;" onclick="addSetRow('${{id}}')">+ Añadir Serie</button>
       `;
       container.appendChild(div);
+      const exInput = div.querySelector('.ex-name');
+      if (exInput) {{
+        attachAutocomplete(
+          exInput,
+          () => allExercises.map(ex => ({{ value: ex.name, sub: ex.muscle_group && ex.muscle_group !== 'unknown' ? ex.muscle_group : '' }}))
+        );
+      }}
       addSetRow(id, 1, '', '');
     }}
 
@@ -1071,11 +1124,104 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       }}
     }}
 
+    function normalizeText(str) {{
+      return String(str || '')
+        .normalize('NFKD')
+        .replace(/[\\u0300-\\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+    }}
+
+    function attachAutocomplete(input, getOptions, onPick) {{
+      if (!input || input.dataset.acAttached) return;
+      input.dataset.acAttached = '1';
+      input.removeAttribute('list');
+      const listEl = document.createElement('div');
+      listEl.className = 'ac-list';
+      document.body.appendChild(listEl);
+      let activeIdx = -1;
+      let currentMatches = [];
+
+      function hide() {{
+        listEl.style.display = 'none';
+        activeIdx = -1;
+      }}
+
+      function pick(opt) {{
+        input.value = opt.value;
+        hide();
+        if (onPick) onPick(opt);
+      }}
+
+      function render() {{
+        const q = normalizeText(input.value);
+        const all = getOptions() || [];
+        currentMatches = (q ? all.filter(opt => normalizeText(opt.value).includes(q)) : all).slice(0, 30);
+        if (currentMatches.length === 0) {{
+          hide();
+          return;
+        }}
+        const rect = input.getBoundingClientRect();
+        listEl.style.left = rect.left + 'px';
+        listEl.style.top = (rect.bottom + 2) + 'px';
+        listEl.style.width = Math.max(rect.width, 200) + 'px';
+        listEl.innerHTML = '';
+        activeIdx = -1;
+        currentMatches.forEach((opt, idx) => {{
+          const item = document.createElement('div');
+          item.className = 'ac-item';
+          item.innerHTML = `<span>${{escapeHtml(opt.value)}}</span>${{opt.sub ? `<span class="ac-sub">${{escapeHtml(opt.sub)}}</span>` : ''}}`;
+          item.addEventListener('mousedown', (e) => {{
+            e.preventDefault();
+            pick(opt);
+          }});
+          listEl.appendChild(item);
+        }});
+        listEl.style.display = 'block';
+      }}
+
+      input.addEventListener('input', render);
+      input.addEventListener('focus', render);
+      input.addEventListener('blur', () => setTimeout(hide, 120));
+      input.addEventListener('keydown', (e) => {{
+        if (listEl.style.display === 'none') return;
+        const items = listEl.querySelectorAll('.ac-item');
+        if (e.key === 'ArrowDown') {{
+          e.preventDefault();
+          activeIdx = Math.min(activeIdx + 1, items.length - 1);
+          items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+        }} else if (e.key === 'ArrowUp') {{
+          e.preventDefault();
+          activeIdx = Math.max(activeIdx - 1, 0);
+          items.forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+        }} else if (e.key === 'Enter' && activeIdx >= 0 && currentMatches[activeIdx]) {{
+          e.preventDefault();
+          pick(currentMatches[activeIdx]);
+        }} else if (e.key === 'Escape') {{
+          hide();
+        }}
+      }});
+    }}
+
+    const mealItemEl = document.getElementById('meal-item');
+    if (mealItemEl) {{
+      attachAutocomplete(
+        mealItemEl,
+        () => {{
+          const type = document.getElementById('meal-item-type')?.value;
+          return type === 'recipe'
+            ? allRecipes.map(r => ({{ value: r.name, sub: `${{r.kcal || 0}} kcal` }}))
+            : allIngredients.map(i => ({{ value: i.name, sub: `${{i.unit}} | ${{i.kcal || 0}} kcal` }}));
+        }},
+        () => onMealItemInput()
+      );
+    }}
+
     function onMealItemInput() {{
-      const val = (document.getElementById('meal-item').value || '').trim().toLowerCase();
+      const val = normalizeText(document.getElementById('meal-item').value);
       const type = document.getElementById('meal-item-type').value;
       if (type === 'ingredient') {{
-        const matched = allIngredients.find(i => (i.name || '').toLowerCase() === val);
+        const matched = allIngredients.find(i => normalizeText(i.name) === val);
         if (matched && matched.unit) {{
           document.getElementById('meal-unit').value = matched.unit;
         }}
@@ -1095,8 +1241,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     }}
 
     function onRecipeItemInput(input) {{
-      const val = (input.value || '').trim().toLowerCase();
-      const matched = allIngredients.find(i => (i.name || '').toLowerCase() === val);
+      const val = normalizeText(input.value);
+      const matched = allIngredients.find(i => normalizeText(i.name) === val);
       if (matched && matched.unit) {{
         const tr = input.closest('tr');
         if (tr) {{
@@ -1227,8 +1373,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     }}
 
     function filterIngredients() {{
-      const query = (document.getElementById('ing-search-input').value || '').toLowerCase().trim();
-      const filtered = allIngredients.filter(i => (i.name || '').toLowerCase().includes(query));
+      const query = normalizeText(document.getElementById('ing-search-input').value);
+      const filtered = allIngredients.filter(i => normalizeText(i.name).includes(query));
       renderIngredientsTable(filtered);
     }}
 
@@ -1342,8 +1488,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     }}
 
     function filterRecipes() {{
-      const query = (document.getElementById('recipe-search-input').value || '').toLowerCase().trim();
-      const filtered = allRecipes.filter(r => (r.name || '').toLowerCase().includes(query));
+      const query = normalizeText(document.getElementById('recipe-search-input').value);
+      const filtered = allRecipes.filter(r => normalizeText(r.name).includes(query));
       renderRecipesTable(filtered);
     }}
 
@@ -1452,14 +1598,14 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const seen = new Set();
       const opts = [];
       DEFAULT_MUSCLE_GROUPS.forEach(g => {{
-        const key = g.toLowerCase();
+        const key = normalizeText(g);
         if (!seen.has(key)) {{
           seen.add(key);
           opts.push(g);
         }}
       }});
       catalogGroups().forEach(g => {{
-        const key = g.toLowerCase();
+        const key = normalizeText(g);
         if (key !== 'unknown' && !seen.has(key)) {{
           seen.add(key);
           opts.push(g);
@@ -1473,7 +1619,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const groups = [];
       allExercises.forEach(ex => {{
         const raw = (ex.muscle_group || '').trim();
-        const g = raw.toLowerCase();
+        const g = normalizeText(raw);
         if (g && !seen.has(g)) {{
           seen.add(g);
           groups.push(raw);
@@ -1488,24 +1634,24 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (!sel) return;
       const current = sel.value;
       const groups = catalogGroups();
-      const values = new Set(groups.map(g => g.toLowerCase()));
+      const values = new Set(groups.map(g => normalizeText(g)));
       sel.innerHTML = '<option value="">Todos los grupos</option>';
       groups.forEach(g => {{
         const opt = document.createElement('option');
         opt.value = g;
-        opt.textContent = g.toLowerCase() === 'unknown' ? 'Otros' : g;
+        opt.textContent = normalizeText(g) === 'unknown' ? 'Otros' : g;
         sel.appendChild(opt);
       }});
-      if (current && values.has(current.toLowerCase())) sel.value = current;
+      if (current && values.has(normalizeText(current))) sel.value = current;
     }}
 
     function filterExercises() {{
-      const search = (document.getElementById('exercise-search-input')?.value || '').trim().toLowerCase();
-      const group = (document.getElementById('exercise-group-filter')?.value || '').trim().toLowerCase();
+      const search = normalizeText(document.getElementById('exercise-search-input')?.value);
+      const group = normalizeText(document.getElementById('exercise-group-filter')?.value);
 
       const filtered = allExercises.filter(ex => {{
-        const matchSearch = !search || (ex.name && ex.name.toLowerCase().includes(search));
-        const matchGroup = !group || (ex.muscle_group && ex.muscle_group.toLowerCase() === group);
+        const matchSearch = !search || (ex.name && normalizeText(ex.name).includes(search));
+        const matchGroup = !group || (ex.muscle_group && normalizeText(ex.muscle_group) === group);
         return matchSearch && matchGroup;
       }});
       renderExercisesTable(filtered);
@@ -1558,10 +1704,10 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         }}
 
         const muscleValue = (ex.muscle_group || 'unknown');
-        const muscleKey = muscleValue.toLowerCase();
+        const muscleKey = normalizeText(muscleValue);
         const groupOpts = allMuscleGroupOptions();
         const muscleSelectOpts = groupOpts.map(g =>
-          `<option value="${{escapeHtml(g)}}"${{g.toLowerCase() === muscleKey ? ' selected' : ''}}>${{escapeHtml(g)}}</option>`
+          `<option value="${{escapeHtml(g)}}"${{normalizeText(g) === muscleKey ? ' selected' : ''}}>${{escapeHtml(g)}}</option>`
         ).join('') + `<option value="unknown"${{muscleKey === 'unknown' ? ' selected' : ''}}>Otros</option>`;
 
         tr.innerHTML = `
