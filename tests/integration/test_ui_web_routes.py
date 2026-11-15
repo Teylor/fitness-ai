@@ -676,5 +676,3 @@ async def test_ui_accent_insensitive_search_helpers(db):
 
 
 
-
-
