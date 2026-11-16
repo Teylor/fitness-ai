@@ -8,7 +8,7 @@ def test_get_ui_form_default_hub():
     assert res["status"] == "ok"
     assert res["form_type"] == "hub"
     assert "<!DOCTYPE html>" in res["html"]
-    assert "Fitness AI Hub" in res["html"]
+    assert "Hermes Hub" in res["html"]
     assert "meal" in res["supported_types"]
     assert "workout" in res["supported_types"]
     assert "exercise" in res["supported_types"]
