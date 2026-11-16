@@ -263,6 +263,9 @@ def test_get_by_day_returns_sessions(db, workout_service, exercises):
     assert results[0]["date"] == "15-05-2026"
     assert len(results[0]["sets"]) == 1
     assert results[0]["sets"][0]["exercise"] == "Bench Press"
+    assert results[0]["sets"][0]["estimated_1rm"] == 106.7
+    plank_results = workout_service.get_by_day("16-05-2026")
+    assert plank_results[0]["sets"][0]["estimated_1rm"] is None
     assert workout_service.get_by_day("14-05-2026") == []
 
 
@@ -323,4 +326,43 @@ def test_get_exercise_stats_ignores_time_and_distance_exercises(db, workout_serv
     stats = workout_service.get_exercise_stats()
     plank_id = exercises["Plank"].id
     assert plank_id not in stats
+
+
+def test_get_exercise_stats_counts_sets_at_max_weight_in_session(
+    db, workout_service, exercise_service, exercises
+):
+    # Case 1: 2 sets at 75 kg (10 reps and 9 reps) -> 75x10 (2)
+    workout_service.register_session(WorkoutSession(date="15-05-2026"), [
+        {
+            "name": "Bench Press",
+            "sets": [
+                {"set_number": 1, "reps": 10, "weight": 75},
+                {"set_number": 2, "reps": 9, "weight": 75},
+                {"set_number": 3, "reps": 12, "weight": 70},
+            ],
+        }
+    ])
+    bench_id = exercises["Bench Press"].id
+    stats = workout_service.get_exercise_stats(exercise_id=bench_id)
+    assert stats[bench_id]["max_weight"] == 75.0
+    assert stats[bench_id]["max_weight_reps"] == 10
+    assert stats[bench_id]["max_weight_sets"] == 2
+
+    # Case 2: 3 sets at 66 kg (15, 13, 13 reps) -> 66x15 (3)
+    incline = exercise_service.create(Exercise(name="Incline Press"))
+    workout_service.register_session(WorkoutSession(date="16-05-2026"), [
+        {
+            "name": "Incline Press",
+            "sets": [
+                {"set_number": 1, "reps": 15, "weight": 66},
+                {"set_number": 2, "reps": 13, "weight": 66},
+                {"set_number": 3, "reps": 13, "weight": 66},
+            ],
+        }
+    ])
+    stats_inc = workout_service.get_exercise_stats(exercise_id=incline.id)
+    assert stats_inc[incline.id]["max_weight"] == 66.0
+    assert stats_inc[incline.id]["max_weight_reps"] == 15
+    assert stats_inc[incline.id]["max_weight_sets"] == 3
+
 

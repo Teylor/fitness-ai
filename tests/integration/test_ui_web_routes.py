@@ -819,6 +819,72 @@ async def test_ui_daily_supplements_toggle_integration(db):
         assert on.json()["spend"] == 1.75
 
 
+@pytest.mark.anyio
+async def test_ui_workout_training_enhancements_pack(db):
+    server = create_server()
+    app = server.streamable_http_app()
+    transport = httpx2.ASGITransport(app=app)
+
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
+        # 1. UI HTML checks for workout cardio time logging, max_weight_sets, and summary 1RM badges
+        wo_ui = await client.get("/ui/workout")
+        assert wo_ui.status_code == 200
+        wo_html = wo_ui.text
+        assert "Añadir Cardio (Tiempo)" in wo_html
+        assert "set-duration-min" in wo_html
+        assert "onExerciseModeChange" in wo_html
+        assert "max_weight_sets" in wo_html
+        assert "summary-exercise-1rm-badges" in wo_html
+
+        # 2. Register workout with multiple sets at max weight (75x10, 75x9) and cardio time (20 min = 1200s)
+        reg = await client.post(
+            "/api/register_workout",
+            json={
+                "date": "28-11-2026 18:00",
+                "notes": "Push + Cardio",
+                "exercises": [
+                    {
+                        "name": "Press Banca",
+                        "sets": [
+                            {"set_number": 1, "reps": 10, "weight": 75.0},
+                            {"set_number": 2, "reps": 9, "weight": 75.0},
+                        ],
+                    },
+                    {
+                        "name": "Cinta",
+                        "sets": [
+                            {"set_number": 1, "duration": 1200},
+                        ],
+                    },
+                ],
+            },
+        )
+        assert reg.status_code == 200
+        assert reg.json()["status"] == "ok"
+
+        # 3. Verify list_exercises?include_prs=true returns max_weight_sets = 2
+        ex_res = await client.get("/api/list_exercises?include_prs=true")
+        assert ex_res.status_code == 200
+        pb = next((x for x in ex_res.json()["exercises"] if x["name"] == "Press Banca"), None)
+        assert pb is not None
+        assert pb["pr"]["max_weight"] == 75.0
+        assert pb["pr"]["max_weight_reps"] == 10
+        assert pb["pr"]["max_weight_sets"] == 2
+
+        # 4. Verify get_workouts_by_day returns estimated_1rm on weight sets and duration on cardio sets
+        day_wo = await client.get("/api/get_workouts_by_day?date=28-11-2026")
+        assert day_wo.status_code == 200
+        sets = day_wo.json()["sessions"][0]["sets"]
+        pb_sets = [s for s in sets if s["exercise"] == "Press Banca"]
+        assert len(pb_sets) == 2
+        assert pb_sets[0]["estimated_1rm"] == 100.0
+        assert pb_sets[1]["estimated_1rm"] == 97.5
+        cinta_set = next(s for s in sets if s["exercise"] == "Cinta")
+        assert cinta_set["duration"] == 1200
+        assert cinta_set["estimated_1rm"] is None
+
+
+
 
 
 

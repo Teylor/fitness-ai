@@ -183,6 +183,7 @@ class WorkoutService:
             "estimated_1rm_date": str,
             "max_weight": float,
             "max_weight_reps": int,
+            "max_weight_sets": int,
             "max_weight_date": str,
         }
         """
@@ -203,15 +204,32 @@ class WorkoutService:
             query = query.where(ExerciseSetModel.exercise == exercise_id)
 
         stats: Dict[int, dict] = {}
+        session_weight_stats: Dict[int, Dict[Tuple[int, float], dict]] = {}
 
         for s in query:
             ex_id = s.exercise_id
+            sess_id = s.session_id
             w = float(s.weight)
             r = int(s.reps)
             e1rm = w if r == 1 else round(estimate_1rm(w, r), 1)
 
             dt = s.session.date
             s_date = self._to_date_str(dt)
+
+            sw_map = session_weight_stats.setdefault(ex_id, {})
+            sw_key = (sess_id, w)
+            if sw_key not in sw_map:
+                sw_map[sw_key] = {
+                    "weight": w,
+                    "max_reps": r,
+                    "sets_count": 1,
+                    "date": s_date,
+                }
+            else:
+                sw_entry = sw_map[sw_key]
+                sw_entry["sets_count"] += 1
+                if r > sw_entry["max_reps"]:
+                    sw_entry["max_reps"] = r
 
             if ex_id not in stats:
                 stats[ex_id] = {
@@ -221,6 +239,7 @@ class WorkoutService:
                     "estimated_1rm_date": s_date,
                     "max_weight": w,
                     "max_weight_reps": r,
+                    "max_weight_sets": 1,
                     "max_weight_date": s_date,
                 }
             else:
@@ -232,13 +251,16 @@ class WorkoutService:
                     st["estimated_1rm_reps"] = r
                     st["estimated_1rm_date"] = s_date
 
-                # Heaviest weight set: higher weight wins; on tie, higher reps wins
-                if (w > st["max_weight"]) or (
-                    w == st["max_weight"] and r > st["max_weight_reps"]
-                ):
-                    st["max_weight"] = w
-                    st["max_weight_reps"] = r
-                    st["max_weight_date"] = s_date
+        for ex_id, sw_map in session_weight_stats.items():
+            best_sw = max(
+                sw_map.values(),
+                key=lambda item: (item["weight"], item["max_reps"], item["sets_count"]),
+            )
+            st = stats[ex_id]
+            st["max_weight"] = best_sw["weight"]
+            st["max_weight_reps"] = best_sw["max_reps"]
+            st["max_weight_sets"] = best_sw["sets_count"]
+            st["max_weight_date"] = best_sw["date"]
 
         # Also merge PersonalRecordModel in case sets were deleted or PR was manually stored
         pr_query = PersonalRecordModel.select()
@@ -260,6 +282,7 @@ class WorkoutService:
                     "estimated_1rm_date": pr_date,
                     "max_weight": pr_weight,
                     "max_weight_reps": pr_reps,
+                    "max_weight_sets": 1,
                     "max_weight_date": pr_date,
                 }
             else:
@@ -269,10 +292,12 @@ class WorkoutService:
                     st["estimated_1rm_weight"] = pr_weight
                     st["estimated_1rm_reps"] = pr_reps
                     st["estimated_1rm_date"] = pr_date
-                if (pr_weight > st["max_weight"]) or (
-                    pr_weight == st["max_weight"] and pr_reps > st["max_weight_reps"]
-                ):
+                if pr_weight > st["max_weight"]:
                     st["max_weight"] = pr_weight
+                    st["max_weight_reps"] = pr_reps
+                    st["max_weight_sets"] = 1
+                    st["max_weight_date"] = pr_date
+                elif pr_weight == st["max_weight"] and pr_reps > st["max_weight_reps"]:
                     st["max_weight_reps"] = pr_reps
                     st["max_weight_date"] = pr_date
 
@@ -322,11 +347,24 @@ class WorkoutService:
             )
         }
         rows.sort(key=lambda s: (names.get(s.exercise_id, ""), s.set_number))
-        return {
-            "id": session_row.id,
-            "date": self._format_datetime(session_row.date),
-            "notes": session_row.notes,
-            "sets": [
+        sets_list = []
+        for s in rows:
+            has_wr = (
+                s.weight is not None
+                and s.weight > 0
+                and s.reps is not None
+                and s.reps > 0
+            )
+            e1rm = (
+                (
+                    float(s.weight)
+                    if int(s.reps) == 1
+                    else round(estimate_1rm(float(s.weight), int(s.reps)), 1)
+                )
+                if has_wr
+                else None
+            )
+            sets_list.append(
                 {
                     "exercise": names.get(s.exercise_id, ""),
                     "set_number": s.set_number,
@@ -334,9 +372,14 @@ class WorkoutService:
                     "weight": s.weight,
                     "duration": s.duration,
                     "distance": s.distance,
+                    "estimated_1rm": e1rm,
                 }
-                for s in sets
-            ],
+            )
+        return {
+            "id": session_row.id,
+            "date": self._format_datetime(session_row.date),
+            "notes": session_row.notes,
+            "sets": sets_list,
         }
 
     @staticmethod

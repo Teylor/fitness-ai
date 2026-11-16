@@ -111,6 +111,7 @@ def test_list_exercises_with_prs(db):
     assert ohp["pr"] is not None
     assert ohp["pr"]["max_weight"] == 22.0
     assert ohp["pr"]["max_weight_reps"] == 6
+    assert ohp["pr"]["max_weight_sets"] == 1
     assert ohp["pr"]["estimated_1rm"] == 26.7
 
     plank = next(x for x in res_prs["exercises"] if x["name"] == "Plank")

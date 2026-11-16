@@ -133,6 +133,7 @@ def test_get_workouts_by_day_tool(db):
     assert res["count"] == 1
     assert res["sessions"][0]["date"] == "15-05-2026"
     assert res["sessions"][0]["sets"][0]["exercise"] == "Bench Press"
+    assert res["sessions"][0]["sets"][0]["estimated_1rm"] == 106.7
 
     empty = get_workouts_by_day("14-05-2026")
     assert empty["status"] == "ok"

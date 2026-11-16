@@ -651,8 +651,9 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <!-- Exercise blocks added dynamically -->
         </div>
 
-        <div style="margin-top: 8px;">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="addExerciseBlock()">+ Añadir Ejercicio</button>
+        <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="addExerciseBlock('', 'weight_reps')">+ Añadir Ejercicio</button>
+          <button type="button" class="btn btn-secondary btn-sm" style="border-color: var(--cyan); color: var(--cyan);" onclick="addExerciseBlock('', 'time')">⏱️ + Añadir Cardio (Tiempo)</button>
         </div>
 
         <div style="margin-top: 14px; display: flex; gap: 8px;">
@@ -901,42 +902,102 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
     // Dynamic Workout Exercises & Sets
     let exerciseCount = 0;
-    function addExerciseBlock(name = '') {{
+    function getSetsTableHeaderHtml(mode) {{
+      if (mode === 'time') {{
+        return '<tr><th style="width: 50px;">Set</th><th>Duración (minutos)</th><th style="width: 40px;"></th></tr>';
+      }}
+      return '<tr><th style="width: 50px;">Set</th><th>Reps</th><th>Peso (kg)</th><th>1RM Est.</th><th style="width: 40px;"></th></tr>';
+    }}
+
+    function addExerciseBlock(name = '', mode = 'weight_reps') {{
       exerciseCount++;
       const id = 'ex-' + exerciseCount;
       const container = document.getElementById('workout-exercises-container');
       const div = document.createElement('div');
       div.id = id;
       div.style.cssText = 'background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px;';
+      const placeholderText = mode === 'time' ? 'Nombre del cardio (ej: Cinta, Bici, Elíptica...)' : 'Nombre del ejercicio...';
       div.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <input type="text" class="ex-name" list="exercises-datalist" autocomplete="off" required value="${{name}}" style="font-weight: 700; width: 60%;" placeholder="Nombre del ejercicio...">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <input type="text" class="ex-name" list="exercises-datalist" autocomplete="off" required value="${{name}}" style="font-weight: 700; flex: 1 1 200px;" placeholder="${{placeholderText}}" oninput="onExerciseNameInput('${{id}}', this)">
+          <select class="ex-mode" style="padding: 6px 10px; font-size: var(--fs-md);" onchange="onExerciseModeChange('${{id}}', this.value)">
+            <option value="weight_reps" ${{mode === 'weight_reps' ? 'selected' : ''}}>🏋️ Peso y Reps</option>
+            <option value="time" ${{mode === 'time' ? 'selected' : ''}}>⏱️ Cardio / Tiempo (min)</option>
+          </select>
           <button type="button" class="btn btn-danger btn-sm" onclick="document.getElementById('${{id}}').remove()">Eliminar Ejercicio</button>
         </div>
         <div class="table-container">
           <table class="sets-table">
-            <thead><tr><th style="width: 50px;">Set</th><th>Reps</th><th>Peso (kg)</th><th>1RM Est.</th><th style="width: 40px;"></th></tr></thead>
+            <thead>${{getSetsTableHeaderHtml(mode)}}</thead>
             <tbody></tbody>
           </table>
         </div>
-        <button type="button" class="btn btn-secondary btn-sm" style="align-self: flex-start;" onclick="addSetRow('${{id}}')">+ Añadir Serie</button>
+        <button type="button" class="btn btn-secondary btn-sm btn-add-set" style="align-self: flex-start;" onclick="addSetRow('${{id}}')">${{mode === 'time' ? '+ Añadir Intervalo / Serie' : '+ Añadir Serie'}}</button>
       `;
       container.appendChild(div);
       const exInput = div.querySelector('.ex-name');
       if (exInput) {{
         attachAutocomplete(
           exInput,
-          () => allExercises.map(ex => ({{ value: ex.name, sub: ex.muscle_group && ex.muscle_group !== 'unknown' ? ex.muscle_group : '' }}))
+          () => allExercises.map(ex => ({{ value: ex.name, sub: ex.type === 'time' ? '⏱️ Tiempo' : (ex.muscle_group && ex.muscle_group !== 'unknown' ? ex.muscle_group : '') }})),
+          () => onExerciseNameInput(id, exInput)
         );
       }}
-      addSetRow(id, 1, '', '');
+      addSetRow(id, 1, '', '', '');
     }}
 
-    function addSetRow(exBlockId, setNum, reps = '', weight = '') {{
+    function onExerciseNameInput(exBlockId, inputEl) {{
+      const val = normalizeText(inputEl ? inputEl.value : '');
+      if (!val) return;
+      const matched = allExercises.find(ex => normalizeText(ex.name) === val);
+      if (matched && (matched.type === 'time' || matched.type === 'weight_reps')) {{
+        const block = document.getElementById(exBlockId);
+        const modeSelect = block ? block.querySelector('.ex-mode') : null;
+        if (modeSelect && modeSelect.value !== matched.type) {{
+          modeSelect.value = matched.type;
+          onExerciseModeChange(exBlockId, matched.type);
+        }}
+      }}
+    }}
+
+    function onExerciseModeChange(exBlockId, mode) {{
+      const block = document.getElementById(exBlockId);
+      if (!block) return;
+      const thead = block.querySelector('.sets-table thead');
+      const tbody = block.querySelector('.sets-table tbody');
+      const exInput = block.querySelector('.ex-name');
+      const addBtn = block.querySelector('.btn-add-set');
+      if (thead) thead.innerHTML = getSetsTableHeaderHtml(mode);
+      if (exInput) {{
+        exInput.placeholder = mode === 'time' ? 'Nombre del cardio (ej: Cinta, Bici, Elíptica...)' : 'Nombre del ejercicio...';
+      }}
+      if (addBtn) {{
+        addBtn.textContent = mode === 'time' ? '+ Añadir Intervalo / Serie' : '+ Añadir Serie';
+      }}
+      if (tbody) {{
+        tbody.innerHTML = '';
+        addSetRow(exBlockId, 1, '', '', '');
+      }}
+    }}
+
+    function addSetRow(exBlockId, setNum, reps = '', weight = '', durationMin = '') {{
+      const block = document.getElementById(exBlockId);
+      const mode = block?.querySelector('.ex-mode')?.value || 'weight_reps';
       const tbody = document.querySelector(`#${{exBlockId}} .sets-table tbody`);
       const rowCount = tbody.children.length + 1;
       const num = setNum || rowCount;
       const tr = document.createElement('tr');
+
+      if (mode === 'time') {{
+        tr.innerHTML = `
+          <td><span class="badge badge-info set-num">${{num}}</span></td>
+          <td><input type="number" class="set-duration-min" required value="${{durationMin}}" placeholder="Minutos (ej: 20)" step="any" min="0.1" style="width: 150px;"></td>
+          <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove(); renumberSets('${{exBlockId}}');">×</button></td>
+        `;
+        tbody.appendChild(tr);
+        return;
+      }}
+
       const calc1rm = (w, r) => r === 1 ? w : Math.round(w * (1 + r / 30) * 100) / 100;
       const hasValues = reps !== '' && weight !== '';
       const initial1rm = hasValues ? `${{calc1rm(Number(weight), Number(reps))}} kg` : '-';
@@ -1733,9 +1794,10 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           }}
           if (ex.pr.max_weight !== undefined && ex.pr.max_weight !== null) {{
             const maxDate = ex.pr.max_weight_date ? `<span style="font-size: var(--fs-xs); color: var(--text-muted); white-space: nowrap;">${{escapeHtml(ex.pr.max_weight_date)}}</span>` : '';
+            const maxSetsSuffix = ex.pr.max_weight_sets && ex.pr.max_weight_sets > 1 ? ` (${{ex.pr.max_weight_sets}})` : '';
             maxWeightHtml = `
               <div style="display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;">
-                <span class="badge badge-warning">💪 ${{ex.pr.max_weight}}×${{ex.pr.max_weight_reps || 1}}</span>
+                <span class="badge badge-warning">💪 ${{ex.pr.max_weight}}×${{ex.pr.max_weight_reps || 1}}${{maxSetsSuffix}}</span>
                 ${{maxDate}}
               </div>
             `;
@@ -1921,13 +1983,23 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const exercises = [];
       document.querySelectorAll('#workout-exercises-container > div').forEach(div => {{
         const exName = div.querySelector('.ex-name').value;
+        const mode = div.querySelector('.ex-mode') ? div.querySelector('.ex-mode').value : 'weight_reps';
         const sets = [];
         div.querySelectorAll('.sets-table tbody tr').forEach((tr, i) => {{
-          sets.push({{
-            set_number: i + 1,
-            reps: parseInt(tr.querySelector('.set-reps').value) || 1,
-            weight: parseFloat(tr.querySelector('.set-weight').value) || 0
-          }});
+          const durInput = tr.querySelector('.set-duration-min');
+          if (mode === 'time' || durInput) {{
+            const mins = parseFloat(durInput ? durInput.value : 0) || 1;
+            sets.push({{
+              set_number: i + 1,
+              duration: Math.max(1, Math.round(mins * 60))
+            }});
+          }} else {{
+            sets.push({{
+              set_number: i + 1,
+              reps: parseInt(tr.querySelector('.set-reps').value) || 1,
+              weight: parseFloat(tr.querySelector('.set-weight').value) || 0
+            }});
+          }}
         }});
         exercises.push({{ name: exName, sets }});
       }});
@@ -2548,18 +2620,67 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         div.style.cssText = 'background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px;';
         
         let setsRows = '';
+        const exerciseBest1RM = {{}};
         (s.sets || []).forEach(set => {{
-          const e1rm = set.estimated_1rm ? `${{set.estimated_1rm}} kg` : '-';
-          setsRows += `
-            <tr>
-              <td><strong>${{escapeHtml(set.exercise)}}</strong></td>
-              <td>Serie ${{set.set_number}}</td>
-              <td>${{set.reps}}</td>
-              <td>${{set.weight}} kg</td>
-              <td><span style="color: var(--primary); font-weight: 700;">${{e1rm}}</span></td>
-            </tr>
-          `;
+          const hasWeightReps = set.weight !== null && set.weight !== undefined && set.reps !== null && set.reps !== undefined;
+          let e1rmVal = null;
+          if (set.estimated_1rm !== null && set.estimated_1rm !== undefined) {{
+            e1rmVal = Number(set.estimated_1rm);
+          }} else if (hasWeightReps && Number(set.weight) > 0 && Number(set.reps) > 0) {{
+            const w = Number(set.weight);
+            const r = Number(set.reps);
+            e1rmVal = r === 1 ? w : Math.round(w * (1 + r / 30) * 10) / 10;
+          }}
+
+          if (e1rmVal !== null && set.exercise) {{
+            if (!exerciseBest1RM[set.exercise] || e1rmVal > exerciseBest1RM[set.exercise]) {{
+              exerciseBest1RM[set.exercise] = e1rmVal;
+            }}
+          }}
+
+          const e1rmStr = e1rmVal !== null ? `${{e1rmVal}} kg` : '-';
+          if (set.duration !== null && set.duration !== undefined && !hasWeightReps) {{
+            const durMin = Math.round((Number(set.duration) / 60) * 10) / 10;
+            setsRows += `
+              <tr>
+                <td><strong>${{escapeHtml(set.exercise)}}</strong></td>
+                <td>Serie ${{set.set_number}}</td>
+                <td><span class="badge" style="background: #1e3a8a; color: #93c5fd;">⏱️ Tiempo</span></td>
+                <td>${{durMin}} min</td>
+                <td><span style="color: var(--text-muted);">-</span></td>
+              </tr>
+            `;
+          }} else if (set.distance !== null && set.distance !== undefined && !hasWeightReps) {{
+            setsRows += `
+              <tr>
+                <td><strong>${{escapeHtml(set.exercise)}}</strong></td>
+                <td>Serie ${{set.set_number}}</td>
+                <td><span class="badge" style="background: #4c1d95; color: #c4b5fd;">📏 Distancia</span></td>
+                <td>${{set.distance}} m</td>
+                <td><span style="color: var(--text-muted);">-</span></td>
+              </tr>
+            `;
+          }} else {{
+            setsRows += `
+              <tr>
+                <td><strong>${{escapeHtml(set.exercise)}}</strong></td>
+                <td>Serie ${{set.set_number}}</td>
+                <td>${{set.reps ?? '-'}}</td>
+                <td>${{set.weight ?? 0}} kg</td>
+                <td><span style="color: var(--primary); font-weight: 700;">${{e1rmStr}}</span></td>
+              </tr>
+            `;
+          }}
         }});
+
+        const ex1rmEntries = Object.entries(exerciseBest1RM);
+        const ex1rmBadgesHtml = ex1rmEntries.length > 0
+          ? `<div class="summary-exercise-1rm-badges" style="display: flex; flex-wrap: wrap; gap: 6px;">` +
+            ex1rmEntries.map(([exName, best1rm]) =>
+              `<span class="badge badge-ok">🏆 ${{escapeHtml(exName)}}: 1RM Est. ${{best1rm}} kg</span>`
+            ).join('') +
+            `</div>`
+          : '';
 
         const notesStr = s.notes ? `<div style="font-size: var(--fs-md); color: var(--text-muted);">${{escapeHtml(s.notes)}}</div>` : '';
         div.innerHTML = `
@@ -2568,6 +2689,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             <span class="badge badge-info">${{s.sets ? s.sets.length : 0}} series</span>
           </div>
           ${{notesStr}}
+          ${{ex1rmBadgesHtml}}
           <div class="table-container" style="margin-top: 4px;">
             <table>
               <thead>
@@ -2575,7 +2697,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
                   <th>Ejercicio</th>
                   <th>Serie</th>
                   <th>Reps</th>
-                  <th>Peso</th>
+                  <th>Peso / Duración</th>
                   <th>1RM Est.</th>
                 </tr>
               </thead>
