@@ -46,16 +46,29 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       --warning: #f59e0b;
       --input-bg: #0f172a;
       --radius: 10px;
-      /* Typography — readability variant */
+      /* Typography — readability variant 2 */
       --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      --fs-xs: 0.78rem;   /* 12.5px — floor: nothing smaller */
-      --fs-sm: 0.8125rem; /* 13px — badges, sub-labels */
-      --fs-md: 0.875rem;  /* 14px — labels, small buttons */
-      --fs-lg: 0.9375rem; /* 15px — tables, tabs, items */
-      --fs-base: 1rem;    /* 16px — inputs, buttons, body text */
-      --fs-xl: 1.125rem;  /* 18px — section headings, brand */
-      --fs-2xl: 1.375rem; /* 22px — page headings */
-      --leading-body: 1.5;
+      --fs-xs: calc(0.8125rem * var(--fs-scale));  /* 13px — floor: nothing smaller */
+      --fs-sm: calc(0.875rem * var(--fs-scale));   /* 14px — badges, sub-labels */
+      --fs-md: calc(0.9375rem * var(--fs-scale));  /* 15px — labels, small buttons */
+      --fs-lg: calc(1.0625rem * var(--fs-scale));  /* 17px — tables, tabs, items */
+      --fs-base: calc(1.0625rem * var(--fs-scale));/* 17px — inputs, buttons, body text */
+      --fs-xl: calc(1.25rem * var(--fs-scale));    /* 20px — section headings, brand */
+      --fs-2xl: calc(1.5rem * var(--fs-scale));    /* 24px — page headings */
+      --leading-body: 1.6;
+      --leading-tight: 1.25;
+      /* Mobile type scale: 1rem is pinned to 16px on <html>; this factor trims
+         text down on small screens so the desktop size doesn't overflow. */
+      --fs-scale: 1;
+    }}
+
+    /* Pin rem to 16px: mobile browsers inflate the root font-size (16–18px)
+       for legibility, which inflated every rem-based token on phones. */
+    html {{ font-size: 16px; }}
+
+    /* Small screens: trim type ~7% so the larger scale still fits. */
+    @media (max-width: 640px) {{
+      :root {{ --fs-scale: 0.93; }}
     }}
 
     * {{
@@ -75,7 +88,9 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       font-size: var(--fs-base);
       line-height: var(--leading-body);
       -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
+      font-feature-settings: "kern" 1;
     }}
 
     .container {{
@@ -242,12 +257,13 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     }}
 
     #exercises-catalog-table {{
-      font-size: var(--fs-md);
+      font-size: var(--fs-base);
+      min-width: 640px;
     }}
 
     #exercises-catalog-table th,
     #exercises-catalog-table td {{
-      padding: 6px 6px;
+      padding: 8px 10px;
       vertical-align: middle;
     }}
 
@@ -700,10 +716,10 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <thead>
             <tr>
               <th>Ejercicio</th>
-              <th>Grupo Muscular</th>
+              <th>Grupo</th>
               <th>Tipo</th>
-              <th>1RM Estimado (PR)</th>
-              <th>Récord de Peso (Max Set)</th>
+              <th>1RM (PR)</th>
+              <th>Récord</th>
               <th>Editar</th>
             </tr>
           </thead>
@@ -760,7 +776,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
               </form>
             </div>
           </div>
-          <div class="macro-preview" id="summary-macros" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));"></div>
+          <div class="macro-preview" id="summary-macros" style="grid-template-columns: repeat(2, 1fr);"></div>
         </div>
 
         <!-- 2. Health & Activity Metrics (Steps, Sleep, Weight) -->
@@ -2235,7 +2251,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
               <td><strong>${{escapeHtml(name)}}</strong></td>
               <td>${{qty}} ${{escapeHtml(unit)}}</td>
               <td>${{kcal}}</td>
-              <td>${{p}}g / ${{c}}g / ${{f}}g</td>
+              <td style="white-space: nowrap;">${{p}} / ${{c}} / ${{f}}g</td>
               <td>${{price}}</td>
               <td>${{deleteBtn}}</td>
             </tr>
@@ -2298,7 +2314,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <td><strong>💧 Agua (Consumo diario)</strong></td>
           <td>3 L</td>
           <td>0</td>
-          <td>0g / 0g / 0g</td>
+          <td style="white-space: nowrap;">0 / 0 / 0g</td>
           <td>1.25 €</td>
           <td><span class="badge badge-info">Fijo diario</span></td>
         </tr>
@@ -2327,7 +2343,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             <td><strong>💊 ${{escapeHtml(creatine.name || 'Creatina')}} (Diario)</strong></td>
             <td>${{cQtyLabel}}</td>
             <td>${{cKcal}}</td>
-            <td>${{cP}}g / ${{cC}}g / ${{cF}}g</td>
+            <td style="white-space: nowrap;">${{cP}} / ${{cC}} / ${{cF}}g</td>
             <td>${{cEnabled ? `${{cPrice.toFixed(2)}} €` : '0.00 €'}}</td>
             <td>
               <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: var(--fs-md);">
@@ -2365,7 +2381,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             <td><strong>💊 ${{escapeHtml(name)}}</strong></td>
             <td>${{qty}} ${{escapeHtml(unit)}}</td>
             <td>${{kcal}}</td>
-            <td>${{p}}g / ${{c}}g / ${{f}}g</td>
+            <td style="white-space: nowrap;">${{p}} / ${{c}} / ${{f}}g</td>
             <td>${{price}}</td>
             <td>${{deleteBtn}}</td>
           </tr>

@@ -30,10 +30,20 @@ Iterate locally on distinct UI style variants, show each one to the user, and ke
 - [x] T1: Baseline + locate theme-token seams
   - Baseline: working tree was clean at `main` `0cfbbd1`; snapshot of live `/ui` saved outside repo (`/tmp/tmp.k81ETbMkSA/ui-baseline.html`).
   - Seam: all typography now controlled by CSS tokens in `:root` (`--font-body`, `--fs-xs..--fs-2xl`, `--leading-body`) in `src/ui/html_generator.py`; every `font-size` in CSS and inline styles references those tokens (70 usages). Switching variants = editing the token block only.
-- [ ] T2: Variant 1 — review — **applied, uncommitted, awaiting user review**
+- [x] T2: Variant 1 — review — **applied, committed `b4893b4` (header) + pushed**
   - Focus (user request): text/font readability only.
   - Changes: type scale floor raised (nothing below 12.5px; was 10.4px), scale 12.5/13/14/15/16/18/22px; body 16px + line-height 1.5 (was browser default ~1.2); tables 15px + line-height 1.4; `tabular-nums` on tables and macro values (aligned digits); font-smoothing + text-rendering; system font stack kept (offline PWA, no web fonts).
-- [ ] T3: Variant 2 — review
+- [ ] T3: Variant 2 (readability, v2) — review — **applied, uncommitted, awaiting user review**
+  - Focus (user request, 2026-11-16): "la fuente, letra pequeña y difícil de ver" — push the type scale up another step and improve body rhythm.
+  - Changes (presentation-only, tokens in `:root` of `src/ui/html_generator.py`):
+    - Floor 12.5px → **13px** (`--fs-xs`); nothing renders below 13px.
+    - Scale: 13 / 14 / 15 / 17 / 17 / 20 / 24px (`--fs-xs`→`--fs-2xl`).
+    - `--fs-lg` (tables, tabs, list items) 15px → **17px** — the most-read content jumps a step.
+    - `--fs-base` (inputs, buttons, body) 16px → **17px**.
+    - Headings 18/22 → **20/24px**.
+    - `--leading-body` 1.5 → **1.6** (more breathing room between lines).
+    - Added `-moz-osx-font-smoothing: grayscale` + `font-feature-settings: "kern" 1` on body.
+  - System font stack kept (offline PWA, no web fonts). Reversible: tokens only.
 - [ ] Tn: Approved direction — finalize (commit/push only after approval)
 
 ## Verification
