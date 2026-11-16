@@ -1,4 +1,11 @@
-"# Skill: explore
+---
+name: explore
+description: >-
+  Read the actual code, tests, and relevant ADRs before proposing anything.
+  Use after authorizing a feature and before classifying it.
+---
+
+# Skill: explore
 
 > Read the actual code, tests, and relevant ADRs before proposing anything.
 
@@ -27,4 +34,3 @@ After authorizing, before classifying.
 - Do not propose changes without having read the affected code.
 - If an ADR contradicts what is being done → stop and ask.
 - If there are no tests → report it (do not block, but record it).
-"

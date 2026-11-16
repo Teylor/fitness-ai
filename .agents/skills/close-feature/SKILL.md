@@ -1,4 +1,11 @@
-"# Skill: close-feature
+---
+name: close-feature
+description: >-
+  Close out acceptance criteria, update documentation and odd/tasks/<feature>.md,
+  and prepare the final pre-commit report. Use when all tasks in the checklist are [x].
+---
+
+# Skill: close-feature
 
 > Close out the acceptance criteria, update the document, and leave the next step.
 
@@ -26,5 +33,3 @@ When all tasks in the checklist are `[x]`.
 - Do not close without verifying ALL acceptance criteria.
 - If something is missing → do not close, add a task to the checklist.
 - If there is follow-up → document it in "Next step", do not block the close.
-- If it is the SDD branch → invoke `sdd-archive` afterwards.
-"

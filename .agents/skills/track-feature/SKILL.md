@@ -1,9 +1,16 @@
-"# Skill: track-feature
+---
+name: track-feature
+description: >-
+  Create or update odd/tasks/<feature>.md before the first code write.
+  Use after classify and before implement-task.
+---
+
+# Skill: track-feature
 
 > Create or update `odd/tasks/<feature>.md` before the first code write.
 
 ## When it activates
-After `classify` (or `sdd-tasks` if it escalated to SDD), before `implement-task`.
+After `classify`, before `implement-task`.
 
 ## Steps
 
@@ -15,8 +22,7 @@ After `classify` (or `sdd-tasks` if it escalated to SDD), before `implement-task
    - `## Tasks` → Checklist with per-task verification
    - `## Verification` → (empty, filled in at close)
    - `## Close` → (empty, filled in at close)
-3. **Link** to `specs/<feature>/spec.md` and `plan.md` if they exist (SDD branch).
-4. **Confirm** with the user: "Checklist created. Approved to implement?"
+3. **Confirm** with the user: "Checklist created. Approved to implement?"
 
 ## Template
 
@@ -37,7 +43,7 @@ After `classify` (or `sdd-tasks` if it escalated to SDD), before `implement-task
 ## Plan
 > Technical decisions + classification
 
-- Classification: <trivial|small|substantial|SDD>
+- Classification: <trivial|small|substantial>
 - D1: ...
 - D2: ...
 
@@ -56,7 +62,5 @@ After `classify` (or `sdd-tasks` if it escalated to SDD), before `implement-task
 
 ## Rules
 - **Single source of progress.** The checklist lives ONLY here.
-- The spec never stores state (if it exists as a separate file).
 - Do not start `implement-task` without this file.
 - If the feature already exists → update it, do not create a new one.
-"

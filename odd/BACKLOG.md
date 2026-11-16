@@ -37,6 +37,7 @@
 
 | Feature | File |
 |---------|---------|
+| `ui-design-changes` | `odd/tasks/ui-design-changes.md` |
 
 ---
 

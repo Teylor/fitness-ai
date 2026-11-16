@@ -21,7 +21,6 @@ data/
 
 # IDE
 .vscode/
-.kilo
 .idea/
 *.swp
 *.swo

@@ -1,4 +1,11 @@
-"# Skill: implement-task
+---
+name: implement-task
+description: >-
+  Implement feature tasks with TDD if configured, marking progress and evidence
+  in odd/tasks/<feature>.md. Use after track-feature once the checklist is approved.
+---
+
+# Skill: implement-task
 
 > One task at a time, with TDD if configured, marking progress and evidence.
 
@@ -33,9 +40,8 @@ After `track-feature` (checklist approved by the user).
 
 ## Rules
 - **One task at a time.** Do not group (slow mode; see Execution modes).
-- If a task requires more than expected → stop, reclassify (→ `classify`).
+- If a task requires more than expected → stop, reclassify (→ `classify`), and update the Spec/Plan in `odd/tasks/<feature>.md`.
 - If a test fails → do not move on to the next until it is fixed.
-- If unexpected complexity appears → escalate to SDD (→ `sdd-specify`).
 - Evidence is mandatory: without evidence, the task is not done.
 - Commit per task (no grouped commits) in slow mode; one proposed commit per feature in fast mode. The user runs the commit after the pre-commit report.
 - The agent does not run `git commit` on its own.
@@ -47,4 +53,3 @@ After `track-feature` (checklist approved by the user).
 ```
 - [x] T3: Implement calc_recipe_macros → verify: pytest tests/unit/test_macros_utils.py::test_calc_recipe -v → PASSED (3 tests)
 ```
-"
