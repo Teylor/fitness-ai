@@ -63,6 +63,7 @@
 - [x] T3: Update `#tab-summary` (`renderSummaryWorkouts`) in `src/ui/html_generator.py` to display per-set `1RM Est.`, per-exercise best 1RM badges, and formatted minutes for cardio (`duration`) sets → verify: `pytest tests/integration/test_ui_web_routes.py -v` → PASSED (16 tests)
 - [x] T4: Update `#tab-workout` in `src/ui/html_generator.py` to support adding cardio exercises in minutes (`⏱️ + Añadir Cardio (Tiempo)` + mode toggle + auto-detect `type === 'time'` from catalog + seconds conversion on submit) → verify: `pytest tests/integration/test_ui_web_routes.py -v` → PASSED (16 tests)
 - [x] T5: Update OpenSpec (`docs/specs/openspec/requirements.md` and `docs/specs/openspec/api-spec.md`) and run full test suite → verify: `pytest tests/ -v` → PASSED (221 tests)
+- [x] T6: Prevent price column line wrapping in Ingredients & Supplements tables (`white-space: nowrap;`) → verify: `pytest tests/integration/test_ui_web_routes.py -v` → PASSED (16 tests)
 
 ## Verification
 > Comparison against the spec (filled in at close)

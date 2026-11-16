@@ -272,6 +272,13 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       padding: 2px 6px;
     }}
 
+    #ingredients-catalog-table td:nth-child(7),
+    #supplements-catalog-table td:nth-child(2),
+    #supplements-catalog-table td:nth-child(7),
+    #recipes-catalog-table td:nth-child(5) {{
+      white-space: nowrap;
+    }}
+
     .ac-list {{
       position: fixed;
       z-index: 999;
@@ -1370,7 +1377,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             <td>${{ing.protein || 0}}</td>
             <td>${{ing.carbs || 0}}</td>
             <td>${{ing.fat || 0}}</td>
-            <td>${{priceStr}}</td>
+            <td style="white-space: nowrap;">${{priceStr}}</td>
             <td>${{badge}}</td>
             <td style="white-space: nowrap;">
               <button type="button" class="btn btn-secondary btn-sm" onclick="startEditIngredient(${{ing.id}})">✏️ Editar</button>
@@ -1391,9 +1398,9 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <td>0</td>
           <td>0</td>
           <td>0</td>
-          <td>1.25 €</td>
+          <td style="white-space: nowrap;">1.25 €</td>
           <td><span class="badge badge-info">💧 Agua</span></td>
-          <td style="color: var(--text-muted); font-size: var(--fs-md);">Fijo diario</td>
+          <td style="color: var(--text-muted); font-size: var(--fs-md); white-space: nowrap;">Fijo diario</td>
         `;
         suppTbody.appendChild(waterTr);
 
@@ -1405,14 +1412,14 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         const creatTr = document.createElement('tr');
         creatTr.innerHTML = `
           <td><strong>💊 Creatina (Consumo diario)</strong></td>
-          <td>${{creatUnit}}</td>
+          <td style="white-space: nowrap;">${{creatUnit}}</td>
           <td>${{catalogCreatina ? (catalogCreatina.kcal || 0) : 0}}</td>
           <td>${{catalogCreatina ? (catalogCreatina.protein || 0) : 0}}</td>
           <td>${{catalogCreatina ? (catalogCreatina.carbs || 0) : 0}}</td>
           <td>${{catalogCreatina ? (catalogCreatina.fat || 0) : 0}}</td>
-          <td>${{creatPrice.toFixed(2)}} €</td>
+          <td style="white-space: nowrap;">${{creatPrice.toFixed(2)}} €</td>
           <td><span class="badge badge-info">💊 Diario</span></td>
-          <td style="color: var(--text-muted); font-size: var(--fs-md);">Activo por defecto</td>
+          <td style="color: var(--text-muted); font-size: var(--fs-md); white-space: nowrap;">Activo por defecto</td>
         `;
         suppTbody.appendChild(creatTr);
 
@@ -1426,7 +1433,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             <td>${{ing.protein || 0}}</td>
             <td>${{ing.carbs || 0}}</td>
             <td>${{ing.fat || 0}}</td>
-            <td>${{priceStr}}</td>
+            <td style="white-space: nowrap;">${{priceStr}}</td>
             <td><span class="badge badge-warning">💊 Suplemento</span></td>
             <td style="white-space: nowrap;">
               <button type="button" class="btn btn-secondary btn-sm" onclick="startEditIngredient(${{ing.id}})">✏️ Editar</button>
