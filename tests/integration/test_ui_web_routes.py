@@ -835,6 +835,8 @@ async def test_ui_workout_training_enhancements_pack(db):
         assert "onExerciseModeChange" in wo_html
         assert "max_weight_sets" in wo_html
         assert "summary-exercise-1rm-badges" in wo_html
+        assert "#ingredients-catalog-table td:nth-child(7)" in wo_html
+        assert '<td style="white-space: nowrap;">${priceStr}</td>' in wo_html
 
         # 2. Register workout with multiple sets at max weight (75x10, 75x9) and cardio time (20 min = 1200s)
         reg = await client.post(
