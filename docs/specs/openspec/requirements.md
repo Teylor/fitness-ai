@@ -63,6 +63,7 @@ The system runs 24/7 on a local PC (server mode). An AI agent (Hermes Agent) con
 - **FR2.6** Meals support a category `meal_type` (`desayuno`, `comida`, `merienda`, `cena`, `tentempie`, defaulting to `tentempie`). Both MCP registration and the Web UI allow selecting the meal type.
 - **FR2.7** Every day includes a fixed daily water intake of **3L at 1.25€** (`water_and_supplements.water`), added to the daily `spend`. Supplements (`is_supplement = true`) and the 3L daily water are grouped into a dedicated **"Agua y Suplementos"** section in both the Ingredients Catalog and the Daily Summary.
 - **FR2.8** Daily creatine (`water_and_supplements.creatine`) is enabled by default for every day (1 unit / 5g at 0.30€, or resolved from the `"Creatina"` catalog ingredient when present), toggleable per date via `toggle_daily_creatine` (`POST /api/toggle_daily_creatine`) without duplicating manually logged creatine entries.
+- **FR2.9** All other catalog supplements (`is_supplement = true`, excluding Creatina) appear in the Daily Summary **"Agua y Suplementos"** list (`water_and_supplements.daily_supplements`) with a per-date toggle defaulting to **OFF** (`false`), toggleable via `toggle_daily_supplement` (`POST /api/toggle_daily_supplement`). When enabled, each supplement's default serving (`1 u` or `100 g/ml`) is included in `consumed`, `spend`, and `water_and_supplements` totals.
 
 ### FR3 — Daily goals
 

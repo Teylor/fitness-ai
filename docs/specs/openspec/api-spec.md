@@ -31,7 +31,7 @@
 |---|---|
 | Ingredients (4) | `create_ingredient`, `update_ingredient`, `delete_ingredient`, `list_ingredients` |
 | Recipes (4) | `create_recipe`, `update_recipe`, `delete_recipe`, `list_recipes` |
-| Meals (4) | `register_meal`, `get_day_summary`, `delete_meal`, `toggle_daily_creatine` |
+| Meals (5) | `register_meal`, `get_day_summary`, `delete_meal`, `toggle_daily_creatine`, `toggle_daily_supplement` |
 | Goals (2) | `set_daily_goal`, `get_daily_goal` |
 | Workouts (4) | `register_workout`, `get_last_workout`, `get_personal_record`, `get_workouts_by_day` |
 | Exercises (3) | `list_exercises`, `create_exercise`, `update_exercise` |
@@ -285,6 +285,22 @@ Enable, disable, or flip automatic daily creatine tracking for a `DD-MM-YYYY` da
 ```
 
 Errors: `invalid_input`, `internal`.
+
+### `toggle_daily_supplement`
+
+Enable, disable, or flip a catalog supplement (`is_supplement=true`, excluding Creatina) for a `DD-MM-YYYY` date (defaults to today; disabled by default when no override exists).
+
+| Arg | Type | Req | Default | Description |
+|---|---|---|---|---|
+| `ingredient_id` | int | ✔ | — | ID of the supplement ingredient |
+| `date` | str | — | today | `DD-MM-YYYY` |
+| `enabled` | bool | — | flip | Explicit boolean state or omit to flip current state |
+
+```json
+{"status": "ok", "date": "20-11-2026", "ingredient_id": 5, "enabled": true, "supplement": {...}, "spend": 2.05}
+```
+
+Errors: `not_found`, `invalid_input`, `internal`.
 
 ---
 

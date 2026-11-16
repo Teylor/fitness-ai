@@ -45,7 +45,8 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
-| `exercise-muscle-group` | `odd/tasks/exercise-muscle-group.md` | 2026-116-d` |
+| `daily-supplements-toggle` | `odd/tasks/daily-supplements-toggle.md` | 2026-11 |
+| `exercise-muscle-group` | `odd/tasks/exercise-muscle-group.md` | 2026-11 |
 | `ui-hot-reload` | `odd/tasks/ui-hot-reload.md` | 2026-11 |
 | `android-apk-remote-access` | `odd/tasks/android-apk-remote-access.md` | 2026-11 |
 | `daily-creatine-tracking` | `odd/tasks/daily-creatine-tracking.md` | 2026-11 |

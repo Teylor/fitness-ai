@@ -6,6 +6,7 @@ from typing import Optional
 
 from src.db.models import (
     DailyCreatine as DailyCreatineModel,
+    DailySupplementToggle as DailySupplementToggleModel,
     Ingredient as IngredientModel,
     MealEntry as MealEntryModel,
     Recipe as RecipeModel,
@@ -162,6 +163,35 @@ class MealService:
                 row.save()
         return target
 
+    def toggle_daily_supplement(
+        self, date: str, ingredient_id: int, enabled: Optional[bool] = None
+    ) -> bool:
+        """Enable/disable or flip a catalog supplement for a DD-MM-YYYY date (default OFF)."""
+        self._parse_date(date)
+        ing = IngredientModel.get_or_none(IngredientModel.id == int(ingredient_id))
+        if ing is None:
+            raise NotFoundError(f"ingredient {ingredient_id} not found")
+        if not ing.is_supplement:
+            raise ValidationError(f"ingredient '{ing.name}' is not a supplement")
+        if normalize(ing.name) == "creatina":
+            return self.toggle_daily_creatine(date=date, enabled=enabled)
+        with DailySupplementToggleModel._meta.database.atomic():
+            row = DailySupplementToggleModel.get_or_none(
+                (DailySupplementToggleModel.date == date)
+                & (DailySupplementToggleModel.ingredient == ing.id)
+            )
+            current = False if row is None else bool(row.enabled)
+            target = (not current) if enabled is None else bool(enabled)
+            if row is None:
+                DailySupplementToggleModel.create(
+                    date=date, ingredient=ing.id, enabled=target
+                )
+            else:
+                row.enabled = target
+                row.updated_at = datetime.now()
+                row.save()
+        return target
+
     @staticmethod
     def resolve_daily_creatine() -> dict:
         """Resolve daily creatine from catalog ('Creatina') or default 1 u (5g) @ 0.30€."""
@@ -258,6 +288,60 @@ class MealService:
         creatine_fat = creatine_info["fat"] if creatine_active else 0.0
         creatine_spend = creatine_info["price"] if creatine_active else 0.0
 
+        toggles_by_ing = {
+            row.ingredient_id: bool(row.enabled)
+            for row in DailySupplementToggleModel.select().where(
+                DailySupplementToggleModel.date == date
+            )
+        }
+        logged_ing_ids = {
+            m["entry"].get("item_id")
+            for m in supplement_meals
+            if m.get("entry", {}).get("item_type") == "ingredient"
+        }
+        daily_supplements = []
+        ds_kcal = 0.0
+        ds_protein = 0.0
+        ds_carbs = 0.0
+        ds_fat = 0.0
+        ds_spend = 0.0
+        for ing in (
+            IngredientModel.select()
+            .where(IngredientModel.is_supplement == True)  # noqa: E712
+            .order_by(IngredientModel.id)
+        ):
+            if normalize(ing.name) == "creatina":
+                continue
+            qty = 1.0 if ing.unit == "u" else 100.0
+            macros = calc_ingredient_macros(ing, qty)
+            enabled = toggles_by_ing.get(ing.id, False)
+            already_logged = ing.id in logged_ing_ids
+            active = enabled and not already_logged
+            if active:
+                for key in MACRO_KEYS:
+                    consumed[key] = round(consumed[key] + macros[key], 2)
+                spend = round(spend + macros["price"], 2)
+                ds_kcal = round(ds_kcal + macros["kcal"], 2)
+                ds_protein = round(ds_protein + macros["protein"], 2)
+                ds_carbs = round(ds_carbs + macros["carbs"], 2)
+                ds_fat = round(ds_fat + macros["fat"], 2)
+                ds_spend = round(ds_spend + macros["price"], 2)
+            daily_supplements.append(
+                {
+                    "ingredient_id": ing.id,
+                    "name": ing.name,
+                    "quantity": qty,
+                    "unit": ing.unit,
+                    "price": macros["price"],
+                    "kcal": macros["kcal"],
+                    "protein": macros["protein"],
+                    "carbs": macros["carbs"],
+                    "fat": macros["fat"],
+                    "enabled": enabled,
+                    "already_logged": already_logged,
+                }
+            )
+
         water_and_supplements = {
             "water": {
                 "name": "Agua (3L)",
@@ -270,14 +354,27 @@ class MealService:
                 "fat": 0.0,
             },
             "creatine": creatine_payload,
+            "daily_supplements": daily_supplements,
             "supplements": supplement_meals,
-            "kcal": round(sum(m["kcal"] for m in supplement_meals) + creatine_kcal, 2),
-            "protein": round(sum(m["protein"] for m in supplement_meals) + creatine_protein, 2),
-            "carbs": round(sum(m["carbs"] for m in supplement_meals) + creatine_carbs, 2),
-            "fat": round(sum(m["fat"] for m in supplement_meals) + creatine_fat, 2),
+            "kcal": round(
+                sum(m["kcal"] for m in supplement_meals) + creatine_kcal + ds_kcal, 2
+            ),
+            "protein": round(
+                sum(m["protein"] for m in supplement_meals)
+                + creatine_protein
+                + ds_protein,
+                2,
+            ),
+            "carbs": round(
+                sum(m["carbs"] for m in supplement_meals) + creatine_carbs + ds_carbs, 2
+            ),
+            "fat": round(
+                sum(m["fat"] for m in supplement_meals) + creatine_fat + ds_fat, 2
+            ),
             "spend": round(
                 DAILY_WATER_PRICE
                 + creatine_spend
+                + ds_spend
                 + sum(m.get("price", 0.0) for m in supplement_meals),
                 2,
             ),

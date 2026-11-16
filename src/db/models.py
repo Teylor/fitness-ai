@@ -226,6 +226,19 @@ class DailyCreatine(BaseModel):
         table_name = "daily_creatine"
 
 
+class DailySupplementToggle(BaseModel):
+    """Per-day toggle for catalog supplements (disabled by default)."""
+
+    date = CharField()  # DD-MM-YYYY
+    ingredient = ForeignKeyField(Ingredient, on_delete="CASCADE")
+    enabled = BooleanField(default=False)
+    updated_at = DateTimeField(default=SQL("datetime('now')"))
+
+    class Meta:
+        table_name = "daily_supplement_toggles"
+        indexes = ((("date", "ingredient"), True),)
+
+
 # List of all models
 ALL_MODELS = [
     Ingredient,
@@ -234,6 +247,7 @@ ALL_MODELS = [
     MealEntry,
     DailyGoal,
     DailyCreatine,
+    DailySupplementToggle,
     Exercise,
     WorkoutSession,
     ExerciseSet,
