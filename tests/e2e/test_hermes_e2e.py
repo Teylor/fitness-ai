@@ -443,7 +443,7 @@ async def test_hermes_ui_artifact_flow(hermes_client):
     assert hub_res["status"] == "ok"
     assert hub_res["form_type"] == "hub"
     assert "<!DOCTYPE html>" in hub_res["html"]
-    assert "Fitness AI Hub" in hub_res["html"]
+    assert "Hermes Hub" in hub_res["html"]
 
     # Request focused workout form artifact
     workout_res = await hermes_client.call_tool("get_ui_form", form_type="workout")
