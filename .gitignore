@@ -21,7 +21,6 @@ data/
 
 # IDE
 .vscode/
-.kilo
 .idea/
 *.swp
 *.swo
@@ -40,3 +39,4 @@ htmlcov/
 *.log
 *.tmp
 .aider*
+.impeccable

@@ -37,7 +37,7 @@
 
 | Feature | File |
 |---------|---------|
-| `exercise-muscle-group-and-workout-defaults` | `odd/tasks/exercise-muscle-group-and-workout-defaults.md` |
+| `ui-design-changes` | `odd/tasks/ui-design-changes.md` |
 
 ---
 
@@ -46,6 +46,7 @@
 | Feature | File | Date |
 |---------|---------|-------|
 | `daily-supplements-toggle` | `odd/tasks/daily-supplements-toggle.md` | 2026-11 |
+| `exercise-muscle-group` | `odd/tasks/exercise-muscle-group.md` | 2026-11 |
 | `ui-hot-reload` | `odd/tasks/ui-hot-reload.md` | 2026-11 |
 | `android-apk-remote-access` | `odd/tasks/android-apk-remote-access.md` | 2026-11 |
 | `daily-creatine-tracking` | `odd/tasks/daily-creatine-tracking.md` | 2026-11 |
@@ -75,9 +76,9 @@
 | `mcp-server` | `odd/tasks/mcp-server.md` | 2026-11 |
 | `services-nutrition` | `odd/tasks/services-nutrition.md` | 2026-11 |
 | `specs-completion` | `odd/tasks/specs-completion.md` | 2026-11 |
-| db-layer | `odd/tasks/db-layer.md` | 2026-11 |
-| utils-core | `odd/tasks/utils-core.md` | 2026-11 |
-| translate-to-english | `odd/tasks/translate-to-english.md` | 2026-11 |
+| `db-layer` | `odd/tasks/db-layer.md` | 2026-11 |
+| `utils-core` | `odd/tasks/utils-core.md` | 2026-11 |
+| `translate-to-english` | `odd/tasks/translate-to-english.md` | 2026-11 |
 
 ---
 

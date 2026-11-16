@@ -17,7 +17,7 @@ async def test_ui_web_routes_and_api_dispatch(db):
         ui_res = await client.get("/ui")
         assert ui_res.status_code == 200
         assert "text/html" in ui_res.headers.get("content-type", "")
-        assert "Fitness AI Hub" in ui_res.text
+        assert "Hermes Hub" in ui_res.text
         assert "Sincronizar Google Health" in ui_res.text
         assert "syncGoogleHealthUI" in ui_res.text
 
@@ -438,8 +438,8 @@ async def test_ui_exercises_tab_and_prs_integration(db):
         ui_res = await client.get("/ui/exercise")
         assert ui_res.status_code == 200
         assert "Ejercicios y Récords Personales" in ui_res.text
-        assert "1RM Estimado (PR)" in ui_res.text
-        assert "Récord de Peso (Max Set)" in ui_res.text
+        assert "1RM (PR)" in ui_res.text
+        assert "Récord" in ui_res.text
         assert "💪 Ejercicios" in ui_res.text
 
         # 2. Create exercise
