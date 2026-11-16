@@ -718,8 +718,9 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
               <th>Ejercicio</th>
               <th>Grupo</th>
               <th>Tipo</th>
-              <th>1RM (PR)</th>
-              <th>Récord</th>
+              <th>1RM Estimado</th>
+              <th>Peso 1RM</th>
+              <th>Peso Máx</th>
               <th>Editar</th>
             </tr>
           </thead>
@@ -1708,22 +1709,32 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         }}
 
         let prHtml = '<span style="color: var(--text-muted);">-</span>';
+        let prSetHtml = '<span style="color: var(--text-muted);">-</span>';
         let maxWeightHtml = '<span style="color: var(--text-muted);">-</span>';
 
         if (ex.pr) {{
           if (ex.pr.estimated_1rm) {{
-            const e1rmDate = ex.pr.estimated_1rm_date ? `<div style="font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px;">${{escapeHtml(ex.pr.estimated_1rm_date)}}</div>` : '';
+            const e1rmDate = ex.pr.estimated_1rm_date ? `<span style="font-size: var(--fs-xs); color: var(--text-muted); white-space: nowrap;">${{escapeHtml(ex.pr.estimated_1rm_date)}}</span>` : '';
             prHtml = `
-              <div style="display: inline-flex; flex-direction: column;">
+              <div style="display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;">
                 <span class="badge badge-ok">🏆 ${{ex.pr.estimated_1rm}} kg</span>
                 ${{e1rmDate}}
               </div>
             `;
           }}
+          if (ex.pr.estimated_1rm_weight !== undefined && ex.pr.estimated_1rm_weight !== null) {{
+            const e1rmSetDate = ex.pr.estimated_1rm_date ? `<span style="font-size: var(--fs-xs); color: var(--text-muted); white-space: nowrap;">${{escapeHtml(ex.pr.estimated_1rm_date)}}</span>` : '';
+            prSetHtml = `
+              <div style="display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;">
+                <span class="badge badge-info">⚡ ${{ex.pr.estimated_1rm_weight}}×${{ex.pr.estimated_1rm_reps || 1}}</span>
+                ${{e1rmSetDate}}
+              </div>
+            `;
+          }}
           if (ex.pr.max_weight !== undefined && ex.pr.max_weight !== null) {{
-            const maxDate = ex.pr.max_weight_date ? `<div style="font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px;">${{escapeHtml(ex.pr.max_weight_date)}}</div>` : '';
+            const maxDate = ex.pr.max_weight_date ? `<span style="font-size: var(--fs-xs); color: var(--text-muted); white-space: nowrap;">${{escapeHtml(ex.pr.max_weight_date)}}</span>` : '';
             maxWeightHtml = `
-              <div style="display: inline-flex; flex-direction: column;">
+              <div style="display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;">
                 <span class="badge badge-warning">💪 ${{ex.pr.max_weight}}×${{ex.pr.max_weight_reps || 1}}</span>
                 ${{maxDate}}
               </div>
@@ -1743,6 +1754,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <td><span class="badge" style="background: #334155; color: #cbd5e1; text-transform: capitalize;">${{escapeHtml(muscle)}}</span></td>
           <td>${{typeBadge}}</td>
           <td>${{prHtml}}</td>
+          <td>${{prSetHtml}}</td>
           <td>${{maxWeightHtml}}</td>
           <td>
             <div style="display: flex; gap: 4px; align-items: center;">

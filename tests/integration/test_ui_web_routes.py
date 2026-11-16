@@ -438,8 +438,9 @@ async def test_ui_exercises_tab_and_prs_integration(db):
         ui_res = await client.get("/ui/exercise")
         assert ui_res.status_code == 200
         assert "Ejercicios y Récords Personales" in ui_res.text
-        assert "1RM (PR)" in ui_res.text
-        assert "Récord" in ui_res.text
+        assert "1RM Estimado" in ui_res.text
+        assert "Peso 1RM" in ui_res.text
+        assert "Peso Máx" in ui_res.text
         assert "💪 Ejercicios" in ui_res.text
 
         # 2. Create exercise
@@ -482,6 +483,8 @@ async def test_ui_exercises_tab_and_prs_integration(db):
         assert press["pr"]["max_weight"] == 22.0
         assert press["pr"]["max_weight_reps"] == 6
         assert press["pr"]["estimated_1rm"] == 26.7
+        assert press["pr"]["estimated_1rm_weight"] == 20.0
+        assert press["pr"]["estimated_1rm_reps"] == 10
 
 
 @pytest.mark.anyio
