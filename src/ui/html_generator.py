@@ -46,13 +46,23 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       --warning: #f59e0b;
       --input-bg: #0f172a;
       --radius: 10px;
+      /* Typography — readability variant */
+      --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --fs-xs: 0.78rem;   /* 12.5px — floor: nothing smaller */
+      --fs-sm: 0.8125rem; /* 13px — badges, sub-labels */
+      --fs-md: 0.875rem;  /* 14px — labels, small buttons */
+      --fs-lg: 0.9375rem; /* 15px — tables, tabs, items */
+      --fs-base: 1rem;    /* 16px — inputs, buttons, body text */
+      --fs-xl: 1.125rem;  /* 18px — section headings, brand */
+      --fs-2xl: 1.375rem; /* 22px — page headings */
+      --leading-body: 1.5;
     }}
 
     * {{
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: var(--font-body);
     }}
 
     body {{
@@ -62,6 +72,10 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       display: flex;
       justify-content: center;
       min-height: 100vh;
+      font-size: var(--fs-base);
+      line-height: var(--leading-body);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
     }}
 
     .container {{
@@ -70,25 +84,6 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       display: flex;
       flex-direction: column;
       gap: 16px;
-    }}
-
-    header {{
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 18px;
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-    }}
-
-    .brand {{
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 700;
-      font-size: 1.15rem;
-      color: var(--primary);
     }}
 
     .nav-tabs {{
@@ -109,7 +104,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       border: 1px solid transparent;
       border-radius: 6px;
       color: var(--text-muted);
-      font-size: 0.9rem;
+      font-size: var(--fs-lg);
       font-weight: 600;
       cursor: pointer;
       display: flex;
@@ -144,7 +139,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     }}
 
     h2 {{
-      font-size: 1.25rem;
+      font-size: var(--fs-2xl);
       color: var(--cyan);
       display: flex;
       align-items: center;
@@ -164,7 +159,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     }}
 
     label {{
-      font-size: 0.85rem;
+      font-size: var(--fs-md);
       font-weight: 600;
       color: var(--text-muted);
     }}
@@ -175,7 +170,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       color: var(--text);
       padding: 10px 12px;
       border-radius: 6px;
-      font-size: 0.95rem;
+      font-size: var(--fs-base);
       outline: none;
     }}
 
@@ -190,7 +185,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       border: none;
       border-radius: 6px;
       font-weight: 700;
-      font-size: 0.95rem;
+      font-size: var(--fs-base);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -219,7 +214,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
     .btn-sm {{
       padding: 6px 10px;
-      font-size: 0.8rem;
+      font-size: var(--fs-md);
     }}
 
     .table-container {{
@@ -230,7 +225,9 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     table {{
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.9rem;
+      font-size: var(--fs-lg);
+      line-height: 1.4;
+      font-variant-numeric: tabular-nums;
     }}
 
     th, td {{
@@ -245,7 +242,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     }}
 
     #exercises-catalog-table {{
-      font-size: 0.84rem;
+      font-size: var(--fs-md);
     }}
 
     #exercises-catalog-table th,
@@ -255,7 +252,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     }}
 
     #exercises-catalog-table .badge {{
-      font-size: 0.72rem;
+      font-size: var(--fs-xs);
       padding: 2px 6px;
     }}
 
@@ -278,7 +275,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       justify-content: space-between;
       align-items: center;
       gap: 8px;
-      font-size: 0.88rem;
+      font-size: var(--fs-lg);
+      line-height: 1.4;
       color: var(--text);
       border-bottom: 1px solid rgba(51, 65, 85, 0.4);
     }}
@@ -292,7 +290,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     }}
 
     .ac-sub {{
-      font-size: 0.75rem;
+      font-size: var(--fs-sm);
       color: var(--text-muted);
       white-space: nowrap;
     }}
@@ -301,7 +299,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       display: inline-block;
       padding: 2px 8px;
       border-radius: 12px;
-      font-size: 0.75rem;
+      font-size: var(--fs-sm);
       font-weight: 700;
     }}
 
@@ -325,13 +323,14 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     }}
 
     .macro-val {{
-      font-size: 1.15rem;
+      font-size: var(--fs-xl);
       font-weight: 700;
       color: var(--primary);
+      font-variant-numeric: tabular-nums;
     }}
 
     .macro-lbl {{
-      font-size: 0.75rem;
+      font-size: var(--fs-sm);
       color: var(--text-muted);
       text-transform: uppercase;
     }}
@@ -343,7 +342,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       border: 1px solid var(--border);
       background: #022c22;
       color: #a7f3d0;
-      font-size: 0.9rem;
+      font-size: var(--fs-lg);
       flex-direction: column;
       gap: 8px;
     }}
@@ -356,7 +355,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       padding: 8px 12px;
       border-radius: 4px;
       font-family: monospace;
-      font-size: 0.85rem;
+      font-size: var(--fs-md);
       color: #94a3b8;
       overflow-x: auto;
     }}
@@ -364,15 +363,6 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 </head>
 <body>
   <div class="container">
-    <header>
-      <div class="brand">
-        <span>⚡</span> Fitness AI Hub
-      </div>
-      <div style="display: flex; gap: 8px; align-items: center;">
-        <button type="button" class="btn btn-secondary btn-sm" id="btn-header-sync-health" onclick="syncGoogleHealthUI()" title="Sincronizar comidas, sueño y peso con Google Health">☁️ Sincronizar Google Health</button>
-      </div>
-    </header>
-
     <!-- Navigation Tabs -->
     <nav class="nav-tabs" role="tablist">
       <button class="tab-btn {'active' if active_tab == 'meal' else ''}" data-tab="meal" onclick="switchTab('meal')">🥗 Comidas</button>
@@ -482,7 +472,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       <!-- Catálogo de Recetas Guardadas -->
       <div style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-          <h3 style="font-size: 1.1rem; color: var(--text);">📋 Recetas Guardadas</h3>
+          <h3 style="font-size: var(--fs-xl); color: var(--text);">📋 Recetas Guardadas</h3>
           <div style="display: flex; gap: 8px; align-items: center;">
             <input type="text" id="recipe-search-input" placeholder="Buscar receta..." style="width: 200px; padding: 6px 10px;" oninput="filterRecipes()">
             <button type="button" class="btn btn-secondary btn-sm" onclick="fetchRecipesList()">🔄 Actualizar</button>
@@ -552,7 +542,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             <input type="number" id="ing-price" step="any" min="0" placeholder="0.0">
           </div>
           <div class="form-group" style="justify-content: flex-end; padding-bottom: 6px;">
-            <label for="ing-is-supplement" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text); font-size: 0.9rem;">
+            <label for="ing-is-supplement" style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text); font-size: var(--fs-lg);">
               <input type="checkbox" id="ing-is-supplement" style="width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer;">
               <span>💊 Es suplemento (ej: Creatina, Omega 3...)</span>
             </label>
@@ -568,7 +558,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       <!-- Catálogo de Ingredientes Guardados -->
       <div style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-          <h3 style="font-size: 1.1rem; color: var(--text);">📋 Ingredientes Guardados</h3>
+          <h3 style="font-size: var(--fs-xl); color: var(--text);">📋 Ingredientes Guardados</h3>
           <div style="display: flex; gap: 8px; align-items: center;">
             <input type="text" id="ing-search-input" placeholder="Buscar ingrediente o suplemento..." style="width: 220px; padding: 6px 10px;" oninput="filterIngredients()">
             <button type="button" class="btn btn-secondary btn-sm" onclick="fetchIngredientsList()">🔄 Actualizar</button>
@@ -600,7 +590,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       <!-- Sección aparte: Agua y Suplementos -->
       <div style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-          <h3 style="font-size: 1.1rem; color: var(--cyan);">💧💊 Agua y Suplementos</h3>
+          <h3 style="font-size: var(--fs-xl); color: var(--cyan);">💧💊 Agua y Suplementos</h3>
           <span class="badge badge-info">Agua diaria: 3L (1.25 €) • Creatina diaria: 1 u (0.30 €)</span>
         </div>
         <div class="table-container">
@@ -673,7 +663,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
       <!-- Formulario para Añadir Ejercicio -->
       <div id="exercise-create-container" style="display: none; margin-bottom: 20px; background: rgba(15, 23, 42, 0.6); padding: 16px; border: 1px solid var(--border); border-radius: var(--radius);">
-        <h3 style="font-size: 1rem; margin-bottom: 12px; color: var(--text);">➕ Añadir Nuevo Ejercicio</h3>
+        <h3 style="font-size: var(--fs-base); margin-bottom: 12px; color: var(--text);">➕ Añadir Nuevo Ejercicio</h3>
         <form id="form-create-exercise" onsubmit="submitNewExercise(event)">
           <div class="form-grid">
             <div class="form-group">
@@ -740,7 +730,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         <!-- 1. Macro Goals, Consumed & Remaining -->
         <div>
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
-            <h3 style="font-size: 0.95rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">🎯 Objetivos vs Consumido vs Restante</h3>
+            <h3 style="font-size: var(--fs-base); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">🎯 Objetivos vs Consumido vs Restante</h3>
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
               <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-day-off" onclick="toggleDayOffUI()" title="Alternar entre objetivos de Día de Entreno y Day Off">🏋️ Día Entreno</button>
               <button type="button" class="btn btn-secondary btn-sm" id="btn-config-goals" onclick="toggleGoalProfilesPanel()">⚙️ Objetivos</button>
@@ -749,22 +739,22 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <div id="goal-profiles-panel" style="display: none; background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 12px;">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
               <form id="form-goal-training" onsubmit="saveGoalProfile(event, false)" style="display: flex; flex-direction: column; gap: 8px;">
-                <div style="font-weight: 700; font-size: 0.85rem; color: var(--primary);">🏋️ Objetivo Día de Entreno (Default)</div>
+                <div style="font-weight: 700; font-size: var(--fs-md); color: var(--primary);">🏋️ Objetivo Día de Entreno (Default)</div>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
-                  <div><label style="font-size: 0.72rem;">Kcal</label><input type="number" id="goal-tr-kcal" step="any" min="0" required placeholder="2500"></div>
-                  <div><label style="font-size: 0.72rem;">Proteína (g)</label><input type="number" id="goal-tr-protein" step="any" min="0" required placeholder="180"></div>
-                  <div><label style="font-size: 0.72rem;">Carbs (g)</label><input type="number" id="goal-tr-carbs" step="any" min="0" required placeholder="280"></div>
-                  <div><label style="font-size: 0.72rem;">Grasas (g)</label><input type="number" id="goal-tr-fat" step="any" min="0" required placeholder="70"></div>
+                  <div><label style="font-size: var(--fs-xs);">Kcal</label><input type="number" id="goal-tr-kcal" step="any" min="0" required placeholder="2500"></div>
+                  <div><label style="font-size: var(--fs-xs);">Proteína (g)</label><input type="number" id="goal-tr-protein" step="any" min="0" required placeholder="180"></div>
+                  <div><label style="font-size: var(--fs-xs);">Carbs (g)</label><input type="number" id="goal-tr-carbs" step="any" min="0" required placeholder="280"></div>
+                  <div><label style="font-size: var(--fs-xs);">Grasas (g)</label><input type="number" id="goal-tr-fat" step="any" min="0" required placeholder="70"></div>
                 </div>
                 <button type="submit" class="btn btn-primary btn-sm" style="align-self: flex-start;">Guardar Entreno</button>
               </form>
               <form id="form-goal-dayoff" onsubmit="saveGoalProfile(event, true)" style="display: flex; flex-direction: column; gap: 8px;">
-                <div style="font-weight: 700; font-size: 0.85rem; color: var(--warning);">🏖️ Objetivo Day Off (Descanso)</div>
+                <div style="font-weight: 700; font-size: var(--fs-md); color: var(--warning);">🏖️ Objetivo Day Off (Descanso)</div>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
-                  <div><label style="font-size: 0.72rem;">Kcal</label><input type="number" id="goal-off-kcal" step="any" min="0" required placeholder="2100"></div>
-                  <div><label style="font-size: 0.72rem;">Proteína (g)</label><input type="number" id="goal-off-protein" step="any" min="0" required placeholder="180"></div>
-                  <div><label style="font-size: 0.72rem;">Carbs (g)</label><input type="number" id="goal-off-carbs" step="any" min="0" required placeholder="180"></div>
-                  <div><label style="font-size: 0.72rem;">Grasas (g)</label><input type="number" id="goal-off-fat" step="any" min="0" required placeholder="70"></div>
+                  <div><label style="font-size: var(--fs-xs);">Kcal</label><input type="number" id="goal-off-kcal" step="any" min="0" required placeholder="2100"></div>
+                  <div><label style="font-size: var(--fs-xs);">Proteína (g)</label><input type="number" id="goal-off-protein" step="any" min="0" required placeholder="180"></div>
+                  <div><label style="font-size: var(--fs-xs);">Carbs (g)</label><input type="number" id="goal-off-carbs" step="any" min="0" required placeholder="180"></div>
+                  <div><label style="font-size: var(--fs-xs);">Grasas (g)</label><input type="number" id="goal-off-fat" step="any" min="0" required placeholder="70"></div>
                 </div>
                 <button type="submit" class="btn btn-secondary btn-sm" style="align-self: flex-start; border-color: var(--warning); color: #fcd34d;">Guardar Day Off</button>
               </form>
@@ -776,8 +766,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         <!-- 2. Health & Activity Metrics (Steps, Sleep, Weight) -->
         <div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <h3 style="font-size: 0.95rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">👟 Actividad y Salud</h3>
-            <span style="font-size: 0.75rem; color: var(--text-muted);">Métricas del día</span>
+            <h3 style="font-size: var(--fs-base); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">👟 Actividad y Salud</h3>
+            <span style="font-size: var(--fs-sm); color: var(--text-muted);">Métricas del día</span>
           </div>
           <div class="macro-preview" id="summary-health" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));"></div>
         </div>
@@ -785,8 +775,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         <!-- 3. Day's Meals -->
         <div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <h3 style="font-size: 0.95rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">🥗 Comidas del Día</h3>
-            <span id="summary-spend-badge" class="badge badge-info" style="font-size: 0.8rem;">Gasto: 0.00 €</span>
+            <h3 style="font-size: var(--fs-base); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">🥗 Comidas del Día</h3>
+            <span id="summary-spend-badge" class="badge badge-info" style="font-size: var(--fs-md);">Gasto: 0.00 €</span>
           </div>
           <div id="summary-meals-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
           <table style="display: none;"><tbody id="summary-meals-body"></tbody></table>
@@ -796,15 +786,15 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         <!-- 3b. Water & Supplements -->
         <div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <h3 style="font-size: 0.95rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">💧💊 Agua y Suplementos</h3>
-            <span id="summary-water-supplements-badge" class="badge badge-info" style="font-size: 0.8rem;">Subtotal: 1.25 €</span>
+            <h3 style="font-size: var(--fs-base); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">💧💊 Agua y Suplementos</h3>
+            <span id="summary-water-supplements-badge" class="badge badge-info" style="font-size: var(--fs-md);">Subtotal: 1.25 €</span>
           </div>
           <div id="summary-water-supplements-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
         </div>
 
         <!-- 4. Day's Workouts -->
         <div>
-          <h3 style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">🏋️ Entrenamientos Realizados</h3>
+          <h3 style="font-size: var(--fs-base); color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">🏋️ Entrenamientos Realizados</h3>
           <div id="summary-workouts-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
           <div id="summary-workouts-empty" style="display: none; color: var(--text-muted); padding: 12px; text-align: center;">No hay entrenamientos registrados para este día.</div>
         </div>
@@ -1015,7 +1005,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             <strong>ℹ️ Modo Asistente / Hermes Prompt</strong>
             <span class="badge" style="background: #9a3412; color: #ffedd5;">Directo / Copiar</span>
           </div>
-          <p style="font-size: 0.85rem;">${{err.message.includes('fetch') ? 'Servidor local no detectado por CORS/Red directa. Puedes copiar el comando para Hermes:' : err.message}}</p>
+          <p style="font-size: var(--fs-md);">${{err.message.includes('fetch') ? 'Servidor local no detectado por CORS/Red directa. Puedes copiar el comando para Hermes:' : err.message}}</p>
           <div class="copy-area">
             <span>${{promptDescription}}</span>
             <button class="btn btn-sm" onclick="navigator.clipboard.writeText('${{promptDescription.replace(/'/g, "\\\\'")}}'); this.textContent = '¡Copiado!';">Copiar</button>
@@ -1042,8 +1032,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const toast = document.createElement('div');
       const bg = type === 'ok' ? '#065f46' : (type === 'error' ? '#991b1b' : '#1e3a8a');
       const border = type === 'ok' ? '#059669' : (type === 'error' ? '#dc2626' : '#3b82f6');
-      toast.style.cssText = `background: ${{bg}}; border: 1px solid ${{border}}; color: #ffffff; padding: 12px 16px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); font-size: 0.9rem; transition: opacity 0.3s ease; display: flex; align-items: center; justify-content: space-between; gap: 8px;`;
-      toast.innerHTML = `<span>${{escapeHtml(message)}}</span><button style="background: none; border: none; color: #fff; cursor: pointer; font-size: 1.1rem; line-height: 1;" onclick="this.parentElement.remove()">×</button>`;
+      toast.style.cssText = `background: ${{bg}}; border: 1px solid ${{border}}; color: #ffffff; padding: 12px 16px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); font-size: var(--fs-lg); transition: opacity 0.3s ease; display: flex; align-items: center; justify-content: space-between; gap: 8px;`;
+      toast.innerHTML = `<span>${{escapeHtml(message)}}</span><button style="background: none; border: none; color: #fff; cursor: pointer; font-size: var(--fs-xl); line-height: 1;" onclick="this.parentElement.remove()">×</button>`;
       container.appendChild(toast);
       setTimeout(() => {{
         toast.style.opacity = '0';
@@ -1053,8 +1043,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
     async function syncGoogleHealthUI() {{
       const btnSummary = document.getElementById('btn-sync-health');
-      const btnHeader = document.getElementById('btn-header-sync-health');
-      const btns = [btnSummary, btnHeader].filter(Boolean);
+      const btns = [btnSummary].filter(Boolean);
       
       btns.forEach(b => {{
         b.disabled = true;
@@ -1326,7 +1315,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <td>0</td>
           <td>1.25 €</td>
           <td><span class="badge badge-info">💧 Agua</span></td>
-          <td style="color: var(--text-muted); font-size: 0.8rem;">Fijo diario</td>
+          <td style="color: var(--text-muted); font-size: var(--fs-md);">Fijo diario</td>
         `;
         suppTbody.appendChild(waterTr);
 
@@ -1345,7 +1334,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <td>${{catalogCreatina ? (catalogCreatina.fat || 0) : 0}}</td>
           <td>${{creatPrice.toFixed(2)}} €</td>
           <td><span class="badge badge-info">💊 Diario</span></td>
-          <td style="color: var(--text-muted); font-size: 0.8rem;">Activo por defecto</td>
+          <td style="color: var(--text-muted); font-size: var(--fs-md);">Activo por defecto</td>
         `;
         suppTbody.appendChild(creatTr);
 
@@ -1476,7 +1465,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
         tr.innerHTML = `
           <td><strong>${{escapeHtml(rec.name)}}</strong></td>
-          <td style="max-width: 250px; font-size: 0.85rem; color: var(--text-muted);">${{itemsStr}}</td>
+          <td style="max-width: 250px; font-size: var(--fs-md); color: var(--text-muted);">${{itemsStr}}</td>
           <td>${{kcalStr}}</td>
           <td>${{macrosStr}}</td>
           <td>${{priceStr}}</td>
@@ -1707,7 +1696,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
         if (ex.pr) {{
           if (ex.pr.estimated_1rm) {{
-            const e1rmDate = ex.pr.estimated_1rm_date ? `<div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">${{escapeHtml(ex.pr.estimated_1rm_date)}}</div>` : '';
+            const e1rmDate = ex.pr.estimated_1rm_date ? `<div style="font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px;">${{escapeHtml(ex.pr.estimated_1rm_date)}}</div>` : '';
             prHtml = `
               <div style="display: inline-flex; flex-direction: column;">
                 <span class="badge badge-ok">🏆 ${{ex.pr.estimated_1rm}} kg</span>
@@ -1716,7 +1705,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             `;
           }}
           if (ex.pr.max_weight !== undefined && ex.pr.max_weight !== null) {{
-            const maxDate = ex.pr.max_weight_date ? `<div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">${{escapeHtml(ex.pr.max_weight_date)}}</div>` : '';
+            const maxDate = ex.pr.max_weight_date ? `<div style="font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px;">${{escapeHtml(ex.pr.max_weight_date)}}</div>` : '';
             maxWeightHtml = `
               <div style="display: inline-flex; flex-direction: column;">
                 <span class="badge badge-warning">💪 ${{ex.pr.max_weight}}×${{ex.pr.max_weight_reps || 1}}</span>
@@ -1734,7 +1723,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         ).join('') + `<option value="unknown"${{muscleKey === 'unknown' ? ' selected' : ''}}>Otros</option>`;
 
         tr.innerHTML = `
-          <td><strong style="color: var(--text); font-size: 0.88rem;">${{escapeHtml(ex.name)}}</strong></td>
+          <td><strong style="color: var(--text); font-size: var(--fs-lg);">${{escapeHtml(ex.name)}}</strong></td>
           <td><span class="badge" style="background: #334155; color: #cbd5e1; text-transform: capitalize;">${{escapeHtml(muscle)}}</span></td>
           <td>${{typeBadge}}</td>
           <td>${{prHtml}}</td>
@@ -2103,9 +2092,9 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         const goalLabel = hasGoal ? `Meta: ${{goal}}${{unit}}` : 'Sin meta fijada';
         return `
           <div class="macro-stat" style="background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;">
-            <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">${{title}}</div>
+            <div style="font-size: var(--fs-sm); color: var(--text-muted); text-transform: uppercase;">${{title}}</div>
             <div class="macro-val" style="margin: 4px 0;">${{consumed}}${{unit}}</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">${{goalLabel}}</div>
+            <div style="font-size: var(--fs-sm); color: var(--text-muted);">${{goalLabel}}</div>
             <div style="margin-top: 6px;"><span class="badge ${{badgeClass}}">${{remText}}</span></div>
           </div>
         `;
@@ -2131,50 +2120,50 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
       // 1. Steps (pulled exclusively from Google Health)
       let stepsContent = `
-        <div style="color: var(--text-muted); font-size: 0.85rem;">Sin registro</div>
-        <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">Sincroniza con Google Health</div>
+        <div style="color: var(--text-muted); font-size: var(--fs-md);">Sin registro</div>
+        <div style="font-size: var(--fs-xs); color: var(--text-muted); margin-top: 4px;">Sincroniza con Google Health</div>
       `;
       if (steps) {{
         const distStr = steps.distance_km ? ` (${{steps.distance_km}} km)` : '';
-        const sourceBadge = '<span style="font-size: 0.65rem; background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 1px 5px; border-radius: 4px; margin-left: 4px;">Google Health</span>';
+        const sourceBadge = '<span style="font-size: var(--fs-xs); background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 1px 5px; border-radius: 4px; margin-left: 4px;">Google Health</span>';
         stepsContent = `
           <div class="macro-val" style="color: var(--cyan);">${{Number(steps.steps).toLocaleString()}}</div>
-          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">pasos${{distStr}}${{sourceBadge}}</div>
+          <div style="font-size: var(--fs-sm); color: var(--text-muted); margin-top: 2px;">pasos${{distStr}}${{sourceBadge}}</div>
         `;
       }}
 
       // 2. Sleep
-      let sleepContent = `<div style="color: var(--text-muted); font-size: 0.85rem;">Sin registro</div>`;
+      let sleepContent = `<div style="color: var(--text-muted); font-size: var(--fs-md);">Sin registro</div>`;
       if (sleep) {{
         sleepContent = `
           <div class="macro-val" style="color: #a78bfa;">${{sleep.duration_hours}}h</div>
-          <div style="font-size: 0.75rem; color: var(--text-muted);">${{sleep.duration_minutes}} min totales</div>
-          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">P: ${{sleep.deep_sleep_minutes}}m | REM: ${{sleep.rem_sleep_minutes}}m | L: ${{sleep.light_sleep_minutes}}m</div>
+          <div style="font-size: var(--fs-sm); color: var(--text-muted);">${{sleep.duration_minutes}} min totales</div>
+          <div style="font-size: var(--fs-xs); color: var(--text-muted); margin-top: 4px;">P: ${{sleep.deep_sleep_minutes}}m | REM: ${{sleep.rem_sleep_minutes}}m | L: ${{sleep.light_sleep_minutes}}m</div>
         `;
       }}
 
       // 3. Weight
-      let weightContent = `<div style="color: var(--text-muted); font-size: 0.85rem;">Sin registro</div>`;
+      let weightContent = `<div style="color: var(--text-muted); font-size: var(--fs-md);">Sin registro</div>`;
       if (weight) {{
         const bmiStr = weight.bmi ? ` | IMC: ${{weight.bmi}}` : '';
         const fatStr = weight.body_fat_pct ? ` | ${{weight.body_fat_pct}}% grasa` : '';
         weightContent = `
           <div class="macro-val" style="color: var(--warning);">${{weight.weight_kg}} kg</div>
-          <div style="font-size: 0.75rem; color: var(--text-muted);">Peso corporal${{bmiStr}}${{fatStr}}</div>
+          <div style="font-size: var(--fs-sm); color: var(--text-muted);">Peso corporal${{bmiStr}}${{fatStr}}</div>
         `;
       }}
 
       el.innerHTML = `
         <div class="macro-stat" style="background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;">
-          <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">👟 Pasos</div>
+          <div style="font-size: var(--fs-sm); color: var(--text-muted); text-transform: uppercase;">👟 Pasos</div>
           <div style="margin: 6px 0;">${{stepsContent}}</div>
         </div>
         <div class="macro-stat" style="background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;">
-          <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">💤 Sueño</div>
+          <div style="font-size: var(--fs-sm); color: var(--text-muted); text-transform: uppercase;">💤 Sueño</div>
           <div style="margin: 6px 0;">${{sleepContent}}</div>
         </div>
         <div class="macro-stat" style="background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;">
-          <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">⚖️ Peso</div>
+          <div style="font-size: var(--fs-sm); color: var(--text-muted); text-transform: uppercase;">⚖️ Peso</div>
           <div style="margin: 6px 0;">${{weightContent}}</div>
         </div>
       `;
@@ -2258,8 +2247,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         block.style.cssText = 'background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px;';
         block.innerHTML = `
           <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
-            <div style="font-weight: 700; color: var(--cyan); font-size: 0.95rem;">${{sec.icon}} ${{sec.label}} <span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">(${{typeMeals.length}})</span></div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">
+            <div style="font-weight: 700; color: var(--cyan); font-size: var(--fs-base);">${{sec.icon}} ${{sec.label}} <span style="font-size: var(--fs-sm); font-weight: normal; color: var(--text-muted);">(${{typeMeals.length}})</span></div>
+            <div style="font-size: var(--fs-md); color: var(--text-muted); font-weight: 600;">
               <span style="color: var(--primary); font-weight: 700;">${{Math.round(totalKcal * 10) / 10}} kcal</span> • P: ${{Math.round(totalP * 10) / 10}}g | C: ${{Math.round(totalC * 10) / 10}}g | G: ${{Math.round(totalF * 10) / 10}}g${{spendStr}}
             </div>
           </div>
@@ -2341,7 +2330,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             <td>${{cP}}g / ${{cC}}g / ${{cF}}g</td>
             <td>${{cEnabled ? `${{cPrice.toFixed(2)}} €` : '0.00 €'}}</td>
             <td>
-              <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.8rem;">
+              <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: var(--fs-md);">
                 <input type="checkbox" id="toggle-daily-creatine" ${{cEnabled ? 'checked' : ''}} onchange="toggleDailyCreatineUI(this.checked)">
                 <span>${{cEnabled ? 'Activa' : 'Omitida'}}</span>
               </label>
@@ -2391,8 +2380,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       block.style.cssText = 'background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px;';
       block.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
-          <div style="font-weight: 700; color: var(--cyan); font-size: 0.95rem;">💧💊 Agua (3L) y Suplementos <span style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">(${{dailyItemCount + supplements.length}})</span></div>
-          <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">
+          <div style="font-weight: 700; color: var(--cyan); font-size: var(--fs-base);">💧💊 Agua (3L) y Suplementos <span style="font-size: var(--fs-sm); font-weight: normal; color: var(--text-muted);">(${{dailyItemCount + supplements.length}})</span></div>
+          <div style="font-size: var(--fs-md); color: var(--text-muted); font-weight: 600;">
             <span style="color: var(--primary); font-weight: 700;">${{Math.round(totalKcal * 10) / 10}} kcal</span> • P: ${{Math.round(totalP * 10) / 10}}g | C: ${{Math.round(totalC * 10) / 10}}g | G: ${{Math.round(totalF * 10) / 10}}g • ${{totalSpend.toFixed(2)}} €
           </div>
         </div>
@@ -2486,7 +2475,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           `;
         }});
 
-        const notesStr = s.notes ? `<div style="font-size: 0.85rem; color: var(--text-muted);">${{escapeHtml(s.notes)}}</div>` : '';
+        const notesStr = s.notes ? `<div style="font-size: var(--fs-md); color: var(--text-muted);">${{escapeHtml(s.notes)}}</div>` : '';
         div.innerHTML = `
           <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
             <div style="font-weight: 700; color: var(--cyan);">🏋️ Sesión #${{idx + 1}} — ${{s.date || ''}}</div>
