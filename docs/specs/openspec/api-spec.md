@@ -404,7 +404,7 @@ Sessions of a day with all their sets.
 ```json
 {
   "status": "ok",
-  "sessions": [{"id": 3, "date": "09-11-2026 17:00:00", "notes": "push day", "sets": [{"exercise": "bench press", "set_number": 1, "reps": 8, "weight": 80.0, "duration": null, "distance": null}]}],
+  "sessions": [{"id": 3, "date": "09-11-2026 17:00:00", "notes": "push day", "sets": [{"exercise": "bench press", "set_number": 1, "reps": 8, "weight": 80.0, "duration": null, "distance": null, "estimated_1rm": 101.3}]}],
   "count": 1
 }
 ```
@@ -443,6 +443,7 @@ List/search the exercise catalog.
         "estimated_1rm_date": "15-05-2026",
         "max_weight": 22.0,
         "max_weight_reps": 6,
+        "max_weight_sets": 1,
         "max_weight_date": "15-05-2026"
       }
     }

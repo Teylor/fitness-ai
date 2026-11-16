@@ -44,6 +44,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `workout-training-enhancements` | `odd/tasks/workout-training-enhancements.md` | 2026-11 |
 | `ui-design-changes` | `odd/tasks/ui-design-changes.md` | 2026-11 |
 | `daily-supplements-toggle` | `odd/tasks/daily-supplements-toggle.md` | 2026-11 |
 | `exercise-muscle-group` | `odd/tasks/exercise-muscle-group.md` | 2026-11 |
