@@ -21,12 +21,29 @@ if env_file.exists():
                 os.environ[key] = val
 
 
+def load_persisted_google_token(data_dir: Path) -> Optional[str]:
+    """Read a refreshed Google Health access token persisted in the data volume."""
+    token_file = data_dir / ".google_health_token"
+    if token_file.is_file():
+        try:
+            val = token_file.read_text(encoding="utf-8").strip()
+            if val:
+                return val
+        except OSError:
+            pass
+    return None
+
+
+_default_db_path = os.environ.get("DB_PATH", "data/fitness.db")
+_persisted_token = load_persisted_google_token((base_dir / _default_db_path).parent)
+
+
 @dataclass
 class Settings:
     """Global project settings."""
 
     # Database
-    db_path: str = "data/fitness.db"
+    db_path: str = _default_db_path
     migrations_dir: str = "src/db/migrations"
 
     # MCP Server
@@ -42,7 +59,9 @@ class Settings:
     google_health_api_url: str = os.environ.get(
         "GOOGLE_HEALTH_API_URL", "https://health.googleapis.com/v4"
     )
-    google_health_token: Optional[str] = os.environ.get("GOOGLE_HEALTH_ACCESS_TOKEN")
+    google_health_token: Optional[str] = _persisted_token or os.environ.get(
+        "GOOGLE_HEALTH_ACCESS_TOKEN"
+    )
     google_health_refresh_token: Optional[str] = os.environ.get("GOOGLE_HEALTH_REFRESH_TOKEN")
     google_client_id: Optional[str] = os.environ.get("GOOGLE_CLIENT_ID")
     google_client_secret: Optional[str] = os.environ.get("GOOGLE_CLIENT_SECRET")

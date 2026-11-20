@@ -1,0 +1,24 @@
+# Local / Windows PC & NAS local-build configuration
+# Usage (Windows PC or NAS SSH):
+#   docker compose up -d --build
+services:
+  fitness-ai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fitness-ai:latest
+    container_name: fitness-ai
+    restart: unless-stopped
+    ports:
+      - "${MCP_PORT:-9700}:9700"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - TZ=${TZ:-Europe/Madrid}
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=9700
+      - TAILSCALE_SERVE=false
+      - DB_PATH=data/fitness.db
+    volumes:
+      - ./data:/app/data

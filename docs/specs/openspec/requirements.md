@@ -120,7 +120,7 @@ The system runs 24/7 on a local PC (server mode). An AI agent (Hermes Agent) con
 
 ## Non-functional requirements
 
-- **NFR1 — Local-only:** single process, single SQLite file, safe for 24/7 unattended operation with optional cloud sync to Google Health.
+- **NFR1 — Local / NAS Execution:** single process, single SQLite file, safe for 24/7 unattended operation locally on Windows PC or containerized via Docker / Docker Compose on a NAS (e.g. UGREEN DXP2800 UGOS Pro) with persistent `/app/data` volume (`fitness.db`, WAL/SHM files, and `.google_health_token`) and optional cloud sync to Google Health.
 - **NFR2 — Idempotent creation:** all creation paths tolerate retries (voice/agent may repeat a call): normalized exact duplicates return the existing item.
 - **NFR3 — Fuzzy resolution:** name lookups are normalized (lowercase, accents stripped, whitespace collapsed) with a fuzzy fallback (similarity threshold 0.6).
 - **NFR4 — Typed errors:** every tool failure returns a machine-readable envelope `{"status": "error", "code": ..., "message": ...}` with codes from a fixed vocabulary (`not_found`, `duplicate`, `invalid_input`, `conflict`, `internal`).
