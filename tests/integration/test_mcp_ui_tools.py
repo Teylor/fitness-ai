@@ -15,7 +15,7 @@ def test_get_ui_form_default_hub():
 
 
 def test_get_ui_form_specific_views():
-    for ftype in ("meal", "recipe", "ingredient", "workout", "exercise", "summary"):
+    for ftype in ("meal", "recipe", "ingredient", "workout", "exercise", "progress", "summary"):
         res = get_ui_form(ftype)
         assert res["status"] == "ok"
         assert res["form_type"] == ftype

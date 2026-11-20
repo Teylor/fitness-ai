@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-VALID_FORM_TYPES = ("hub", "meal", "recipe", "ingredient", "workout", "exercise", "summary")
+VALID_FORM_TYPES = ("hub", "meal", "recipe", "ingredient", "workout", "exercise", "progress", "summary")
 
 
 def generate_html(form_type: Optional[str] = "hub") -> str:
@@ -393,6 +393,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       <button class="tab-btn {'active' if active_tab == 'ingredient' else ''}" data-tab="ingredient" onclick="switchTab('ingredient')">🥑 Ingredientes</button>
       <button class="tab-btn {'active' if active_tab == 'workout' else ''}" data-tab="workout" onclick="switchTab('workout')">🏋️ Entrenamientos</button>
       <button class="tab-btn {'active' if active_tab == 'exercise' else ''}" data-tab="exercise" onclick="switchTab('exercise')">💪 Ejercicios</button>
+      <button class="tab-btn {'active' if active_tab == 'progress' else ''}" data-tab="progress" onclick="switchTab('progress')">📈 Progreso</button>
       <button class="tab-btn {'active' if active_tab == 'summary' else ''}" data-tab="summary" onclick="switchTab('summary')">📊 Resumen</button>
     </nav>
 
@@ -740,7 +741,17 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       <div id="exercises-catalog-empty" style="display: none; color: var(--text-muted); padding: 16px; text-align: center;">No hay ejercicios registrados.</div>
     </section>
 
-    <!-- TAB 6: DAILY SUMMARY -->
+    <!-- TAB 6: PROGRESS (COMING SOON) -->
+    <section id="tab-progress" class="tab-content {'active' if active_tab == 'progress' else ''}">
+      <h2>📈 Progreso Corporal</h2>
+      <div style="background: var(--input-bg); border: 1px dashed var(--border); border-radius: var(--radius); padding: 36px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+        <span class="badge badge-info" style="font-size: var(--fs-md); padding: 4px 12px;">🚧 Coming Soon</span>
+        <p style="color: var(--text); font-weight: 600; font-size: var(--fs-lg);">Seguimiento de peso y medidas corporales</p>
+        <p style="color: var(--text-muted); font-size: var(--fs-md); max-width: 480px;">Próximamente podrás registrar y visualizar la evolución de tu peso corporal, centímetros de cintura, pierna, brazo, pecho y porcentaje graso.</p>
+      </div>
+    </section>
+
+    <!-- TAB 7: DAILY SUMMARY -->
     <section id="tab-summary" class="tab-content {'active' if active_tab == 'summary' else ''}">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;">
         <h2>📊 Resumen Diario</h2>
