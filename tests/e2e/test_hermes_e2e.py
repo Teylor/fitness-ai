@@ -42,6 +42,10 @@ EXPECTED_18_TOOLS = {
     "log_steps",
     "get_health_metrics",
     "toggle_day_off",
+    # Body Progress (3)
+    "log_body_progress",
+    "list_body_progress",
+    "delete_body_progress",
 }
 
 
@@ -49,7 +53,7 @@ EXPECTED_18_TOOLS = {
 async def test_hermes_protocol_handshake_and_tool_discovery(hermes_client):
     """Verify that Hermes can connect, initialize session, and discover all tools."""
     tool_names = await hermes_client.list_tool_names()
-    assert len(tool_names) == 31
+    assert len(tool_names) == 34
     assert tool_names == EXPECTED_18_TOOLS
 
     tools = await hermes_client.list_tools()

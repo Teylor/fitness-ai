@@ -621,6 +621,58 @@ Errors: `invalid_input` (bad date format), `internal`.
 
 ---
 
+## Body Progress
+
+### `log_body_progress`
+
+Log or update (upsert) daily body measurements for a given date. At least one measurement (`> 0`) must be provided.
+
+| Arg | Type | Req | Default | Description |
+|---|---|---|---|---|
+| `date` | str | | `today` | target date in `DD-MM-YYYY` |
+| `weight_kg` | float | | `null` | body weight in kg |
+| `waist_cm` | float | | `null` | waist circumference in cm |
+| `chest_cm` | float | | `null` | chest circumference in cm |
+| `arm_cm` | float | | `null` | arm circumference in cm |
+| `leg_cm` | float | | `null` | leg circumference in cm |
+| `notes` | str | | `null` | optional notes |
+
+```json
+{"status": "ok", "progress": {"id": 1, "date": "20-11-2026", "weight_kg": 76.5, "waist_cm": 81.0, "chest_cm": 102.0, "arm_cm": 36.5, "leg_cm": 58.0, "notes": null, "created_at": "...", "updated_at": "..."}}
+```
+
+Errors: `invalid_input` (bad date, non-positive value, or all metrics omitted), `internal`.
+
+### `list_body_progress`
+
+List body progress records ordered chronologically ascending, optionally filtered by month (`YYYY-MM`).
+
+| Arg | Type | Req | Default | Description |
+|---|---|---|---|---|
+| `month` | str | | `null` | optional month filter in `YYYY-MM` (e.g. `"2026-11"`) |
+
+```json
+{"status": "ok", "entries": [{"id": 1, "date": "20-11-2026", "weight_kg": 76.5, "waist_cm": 81.0, "chest_cm": 102.0, "arm_cm": 36.5, "leg_cm": 58.0, "notes": null}], "count": 1}
+```
+
+Errors: `invalid_input` (bad month format), `internal`.
+
+### `delete_body_progress`
+
+Delete a body progress record by its ID.
+
+| Arg | Type | Req | Default | Description |
+|---|---|---|---|---|
+| `progress_id` | int | ✔ | — | ID of the body progress entry to delete |
+
+```json
+{"status": "ok", "deleted_id": 1}
+```
+
+Errors: `not_found`, `internal`.
+
+---
+
 ## Interactive Web Routes
 
 In addition to JSON-RPC over MCP, the server serves interactive HTML forms and an HTTP API bridge:

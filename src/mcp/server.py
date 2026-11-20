@@ -8,6 +8,11 @@ from mcp.server.mcpserver import MCPServer
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, Response
 
+from src.mcp.tools.body_progress_tools import (
+    delete_body_progress,
+    list_body_progress,
+    log_body_progress,
+)
 from src.mcp.tools.exercise_tools import (
     create_exercise,
     list_exercises,
@@ -102,6 +107,11 @@ def create_server() -> MCPServer:
     server.add_tool(sync_google_health, name="sync_google_health")
     server.add_tool(log_steps, name="log_steps")
     server.add_tool(get_health_metrics, name="get_health_metrics")
+
+    # Body Progress tools (3)
+    server.add_tool(log_body_progress, name="log_body_progress")
+    server.add_tool(list_body_progress, name="list_body_progress")
+    server.add_tool(delete_body_progress, name="delete_body_progress")
 
     # Custom HTTP web routes for interactive artifacts
     assets_dir = Path(__file__).resolve().parent.parent / "ui" / "assets"

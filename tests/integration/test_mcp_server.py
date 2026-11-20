@@ -38,6 +38,9 @@ EXPECTED_TOOLS = {
     "sync_google_health",
     "log_steps",
     "get_health_metrics",
+    "log_body_progress",
+    "list_body_progress",
+    "delete_body_progress",
 }
 
 
@@ -52,7 +55,7 @@ def test_server_registers_all_twenty_nine_tools():
     tools = server._tool_manager.list_tools()
     tool_names = {t.name for t in tools}
 
-    assert len(tools) == 31
+    assert len(tools) == 34
     assert tool_names == EXPECTED_TOOLS
 
 

@@ -239,6 +239,23 @@ class DailySupplementToggle(BaseModel):
         indexes = ((("date", "ingredient"), True),)
 
 
+class BodyProgressLog(BaseModel):
+    """Daily body measurements progress log (one record per date)."""
+
+    date = CharField(unique=True)  # DD-MM-YYYY
+    weight_kg = FloatField(null=True)
+    waist_cm = FloatField(null=True)
+    chest_cm = FloatField(null=True)
+    arm_cm = FloatField(null=True)
+    leg_cm = FloatField(null=True)
+    notes = TextField(null=True)
+    created_at = DateTimeField(default=SQL("datetime('now')"))
+    updated_at = DateTimeField(default=SQL("datetime('now')"))
+
+    class Meta:
+        table_name = "body_progress_logs"
+
+
 # List of all models
 ALL_MODELS = [
     Ingredient,
@@ -248,6 +265,7 @@ ALL_MODELS = [
     DailyGoal,
     DailyCreatine,
     DailySupplementToggle,
+    BodyProgressLog,
     Exercise,
     WorkoutSession,
     ExerciseSet,

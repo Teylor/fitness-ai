@@ -31,7 +31,6 @@
 | Priority | Feature | Description | Reference |
 |:---:|---------|-------------|-----------|
 | `P1` | `ui-ai-voice-text-chat` | Add an AI button in the Web UI to open a text/voice chat interface that allows logging ingredients, meals, and workouts via natural language or voice input. | [html_generator.py](src/ui/html_generator.py), [server.py](src/mcp/server.py) |
-| `P1` | `ui-body-progress-tracking` | Implement full body progress tracking in `#tab-progress` (weight evolution, waist, leg, arm, chest circumference in cm, body fat, and charts). | [html_generator.py](src/ui/html_generator.py) |
 
 ---
 
@@ -46,6 +45,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `ui-body-progress-tracking` | `odd/tasks/ui-body-progress-tracking.md` | 2026-11 |
 | `ui-progress-tab` | `odd/tasks/ui-progress-tab.md` | 2026-11 |
 | `nas-ci-cd-auto-deploy` | `odd/tasks/nas-ci-cd-auto-deploy.md` | 2026-11 |
 | `dockerize-nas-deployment` | `odd/tasks/dockerize-nas-deployment.md` | 2026-11 |
