@@ -1,0 +1,25 @@
+# UGREEN NASync DXP2800 (UGOS Pro -> Docker -> Project) configuration
+# You can paste this file directly into UGOS Pro Docker -> Project -> Compose YAML,
+# or place it in /volume1/docker/fitness-ai on the NAS.
+services:
+  fitness-ai:
+    image: ghcr.io/teylor/fitness-ai:latest
+    container_name: fitness-ai
+    restart: unless-stopped
+    ports:
+      - "9700:9700"
+    environment:
+      - TZ=Europe/Madrid
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=9700
+      - TAILSCALE_SERVE=false
+      - DB_PATH=data/fitness.db
+      # Optional Google Health OAuth credentials (fill in UGOS Pro or via .env):
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_HEALTH_REFRESH_TOKEN=${GOOGLE_HEALTH_REFRESH_TOKEN:-}
+      - GOOGLE_HEALTH_ACCESS_TOKEN=${GOOGLE_HEALTH_ACCESS_TOKEN:-}
+    volumes:
+      # Relative ./data maps to the project folder selected in UGOS Pro (e.g. /volume1/docker/fitness-ai/data).
+      # Persists fitness.db, WAL/SHM files, and refreshed Google Health tokens (.google_health_token).
+      - ./data:/app/data

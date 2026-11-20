@@ -94,6 +94,12 @@ class GoogleHealthClient:
 
     def _persist_token(self, token: str) -> None:
         try:
+            token_file = settings.db_file.parent / ".google_health_token"
+            token_file.parent.mkdir(parents=True, exist_ok=True)
+            token_file.write_text(f"{token}\n", encoding="utf-8")
+        except Exception:
+            pass
+        try:
             env_file = settings.base_dir / ".env"
             if env_file.exists():
                 lines = [

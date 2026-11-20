@@ -30,6 +30,7 @@
 
 | Priority | Feature | Description | Reference |
 |:---:|---------|-------------|-----------|
+| `P1` | `ui-ai-voice-text-chat` | Add an AI button in the Web UI to open a text/voice chat interface that allows logging ingredients, meals, and workouts via natural language or voice input. | [html_generator.py](src/ui/html_generator.py), [server.py](src/mcp/server.py) |
 
 ---
 
@@ -44,6 +45,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `dockerize-nas-deployment` | `odd/tasks/dockerize-nas-deployment.md` | 2026-11 |
 | `workout-training-enhancements` | `odd/tasks/workout-training-enhancements.md` | 2026-11 |
 | `ui-design-changes` | `odd/tasks/ui-design-changes.md` | 2026-11 |
 | `daily-supplements-toggle` | `odd/tasks/daily-supplements-toggle.md` | 2026-11 |
