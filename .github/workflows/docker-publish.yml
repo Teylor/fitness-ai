@@ -79,9 +79,8 @@ jobs:
           NAS_USER: ${{ secrets.NAS_USER }}
           NAS_DEPLOY_DIR: ${{ secrets.NAS_DEPLOY_DIR }}
         run: |
-          ssh -o StrictHostKeyChecking=no "${NAS_USER}@${NAS_HOST}" bash -s <<'EOF'
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 -o BatchMode=yes "${NAS_USER}@${NAS_HOST}" "DEPLOY_DIR='${NAS_DEPLOY_DIR:-/volume1/docker/fitness-ai}' bash -s" <<'EOF'
             set -e
-            DEPLOY_DIR="${NAS_DEPLOY_DIR:-/volume1/docker/fitness-ai}"
             cd "$DEPLOY_DIR"
             if [ -d .git ]; then
               git pull origin main
