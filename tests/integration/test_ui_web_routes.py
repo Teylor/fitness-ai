@@ -943,6 +943,74 @@ async def test_ui_workout_exercise_max_weight_reference(db):
         assert curl["pr"] is None or curl["pr"].get("max_weight") is None
 
 
+@pytest.mark.anyio
+async def test_ui_body_progress_tracking_view_and_api(db):
+    server = create_server()
+    app = server.streamable_http_app()
+    transport = httpx2.ASGITransport(app=app)
+
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
+        # 1. Verify #tab-progress renders form, monthly SVG chart, and detail panel
+        res = await client.get("/ui/progress")
+        assert res.status_code == 200
+        html = res.text
+        assert 'id="form-body-progress"' in html
+        assert 'id="progress-weight"' in html
+        assert 'id="progress-waist"' in html
+        assert 'id="progress-chest"' in html
+        assert 'id="progress-arm"' in html
+        assert 'id="progress-leg"' in html
+        assert 'id="progress-month"' in html
+        assert 'id="progress-chart-container"' in html
+        assert 'id="progress-day-detail"' in html
+        assert "function renderProgressChart(" in html
+        assert "function selectProgressDay(" in html
+        assert "Coming Soon" not in html
+
+        # 2. Log progress entries via HTTP API
+        r1 = await client.post(
+            "/api/log_body_progress",
+            json={
+                "date": "04-11-2026",
+                "weight_kg": 79.5,
+                "waist_cm": 83.5,
+                "chest_cm": 100.5,
+                "arm_cm": 36.0,
+                "leg_cm": 57.5,
+                "notes": "Start of month",
+            },
+        )
+        assert r1.status_code == 200
+        d1 = r1.json()
+        assert d1["status"] == "ok"
+        rec_id = d1["progress"]["id"]
+
+        r2 = await client.post(
+            "/api/log_body_progress",
+            json={"date": "18-11-2026", "weight_kg": 78.2, "waist_cm": 82.0},
+        )
+        assert r2.status_code == 200
+        assert r2.json()["status"] == "ok"
+
+        # 3. List by month
+        listed = await client.get("/api/list_body_progress?month=2026-11")
+        assert listed.status_code == 200
+        ldata = listed.json()
+        assert ldata["status"] == "ok"
+        assert ldata["count"] == 2
+        assert [e["date"] for e in ldata["entries"]] == ["04-11-2026", "18-11-2026"]
+
+        # 4. Delete an entry
+        deleted = await client.post(
+            "/api/delete_body_progress", json={"progress_id": rec_id}
+        )
+        assert deleted.status_code == 200
+        assert deleted.json()["status"] == "ok"
+
+        listed_after = await client.get("/api/list_body_progress?month=2026-11")
+        assert listed_after.json()["count"] == 1
+
+
 
 
 

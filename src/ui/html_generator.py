@@ -382,6 +382,67 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       color: #94a3b8;
       overflow-x: auto;
     }}
+
+    .progress-metric-pills {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }}
+
+    .progress-pill {{
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--input-bg);
+      color: var(--text-muted);
+      font-size: var(--fs-sm);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }}
+
+    .progress-pill:hover {{
+      color: var(--text);
+      border-color: var(--cyan);
+    }}
+
+    .progress-pill.active {{
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #042f2e;
+    }}
+
+    .progress-chart-wrap {{
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+    }}
+
+    .progress-svg {{
+      width: 100%;
+      height: auto;
+      display: block;
+      overflow: visible;
+    }}
+
+    .progress-point-hit {{
+      cursor: pointer;
+    }}
+
+    .progress-detail-grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px;
+    }}
+
+    .progress-detail-card {{
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      text-align: center;
+    }}
   </style>
 </head>
 <body>
@@ -741,13 +802,78 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       <div id="exercises-catalog-empty" style="display: none; color: var(--text-muted); padding: 16px; text-align: center;">No hay ejercicios registrados.</div>
     </section>
 
-    <!-- TAB 6: PROGRESS (COMING SOON) -->
+    <!-- TAB 6: BODY PROGRESS TRACKING -->
     <section id="tab-progress" class="tab-content {'active' if active_tab == 'progress' else ''}">
       <h2>📈 Progreso Corporal</h2>
-      <div style="background: var(--input-bg); border: 1px dashed var(--border); border-radius: var(--radius); padding: 36px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px;">
-        <span class="badge badge-info" style="font-size: var(--fs-md); padding: 4px 12px;">🚧 Coming Soon</span>
-        <p style="color: var(--text); font-weight: 600; font-size: var(--fs-lg);">Seguimiento de peso y medidas corporales</p>
-        <p style="color: var(--text-muted); font-size: var(--fs-md); max-width: 480px;">Próximamente podrás registrar y visualizar la evolución de tu peso corporal, centímetros de cintura, pierna, brazo, pecho y porcentaje graso.</p>
+      <form id="form-body-progress" onsubmit="submitBodyProgress(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="progress-date">Fecha</label>
+            <input type="date" id="progress-date" required onclick="this.showPicker && this.showPicker()">
+          </div>
+          <div class="form-group">
+            <label for="progress-weight">Peso (kg)</label>
+            <input type="number" id="progress-weight" step="any" min="0.1" placeholder="Ej: 76.5">
+          </div>
+          <div class="form-group">
+            <label for="progress-waist">Cintura (cm)</label>
+            <input type="number" id="progress-waist" step="any" min="0.1" placeholder="Ej: 81.0">
+          </div>
+          <div class="form-group">
+            <label for="progress-chest">Pecho (cm)</label>
+            <input type="number" id="progress-chest" step="any" min="0.1" placeholder="Ej: 102.0">
+          </div>
+          <div class="form-group">
+            <label for="progress-arm">Brazo (cm)</label>
+            <input type="number" id="progress-arm" step="any" min="0.1" placeholder="Ej: 36.5">
+          </div>
+          <div class="form-group">
+            <label for="progress-leg">Pierna (cm)</label>
+            <input type="number" id="progress-leg" step="any" min="0.1" placeholder="Ej: 58.0">
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label for="progress-notes">Notas (opcional)</label>
+            <input type="text" id="progress-notes" placeholder="Ej: Medición en ayunas...">
+          </div>
+        </div>
+        <div style="margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="submit" id="btn-submit-progress" class="btn">Guardar Progreso</button>
+          <button type="button" class="btn btn-secondary" onclick="resetBodyProgressForm()">Limpiar</button>
+        </div>
+      </form>
+      <div id="progress-result" class="result-box"></div>
+
+      <!-- Monthly Chart & Day Measurements -->
+      <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <h3 style="font-size: var(--fs-xl); color: var(--text);">📅 Evolución Mensual</h3>
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="shiftProgressMonth(-1)" title="Mes anterior">◀</button>
+            <input type="month" id="progress-month" style="padding: 6px 10px; width: 170px;" onchange="fetchBodyProgress()" onclick="this.showPicker && this.showPicker()">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="shiftProgressMonth(1)" title="Mes siguiente">▶</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="fetchBodyProgress()">🔄</button>
+          </div>
+        </div>
+
+        <div class="progress-metric-pills" id="progress-metric-pills">
+          <button type="button" class="progress-pill active" data-metric="weight_kg" onclick="setProgressMetric('weight_kg')">⚖️ Peso (kg)</button>
+          <button type="button" class="progress-pill" data-metric="waist_cm" onclick="setProgressMetric('waist_cm')">📏 Cintura (cm)</button>
+          <button type="button" class="progress-pill" data-metric="chest_cm" onclick="setProgressMetric('chest_cm')">💪 Pecho (cm)</button>
+          <button type="button" class="progress-pill" data-metric="arm_cm" onclick="setProgressMetric('arm_cm')">💪 Brazo (cm)</button>
+          <button type="button" class="progress-pill" data-metric="leg_cm" onclick="setProgressMetric('leg_cm')">🦵 Pierna (cm)</button>
+        </div>
+
+        <div id="progress-chart-container" class="progress-chart-wrap">
+          <div id="progress-chart-svg-wrap"></div>
+          <div id="progress-chart-empty" style="display: none; color: var(--text-muted); padding: 24px 12px; text-align: center;">
+            No hay mediciones registradas en este mes. Registra tu primer progreso arriba.
+          </div>
+          <div id="progress-chart-hint" style="display: none; color: var(--text-muted); font-size: var(--fs-xs); text-align: center; margin-top: 8px;">
+            Haz clic en cualquier punto de la gráfica para ver todas las mediciones de ese día.
+          </div>
+        </div>
+
+        <div id="progress-day-detail" style="display: none; background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; flex-direction: column; gap: 10px;"></div>
       </div>
     </section>
 
@@ -853,6 +979,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (tabName === 'recipe') fetchRecipesList();
       if (tabName === 'workout') fetchExercisesList();
       if (tabName === 'exercise') fetchExercisesList();
+      if (tabName === 'progress') fetchBodyProgress();
       if (tabName === 'summary') fetchSummary();
     }}
 
@@ -888,6 +1015,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
     document.getElementById('meal-date').value = formatTodayIso(false);
     document.getElementById('workout-date').value = formatTodayIso(true);
+    document.getElementById('progress-date').value = formatTodayIso(false);
+    document.getElementById('progress-month').value = formatTodayIso(false).slice(0, 7);
     document.getElementById('summary-date').value = formatTodayIso(false);
 
     // Dynamic Recipe Rows
@@ -1118,6 +1247,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (d.goal) return `Objetivo actualizado`;
       if (d.entry_id) return `Comida registrada`;
       if (d.session) return `Entrenamiento registrado`;
+      if (d.progress && d.progress.date) return `Progreso del ${{d.progress.date}} guardado`;
       return 'Operación completada con éxito';
     }}
 
@@ -2790,10 +2920,334 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       }});
     }}
 
+    // BODY PROGRESS TRACKING
+    const PROGRESS_METRICS = {{
+      weight_kg: {{ label: 'Peso', unit: 'kg', color: '#10b981' }},
+      waist_cm: {{ label: 'Cintura', unit: 'cm', color: '#06b6d4' }},
+      chest_cm: {{ label: 'Pecho', unit: 'cm', color: '#38bdf8' }},
+      arm_cm: {{ label: 'Brazo', unit: 'cm', color: '#f59e0b' }},
+      leg_cm: {{ label: 'Pierna', unit: 'cm', color: '#a78bfa' }}
+    }};
+    let bodyProgressEntries = [];
+    let activeProgressMetric = 'weight_kg';
+    let selectedProgressDate = null;
+
+    function toIsoDateFromBackend(ddmmyyyy) {{
+      if (!ddmmyyyy || !/^\\d{{2}}-\\d{{2}}-\\d{{4}}$/.test(ddmmyyyy)) return '';
+      const [d, m, y] = ddmmyyyy.split('-');
+      return `${{y}}-${{m}}-${{d}}`;
+    }}
+
+    function shiftProgressMonth(delta) {{
+      const monthInput = document.getElementById('progress-month');
+      if (!monthInput) return;
+      const val = monthInput.value || formatTodayIso(false).slice(0, 7);
+      const [yStr, mStr] = val.split('-');
+      const dt = new Date(Number(yStr), Number(mStr) - 1 + delta, 1);
+      const pad = n => String(n).padStart(2, '0');
+      monthInput.value = `${{dt.getFullYear()}}-${{pad(dt.getMonth() + 1)}}`;
+      selectedProgressDate = null;
+      fetchBodyProgress();
+    }}
+
+    function setProgressMetric(metricKey) {{
+      if (!PROGRESS_METRICS[metricKey]) return;
+      activeProgressMetric = metricKey;
+      document.querySelectorAll('#progress-metric-pills .progress-pill').forEach(btn => {{
+        btn.classList.toggle('active', btn.dataset.metric === metricKey);
+      }});
+      renderProgressChart();
+    }}
+
+    function resetBodyProgressForm() {{
+      const form = document.getElementById('form-body-progress');
+      if (form) form.reset();
+      const dateEl = document.getElementById('progress-date');
+      if (dateEl) dateEl.value = formatTodayIso(false);
+    }}
+
+    function parseOptionalMetric(id) {{
+      const el = document.getElementById(id);
+      if (!el || el.value === '' || el.value === null) return null;
+      const n = parseFloat(el.value);
+      return Number.isFinite(n) ? n : null;
+    }}
+
+    async function submitBodyProgress(e) {{
+      e.preventDefault();
+      const rawDate = document.getElementById('progress-date')?.value;
+      const formattedDate = toBackendDate(rawDate) || toBackendDate(formatTodayIso(false));
+      const payload = {{
+        date: formattedDate,
+        weight_kg: parseOptionalMetric('progress-weight'),
+        waist_cm: parseOptionalMetric('progress-waist'),
+        chest_cm: parseOptionalMetric('progress-chest'),
+        arm_cm: parseOptionalMetric('progress-arm'),
+        leg_cm: parseOptionalMetric('progress-leg'),
+        notes: (document.getElementById('progress-notes')?.value || '').trim() || null
+      }};
+      const hasAny = [payload.weight_kg, payload.waist_cm, payload.chest_cm, payload.arm_cm, payload.leg_cm].some(v => v !== null);
+      if (!hasAny) {{
+        showToast('Introduce al menos una medición (Peso, Cintura, Pecho, Brazo o Pierna).', 'error');
+        return;
+      }}
+      const prompt = `Registra progreso corporal del ${{formattedDate}}`;
+      const res = await executeAction('log_body_progress', payload, 'progress-result', prompt);
+      if (res && res.status === 'ok') {{
+        const monthInput = document.getElementById('progress-month');
+        if (monthInput && rawDate && rawDate.length >= 7) {{
+          monthInput.value = rawDate.slice(0, 7);
+        }}
+        await fetchBodyProgress(formattedDate);
+      }}
+    }}
+
+    async function fetchBodyProgress(preferredDate = null) {{
+      const monthInput = document.getElementById('progress-month');
+      const month = (monthInput && monthInput.value) ? monthInput.value : formatTodayIso(false).slice(0, 7);
+      try {{
+        const resp = await fetch(`/api/list_body_progress?month=${{encodeURIComponent(month)}}`);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        if (data.status === 'ok') {{
+          bodyProgressEntries = data.entries || [];
+          if (preferredDate && bodyProgressEntries.some(e => e.date === preferredDate)) {{
+            selectedProgressDate = preferredDate;
+          }} else if (selectedProgressDate && bodyProgressEntries.some(e => e.date === selectedProgressDate)) {{
+            // keep current selection
+          }} else if (bodyProgressEntries.length > 0) {{
+            selectedProgressDate = bodyProgressEntries[bodyProgressEntries.length - 1].date;
+          }} else {{
+            selectedProgressDate = null;
+          }}
+          renderProgressChart();
+          renderProgressDayDetail();
+        }}
+      }} catch (err) {{
+        const wrap = document.getElementById('progress-chart-svg-wrap');
+        if (wrap) wrap.innerHTML = `<div style="color: var(--text-muted); text-align: center; padding: 16px;">No se pudo cargar el progreso (${{escapeHtml(err.message)}}).</div>`;
+      }}
+    }}
+
+    function selectProgressDay(dateStr) {{
+      selectedProgressDate = dateStr;
+      renderProgressChart();
+      renderProgressDayDetail();
+    }}
+
+    function editBodyProgressDay(dateStr) {{
+      const entry = bodyProgressEntries.find(e => e.date === dateStr);
+      if (!entry) return;
+      document.getElementById('progress-date').value = toIsoDateFromBackend(entry.date);
+      document.getElementById('progress-weight').value = entry.weight_kg ?? '';
+      document.getElementById('progress-waist').value = entry.waist_cm ?? '';
+      document.getElementById('progress-chest').value = entry.chest_cm ?? '';
+      document.getElementById('progress-arm').value = entry.arm_cm ?? '';
+      document.getElementById('progress-leg').value = entry.leg_cm ?? '';
+      document.getElementById('progress-notes').value = entry.notes || '';
+      document.getElementById('form-body-progress').scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+    }}
+
+    async function deleteBodyProgressEntry(progressId, dateStr) {{
+      if (!confirm(`¿Seguro que deseas eliminar el registro de progreso del ${{dateStr}}?`)) return;
+      try {{
+        const resp = await fetch('/api/delete_body_progress', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{ progress_id: progressId }})
+        }});
+        const data = await resp.json();
+        if (data.status === 'ok') {{
+          showToast(`Registro del ${{dateStr}} eliminado.`, 'ok');
+          if (selectedProgressDate === dateStr) selectedProgressDate = null;
+          await fetchBodyProgress();
+        }} else {{
+          showToast(data.message || 'Error al eliminar el registro', 'error');
+        }}
+      }} catch (err) {{
+        showToast(`Error de conexión: ${{err.message}}`, 'error');
+      }}
+    }}
+
+    function renderProgressChart() {{
+      const wrap = document.getElementById('progress-chart-svg-wrap');
+      const emptyEl = document.getElementById('progress-chart-empty');
+      const hintEl = document.getElementById('progress-chart-hint');
+      if (!wrap) return;
+
+      if (!bodyProgressEntries || bodyProgressEntries.length === 0) {{
+        wrap.innerHTML = '';
+        if (emptyEl) emptyEl.style.display = 'block';
+        if (hintEl) hintEl.style.display = 'none';
+        return;
+      }}
+      if (emptyEl) emptyEl.style.display = 'none';
+      if (hintEl) hintEl.style.display = 'block';
+
+      const monthVal = document.getElementById('progress-month')?.value || formatTodayIso(false).slice(0, 7);
+      const [yearNum, monthNum] = monthVal.split('-').map(Number);
+      const daysInMonth = new Date(yearNum, monthNum, 0).getDate();
+      const meta = PROGRESS_METRICS[activeProgressMetric] || PROGRESS_METRICS.weight_kg;
+
+      const W = 720, H = 250;
+      const padL = 56, padR = 24, padT = 24, padB = 34;
+      const plotW = W - padL - padR;
+      const plotH = H - padT - padB;
+
+      const dayX = day => padL + (daysInMonth > 1 ? ((day - 1) / (daysInMonth - 1)) * plotW : plotW / 2);
+
+      const metricValues = bodyProgressEntries
+        .map(e => e[activeProgressMetric])
+        .filter(v => v !== null && v !== undefined && Number.isFinite(Number(v)))
+        .map(Number);
+
+      let yMin = 0, yMax = 100;
+      if (metricValues.length === 1) {{
+        const v = metricValues[0];
+        const span = Math.max(2, Math.round(v * 0.05 * 10) / 10);
+        yMin = Math.max(0, v - span);
+        yMax = v + span;
+      }} else if (metricValues.length > 1) {{
+        const lo = Math.min(...metricValues);
+        const hi = Math.max(...metricValues);
+        const pad = hi === lo ? Math.max(2, lo * 0.05) : (hi - lo) * 0.18;
+        yMin = Math.max(0, lo - pad);
+        yMax = hi + pad;
+      }}
+      const valY = v => padT + plotH - ((v - yMin) / (yMax - yMin || 1)) * plotH;
+
+      // Horizontal grid lines & Y labels
+      let gridHtml = '';
+      const ySteps = 4;
+      for (let i = 0; i <= ySteps; i++) {{
+        const frac = i / ySteps;
+        const y = padT + plotH - frac * plotH;
+        const labelVal = Math.round((yMin + frac * (yMax - yMin)) * 10) / 10;
+        gridHtml += `<line x1="${{padL}}" y1="${{y}}" x2="${{W - padR}}" y2="${{y}}" stroke="#334155" stroke-dasharray="3 4" stroke-width="1" />`;
+        gridHtml += `<text x="${{padL - 8}}" y="${{y + 4}}" text-anchor="end" fill="#94a3b8" font-size="12">${{labelVal}}</text>`;
+      }}
+
+      // X-axis day ticks (1, 5, 10, 15, 20, 25, daysInMonth)
+      const ticks = [1, 5, 10, 15, 20, 25, daysInMonth].filter((d, idx, arr) => d <= daysInMonth && arr.indexOf(d) === idx);
+      let xAxisHtml = `<line x1="${{padL}}" y1="${{padT + plotH}}" x2="${{W - padR}}" y2="${{padT + plotH}}" stroke="#475569" stroke-width="1" />`;
+      ticks.forEach(d => {{
+        const x = dayX(d);
+        xAxisHtml += `<text x="${{x}}" y="${{H - 10}}" text-anchor="middle" fill="#94a3b8" font-size="12">${{d}}</text>`;
+      }});
+
+      // Polyline for entries that have the active metric
+      const plotted = bodyProgressEntries
+        .map(e => {{
+          const day = parseInt(e.date.split('-')[0], 10);
+          const rawVal = e[activeProgressMetric];
+          const hasMetric = rawVal !== null && rawVal !== undefined;
+          return {{
+            entry: e,
+            day,
+            x: dayX(day),
+            y: hasMetric ? valY(Number(rawVal)) : (padT + plotH - 10),
+            val: hasMetric ? Number(rawVal) : null,
+            hasMetric
+          }};
+        }});
+
+      const linePts = plotted.filter(p => p.hasMetric);
+      let lineHtml = '';
+      if (linePts.length >= 2) {{
+        const ptsAttr = linePts.map(p => `${{p.x.toFixed(1)}},${{p.y.toFixed(1)}}`).join(' ');
+        lineHtml = `<polyline fill="none" stroke="${{meta.color}}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points="${{ptsAttr}}" />`;
+      }}
+
+      // Clickable points for every logged day in the month
+      let pointsHtml = '';
+      plotted.forEach(p => {{
+        const isSelected = p.entry.date === selectedProgressDate;
+        const fill = p.hasMetric ? meta.color : '#1e293b';
+        const stroke = isSelected ? '#f8fafc' : meta.color;
+        const titleText = p.hasMetric
+          ? `${{p.entry.date}}: ${{p.val}} ${{meta.unit}}`
+          : `${{p.entry.date}} (sin ${{meta.label.toLowerCase()}})`;
+        const halo = isSelected
+          ? `<circle cx="${{p.x.toFixed(1)}}" cy="${{p.y.toFixed(1)}}" r="11" fill="${{meta.color}}" fill-opacity="0.25" />`
+          : '';
+        const selectedLbl = (isSelected && p.hasMetric)
+          ? `<text x="${{p.x.toFixed(1)}}" y="${{(p.y - 13).toFixed(1)}}" text-anchor="middle" fill="#f8fafc" font-size="12" font-weight="700">${{p.val}} ${{meta.unit}}</text>`
+          : '';
+        pointsHtml += `
+          <g class="progress-point-hit" data-date="${{escapeHtml(p.entry.date)}}" onclick="selectProgressDay('${{escapeHtml(p.entry.date)}}')">
+            <title>${{escapeHtml(titleText)}}</title>
+            ${{halo}}
+            <circle cx="${{p.x.toFixed(1)}}" cy="${{p.y.toFixed(1)}}" r="${{isSelected ? 7 : 5.5}}" fill="${{fill}}" stroke="${{stroke}}" stroke-width="${{isSelected ? 2.5 : 2}}" />
+            <circle cx="${{p.x.toFixed(1)}}" cy="${{p.y.toFixed(1)}}" r="16" fill="transparent" />
+            ${{selectedLbl}}
+          </g>
+        `;
+      }});
+
+      wrap.innerHTML = `
+        <svg class="progress-svg" viewBox="0 0 ${{W}} ${{H}}" role="img" aria-label="Gráfica mensual de ${{escapeHtml(meta.label)}}">
+          <text x="${{padL}}" y="14" fill="#94a3b8" font-size="12" font-weight="600">${{escapeHtml(meta.label)}} (${{escapeHtml(meta.unit)}})</text>
+          ${{gridHtml}}
+          ${{xAxisHtml}}
+          ${{lineHtml}}
+          ${{pointsHtml}}
+        </svg>
+      `;
+    }}
+
+    function renderProgressDayDetail() {{
+      const el = document.getElementById('progress-day-detail');
+      if (!el) return;
+      const entry = bodyProgressEntries.find(e => e.date === selectedProgressDate);
+      if (!entry) {{
+        el.style.display = 'none';
+        el.innerHTML = '';
+        return;
+      }}
+      const fmt = (val, unit) => (val !== null && val !== undefined) ? `${{val}} ${{unit}}` : '-';
+      const notesHtml = entry.notes
+        ? `<div style="font-size: var(--fs-md); color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 8px;">📝 ${{escapeHtml(entry.notes)}}</div>`
+        : '';
+      el.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div style="font-weight: 700; color: var(--cyan); font-size: var(--fs-lg);">📍 Mediciones del ${{escapeHtml(entry.date)}}</div>
+          <div style="display: flex; gap: 6px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="editBodyProgressDay('${{escapeHtml(entry.date)}}')">✏️ Editar</button>
+            <button type="button" class="btn btn-secondary btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3);" onclick="deleteBodyProgressEntry(${{entry.id}}, '${{escapeHtml(entry.date)}}')">🗑️ Eliminar</button>
+          </div>
+        </div>
+        <div class="progress-detail-grid">
+          <div class="progress-detail-card">
+            <div style="font-size: var(--fs-xs); color: var(--text-muted); text-transform: uppercase;">Peso</div>
+            <div class="macro-val" style="color: #10b981; margin-top: 4px;">${{fmt(entry.weight_kg, 'kg')}}</div>
+          </div>
+          <div class="progress-detail-card">
+            <div style="font-size: var(--fs-xs); color: var(--text-muted); text-transform: uppercase;">Cintura</div>
+            <div class="macro-val" style="color: #06b6d4; margin-top: 4px;">${{fmt(entry.waist_cm, 'cm')}}</div>
+          </div>
+          <div class="progress-detail-card">
+            <div style="font-size: var(--fs-xs); color: var(--text-muted); text-transform: uppercase;">Pecho</div>
+            <div class="macro-val" style="color: #38bdf8; margin-top: 4px;">${{fmt(entry.chest_cm, 'cm')}}</div>
+          </div>
+          <div class="progress-detail-card">
+            <div style="font-size: var(--fs-xs); color: var(--text-muted); text-transform: uppercase;">Brazo</div>
+            <div class="macro-val" style="color: #f59e0b; margin-top: 4px;">${{fmt(entry.arm_cm, 'cm')}}</div>
+          </div>
+          <div class="progress-detail-card">
+            <div style="font-size: var(--fs-xs); color: var(--text-muted); text-transform: uppercase;">Pierna</div>
+            <div class="macro-val" style="color: #a78bfa; margin-top: 4px;">${{fmt(entry.leg_cm, 'cm')}}</div>
+          </div>
+        </div>
+        ${{notesHtml}}
+      `;
+      el.style.display = 'flex';
+    }}
+
     // Initial fetch of catalogs and summary
     fetchIngredientsList();
     fetchRecipesList();
     fetchExercisesList();
+    fetchBodyProgress();
     fetchSummary();
 
     if ('serviceWorker' in navigator) {{

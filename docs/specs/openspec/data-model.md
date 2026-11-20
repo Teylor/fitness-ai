@@ -243,6 +243,25 @@ Daily physical step counts and estimated walking/running distance.
 
 - **Indexes**: `idx_step_logs_date` (`date`); `UNIQUE (date)`
 
+### `body_progress_logs`
+
+Daily body progress measurements (weight and body circumferences). One record per date (upserted on re-entry).
+
+| Field | Type | Constraints | Description |
+|---|---|---|---|
+| id | INTEGER | PK AUTOINCREMENT | |
+| date | TEXT | NOT NULL UNIQUE | `DD-MM-YYYY` |
+| weight_kg | REAL | NULL | Body weight in kg (`> 0` when set) |
+| waist_cm | REAL | NULL | Waist circumference in cm (`> 0` when set) |
+| chest_cm | REAL | NULL | Chest circumference in cm (`> 0` when set) |
+| arm_cm | REAL | NULL | Arm circumference in cm (`> 0` when set) |
+| leg_cm | REAL | NULL | Leg circumference in cm (`> 0` when set) |
+| notes | TEXT | NULL | Optional measurement notes |
+| created_at | TEXT | NOT NULL DEFAULT `datetime('now')` | |
+| updated_at | TEXT | NOT NULL DEFAULT `datetime('now')` | |
+
+- **Business rule**: At least one of `weight_kg`, `waist_cm`, `chest_cm`, `arm_cm`, `leg_cm` must be provided.
+
 ## Enumerations
 
 | Field | Allowed values |
