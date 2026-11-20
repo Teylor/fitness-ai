@@ -45,6 +45,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `nas-ci-cd-auto-deploy` | `odd/tasks/nas-ci-cd-auto-deploy.md` | 2026-11 |
 | `dockerize-nas-deployment` | `odd/tasks/dockerize-nas-deployment.md` | 2026-11 |
 | `workout-training-enhancements` | `odd/tasks/workout-training-enhancements.md` | 2026-11 |
 | `ui-design-changes` | `odd/tasks/ui-design-changes.md` | 2026-11 |

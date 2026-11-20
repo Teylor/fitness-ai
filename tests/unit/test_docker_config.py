@@ -63,3 +63,7 @@ def test_docker_and_ugreen_nas_artifacts_exist():
     assert gh_workflow.is_file()
     wf_text = gh_workflow.read_text(encoding="utf-8")
     assert "ghcr.io" in wf_text
+    assert "pytest tests/ -v" in wf_text
+    assert "build-and-push:" in wf_text
+    assert "deploy-nas:" in wf_text
+    assert "tailscale/github-action" in wf_text
