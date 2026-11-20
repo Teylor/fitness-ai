@@ -85,18 +85,32 @@ jobs:
           NAS_HOST: ${{ secrets.NAS_HOST }}
           NAS_USER: ${{ secrets.NAS_USER }}
           NAS_DEPLOY_DIR: ${{ secrets.NAS_DEPLOY_DIR }}
+          NAS_SSH_PORT: ${{ secrets.NAS_SSH_PORT }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 -o BatchMode=yes "${NAS_USER}@${NAS_HOST}" "DEPLOY_DIR='${NAS_DEPLOY_DIR:-/volume1/docker/fitness-ai}' bash -s" <<'EOF'
-            set -e
-            cd "$DEPLOY_DIR"
-            if [ -d .git ]; then
-              git pull origin main
-            fi
-            if [ -f docker-compose.nas.yml ]; then
-              docker compose -f docker-compose.nas.yml pull
-              docker compose -f docker-compose.nas.yml up -d --remove-orphans
-            else
-              docker compose up -d --build --remove-orphans
-            fi
-            docker image prune -f
+          PORT="${NAS_SSH_PORT:-2222}"
+          for attempt in 1 2 3; do
+            echo "SSH deploy attempt ${attempt} to ${NAS_HOST}:${PORT}..."
+            if ssh -p "$PORT" -o StrictHostKeyChecking=no -o ConnectTimeout=15 -o BatchMode=yes "${NAS_USER}@${NAS_HOST}" "DEPLOY_DIR='${NAS_DEPLOY_DIR:-/volume1/docker/fitness-ai}' GHCR_USER='${GHCR_USER}' GHCR_TOKEN='${GHCR_TOKEN}' bash -s" <<'EOF'
+              set -e
+              cd "$DEPLOY_DIR"
+              if [ -d .git ]; then
+                git pull origin main
+              fi
+              echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+              if [ -f docker-compose.nas.yml ]; then
+                docker compose -f docker-compose.nas.yml pull
+                docker compose -f docker-compose.nas.yml up -d --remove-orphans
+              else
+                docker compose up -d --build --remove-orphans
+              fi
+              docker image prune -f
           EOF
+            then
+              echo "Deploy succeeded!"
+              exit 0
+            fi
+            sleep 3
+          done
+          exit 1
