@@ -887,6 +887,63 @@ async def test_ui_workout_training_enhancements_pack(db):
 
 
 @pytest.mark.anyio
+async def test_ui_workout_exercise_max_weight_reference(db):
+    server = create_server()
+    app = server.streamable_http_app()
+    transport = httpx2.ASGITransport(app=app)
+
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
+        # 1. Verify workout tab HTML includes max-weight reference element and helper functions
+        wo_ui = await client.get("/ui/workout")
+        assert wo_ui.status_code == 200
+        html = wo_ui.text
+        assert 'class="ex-max-weight-ref"' in html
+        assert "function updateExerciseMaxWeightRef(" in html
+        assert "function refreshAllWorkoutExerciseRefs(" in html
+        assert "<span>Peso Máx:</span>" in html
+        assert "Máx ${ex.pr.max_weight} kg" in html
+        assert "if (tabName === 'workout') fetchExercisesList();" in html
+
+        # 2. Verify PR max_weight data is returned for recorded weight exercises and absent for unrecorded/time ones
+        await client.post(
+            "/api/create_exercise",
+            json={"name": "Remo con Barra", "muscle_group": "Espalda", "type": "weight_reps"},
+        )
+        await client.post(
+            "/api/create_exercise",
+            json={"name": "Curl Martillo", "muscle_group": "Biceps", "type": "weight_reps"},
+        )
+        await client.post(
+            "/api/register_workout",
+            json={
+                "date": "20-11-2026 19:00",
+                "exercises": [
+                    {
+                        "name": "Remo con Barra",
+                        "sets": [
+                            {"set_number": 1, "reps": 8, "weight": 70.0},
+                            {"set_number": 2, "reps": 8, "weight": 70.0},
+                        ],
+                    }
+                ],
+            },
+        )
+
+        ex_res = await client.get("/api/list_exercises?include_prs=true")
+        assert ex_res.status_code == 200
+        exercises = ex_res.json()["exercises"]
+        remo = next(e for e in exercises if e["name"] == "Remo con Barra")
+        assert remo["pr"] is not None
+        assert remo["pr"]["max_weight"] == 70.0
+        assert remo["pr"]["max_weight_reps"] == 8
+        assert remo["pr"]["max_weight_sets"] == 2
+        assert remo["pr"]["max_weight_date"] == "20-11-2026"
+
+        curl = next(e for e in exercises if e["name"] == "Curl Martillo")
+        assert curl["pr"] is None or curl["pr"].get("max_weight") is None
+
+
+@pytest.mark.anyio
 async def test_ui_body_progress_tracking_view_and_api(db):
     server = create_server()
     app = server.streamable_http_app()

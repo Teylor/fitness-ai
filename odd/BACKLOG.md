@@ -46,6 +46,7 @@
 | Feature | File | Date |
 |---------|---------|-------|
 | `ui-body-progress-tracking` | `odd/tasks/ui-body-progress-tracking.md` | 2026-11 |
+| `ui-workout-exercise-max-weight` | `odd/tasks/ui-workout-exercise-max-weight.md` | 2026-11 |
 | `ui-progress-tab` | `odd/tasks/ui-progress-tab.md` | 2026-11 |
 | `nas-ci-cd-auto-deploy` | `odd/tasks/nas-ci-cd-auto-deploy.md` | 2026-11 |
 | `dockerize-nas-deployment` | `odd/tasks/dockerize-nas-deployment.md` | 2026-11 |

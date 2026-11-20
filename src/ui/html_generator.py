@@ -977,6 +977,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (target) target.classList.add('active');
       if (tabName === 'ingredient') fetchIngredientsList();
       if (tabName === 'recipe') fetchRecipesList();
+      if (tabName === 'workout') fetchExercisesList();
       if (tabName === 'exercise') fetchExercisesList();
       if (tabName === 'progress') fetchBodyProgress();
       if (tabName === 'summary') fetchSummary();
@@ -1073,6 +1074,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           </select>
           <button type="button" class="btn btn-danger btn-sm" onclick="document.getElementById('${{id}}').remove()">Eliminar Ejercicio</button>
         </div>
+        <div class="ex-max-weight-ref" style="display: none; align-items: center; gap: 8px; flex-wrap: wrap; font-size: var(--fs-md); color: var(--text-muted); padding: 2px 2px;"></div>
         <div class="table-container">
           <table class="sets-table">
             <thead>${{getSetsTableHeaderHtml(mode)}}</thead>
@@ -1086,16 +1088,69 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (exInput) {{
         attachAutocomplete(
           exInput,
-          () => allExercises.map(ex => ({{ value: ex.name, sub: ex.type === 'time' ? '⏱️ Tiempo' : (ex.muscle_group && ex.muscle_group !== 'unknown' ? ex.muscle_group : '') }})),
+          () => allExercises.map(ex => {{
+            if (ex.type === 'time') return {{ value: ex.name, sub: '⏱️ Tiempo' }};
+            const parts = [];
+            if (ex.muscle_group && ex.muscle_group !== 'unknown') parts.push(ex.muscle_group);
+            if (ex.pr && ex.pr.max_weight !== undefined && ex.pr.max_weight !== null) {{
+              parts.push(`Máx ${{ex.pr.max_weight}} kg`);
+            }}
+            return {{ value: ex.name, sub: parts.join(' · ') }};
+          }}),
           () => onExerciseNameInput(id, exInput)
         );
       }}
       addSetRow(id, 1, '', '', '');
+      if (name) updateExerciseMaxWeightRef(id);
+    }}
+
+    function updateExerciseMaxWeightRef(exBlockId, matchedEx = null) {{
+      const block = document.getElementById(exBlockId);
+      if (!block) return;
+      const refEl = block.querySelector('.ex-max-weight-ref');
+      if (!refEl) return;
+      const mode = block.querySelector('.ex-mode')?.value || 'weight_reps';
+      if (mode === 'time') {{
+        refEl.style.display = 'none';
+        refEl.innerHTML = '';
+        return;
+      }}
+      let matched = matchedEx;
+      if (!matched) {{
+        const val = normalizeText(block.querySelector('.ex-name')?.value || '');
+        matched = val ? allExercises.find(ex => normalizeText(ex.name) === val) : null;
+      }}
+      if (!matched || !matched.pr || matched.pr.max_weight === undefined || matched.pr.max_weight === null) {{
+        refEl.style.display = 'none';
+        refEl.innerHTML = '';
+        return;
+      }}
+      const pr = matched.pr;
+      const repsStr = pr.max_weight_reps ? ` × ${{pr.max_weight_reps}}` : '';
+      const setsSuffix = pr.max_weight_sets && pr.max_weight_sets > 1 ? ` (${{pr.max_weight_sets}})` : '';
+      const dateHtml = pr.max_weight_date
+        ? `<span style="font-size: var(--fs-xs); color: var(--text-muted); white-space: nowrap;">(${{escapeHtml(pr.max_weight_date)}})</span>`
+        : '';
+      refEl.innerHTML = `
+        <span>Peso Máx:</span>
+        <span class="badge badge-warning">💪 ${{pr.max_weight}} kg${{repsStr}}${{setsSuffix}}</span>
+        ${{dateHtml}}
+      `;
+      refEl.style.display = 'flex';
+    }}
+
+    function refreshAllWorkoutExerciseRefs() {{
+      document.querySelectorAll('#workout-exercises-container > div').forEach(block => {{
+        if (block.id) updateExerciseMaxWeightRef(block.id);
+      }});
     }}
 
     function onExerciseNameInput(exBlockId, inputEl) {{
       const val = normalizeText(inputEl ? inputEl.value : '');
-      if (!val) return;
+      if (!val) {{
+        updateExerciseMaxWeightRef(exBlockId, null);
+        return;
+      }}
       const matched = allExercises.find(ex => normalizeText(ex.name) === val);
       if (matched && (matched.type === 'time' || matched.type === 'weight_reps')) {{
         const block = document.getElementById(exBlockId);
@@ -1105,6 +1160,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           onExerciseModeChange(exBlockId, matched.type);
         }}
       }}
+      updateExerciseMaxWeightRef(exBlockId, matched || null);
     }}
 
     function onExerciseModeChange(exBlockId, mode) {{
@@ -1125,6 +1181,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         tbody.innerHTML = '';
         addSetRow(exBlockId, 1, '', '', '');
       }}
+      updateExerciseMaxWeightRef(exBlockId);
     }}
 
     function addSetRow(exBlockId, setNum, reps = '', weight = '', durationMin = '') {{
@@ -1782,6 +1839,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           renderExercisesTable(allExercises);
           updateExerciseDatalist();
           updateExerciseGroupFilter();
+          refreshAllWorkoutExerciseRefs();
         }}
       }} catch (err) {{
         tbody.innerHTML = `<tr><td colspan="6" style="color: var(--text-muted); text-align: center;">No se pudo conectar con el catálogo de ejercicios (${{err.message}}).</td></tr>`;
@@ -2126,7 +2184,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       }}
     }}
 
-    function submitWorkout(e) {{
+    async function submitWorkout(e) {{
       e.preventDefault();
       const exercises = [];
       document.querySelectorAll('#workout-exercises-container > div').forEach(div => {{
@@ -2159,7 +2217,10 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         exercises
       }};
       const prompt = `Registra entrenamiento: ` + exercises.map(e => `${{e.name}} (${{e.sets.length}} series)`).join(', ');
-      executeAction('register_workout', payload, 'workout-result', prompt);
+      const res = await executeAction('register_workout', payload, 'workout-result', prompt);
+      if (res && res.status === 'ok') {{
+        await fetchExercisesList();
+      }}
     }}
 
     async function fetchSummary() {{
