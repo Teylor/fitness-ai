@@ -755,7 +755,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         <!-- 1. Macro Goals, Consumed & Remaining -->
         <div>
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
-            <h3 style="font-size: var(--fs-base); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">🎯 Objetivos vs Consumido vs Restante</h3>
+            <h3 style="font-size: var(--fs-base); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">🎯 Objetivos</h3>
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
               <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-day-off" onclick="toggleDayOffUI()" title="Alternar entre objetivos de Día de Entreno y Day Off">🏋️ Día Entreno</button>
               <button type="button" class="btn btn-secondary btn-sm" id="btn-config-goals" onclick="toggleGoalProfilesPanel()">⚙️ Objetivos</button>
