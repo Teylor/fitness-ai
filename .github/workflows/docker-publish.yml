@@ -1,6 +1,9 @@
-name: Publish Docker Image (GHCR)
+name: CI/CD — Test, Build & Deploy to NAS
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -11,7 +14,27 @@ permissions:
   packages: write
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run test suite
+        run: pytest tests/ -v
+
   build-and-push:
+    needs: test
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -32,3 +55,42 @@ jobs:
           tags: |
             ghcr.io/teylor/fitness-ai:latest
             ghcr.io/teylor/fitness-ai:${{ github.sha }}
+
+  deploy-nas:
+    needs: build-and-push
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connect to Tailnet
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Setup SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.NAS_SSH_PRIVATE_KEY }}
+
+      - name: Deploy updated container on UGREEN DXP2800
+        env:
+          NAS_HOST: ${{ secrets.NAS_HOST }}
+          NAS_USER: ${{ secrets.NAS_USER }}
+          NAS_DEPLOY_DIR: ${{ secrets.NAS_DEPLOY_DIR }}
+        run: |
+          ssh -o StrictHostKeyChecking=no "${NAS_USER}@${NAS_HOST}" bash -s <<'EOF'
+            set -e
+            DEPLOY_DIR="${NAS_DEPLOY_DIR:-/volume1/docker/fitness-ai}"
+            cd "$DEPLOY_DIR"
+            if [ -d .git ]; then
+              git pull origin main
+            fi
+            if [ -f docker-compose.nas.yml ]; then
+              docker compose -f docker-compose.nas.yml pull
+              docker compose -f docker-compose.nas.yml up -d --remove-orphans
+            else
+              docker compose up -d --build --remove-orphans
+            fi
+            docker image prune -f
+          EOF
