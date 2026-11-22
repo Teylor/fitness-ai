@@ -144,3 +144,45 @@ def test_get_workouts_by_day_invalid_date(db):
     res = get_workouts_by_day("2026-05-15")
     assert res["status"] == "error"
     assert res["code"] == "invalid_input"
+
+
+def test_register_workout_tool_overwrites_same_day_and_recalculates_pr(db):
+    first = register_workout(
+        exercises=[
+            {
+                "name": "Bench Press",
+                "sets": [{"set_number": 1, "reps": 5, "weight": 500}],
+            }
+        ],
+        date="15-05-2026 09:00",
+        notes="typo session",
+    )
+    assert first["status"] == "ok"
+    assert first["overwritten"] is False
+    assert first["replaced_sessions"] == 0
+
+    second = register_workout(
+        exercises=[
+            {
+                "name": "Bench Press",
+                "sets": [{"set_number": 1, "reps": 8, "weight": 80}],
+            }
+        ],
+        date="15-05-2026 18:30",
+        notes="corrected session",
+    )
+    assert second["status"] == "ok"
+    assert second["overwritten"] is True
+    assert second["replaced_sessions"] == 1
+
+    day = get_workouts_by_day("15-05-2026")
+    assert day["status"] == "ok"
+    assert day["count"] == 1
+    assert day["sessions"][0]["notes"] == "corrected session"
+    assert day["sessions"][0]["sets"][0]["weight"] == 80
+
+    pr = get_personal_record("Bench Press")
+    assert pr["status"] == "ok"
+    assert pr["personal_record"]["max_weight"] == 80
+    assert pr["personal_record"]["max_reps"] == 8
+

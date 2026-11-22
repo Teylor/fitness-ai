@@ -37,16 +37,55 @@ class WorkoutService:
                 {"set_number": int, "distance"?}]}]
 
         Returns:
-            {"session": {...}, "sets": [...], "new_prs": [...], "auto_created": [...]}
+            {
+                "session": {...},
+                "sets": [...],
+                "new_prs": [...],
+                "auto_created": [...],
+                "overwritten": bool,
+                "replaced_sessions": int,
+            }
 
+        If one or more sessions already exist on the same calendar day
+        (DD-MM-YYYY, ignoring time of day), they are atomically replaced and
+        Personal Records for affected exercises are recalculated.
         Unknown exercises are auto-created with muscle_group="unknown".
         Raises ValidationError on invalid input; the session rolls back atomically.
         """
         session_dt, public_date, date_only = self._parse_session_date(session.date)
+        day_start = datetime(session_dt.year, session_dt.month, session_dt.day)
+        day_end = day_start + timedelta(days=1)
         auto_created: List[str] = []
         new_prs: List[dict] = []
 
         with WorkoutSessionModel._meta.database.atomic():
+            existing_sessions = list(
+                WorkoutSessionModel.select().where(
+                    (WorkoutSessionModel.date >= day_start)
+                    & (WorkoutSessionModel.date < day_end)
+                )
+            )
+            replaced_sessions = len(existing_sessions)
+            if existing_sessions:
+                existing_ids = [s.id for s in existing_sessions]
+                affected_exercise_ids = {
+                    s.exercise_id
+                    for s in ExerciseSetModel.select(ExerciseSetModel.exercise).where(
+                        ExerciseSetModel.session.in_(existing_ids)
+                    )
+                }
+                affected_exercise_ids.update(
+                    pr.exercise_id
+                    for pr in PersonalRecordModel.select(
+                        PersonalRecordModel.exercise
+                    ).where(PersonalRecordModel.session.in_(existing_ids))
+                )
+                WorkoutSessionModel.delete().where(
+                    WorkoutSessionModel.id.in_(existing_ids)
+                ).execute()
+                for ex_id in affected_exercise_ids:
+                    self._recalculate_pr(ex_id)
+
             session_row = WorkoutSessionModel.create(
                 date=session_dt, notes=session.notes
             )
@@ -110,6 +149,8 @@ class WorkoutService:
                 ],
                 "new_prs": new_prs,
                 "auto_created": auto_created,
+                "overwritten": replaced_sessions > 0,
+                "replaced_sessions": replaced_sessions,
             }
 
     def get_last_workout(self, exercise_name: str) -> Optional[dict]:
@@ -515,3 +556,71 @@ class WorkoutService:
             "estimated_1rm": pr.estimated_1rm,
             "date": date_only,
         }
+
+    def _recalculate_pr(self, exercise_id: int) -> None:
+        """Recalculate (or remove) the PersonalRecord row for an exercise from remaining sets."""
+        ex = ExerciseModel.get_or_none(ExerciseModel.id == exercise_id)
+        if ex is None or ex.type != "weight_reps":
+            PersonalRecordModel.delete().where(
+                PersonalRecordModel.exercise == exercise_id
+            ).execute()
+            return
+
+        remaining_sets = (
+            ExerciseSetModel.select(
+                ExerciseSetModel,
+                WorkoutSessionModel.id,
+                WorkoutSessionModel.date,
+            )
+            .join(WorkoutSessionModel)
+            .where(
+                (ExerciseSetModel.exercise == exercise_id)
+                & ExerciseSetModel.weight.is_null(False)
+                & ExerciseSetModel.reps.is_null(False)
+                & (ExerciseSetModel.reps >= 1)
+            )
+            .order_by(WorkoutSessionModel.date.asc(), ExerciseSetModel.id.asc())
+        )
+
+        best: Optional[Tuple[Tuple[float, float, int], float, int, float, str, int]] = None
+        for s in remaining_sets:
+            weight = float(s.weight)
+            reps = int(s.reps)
+            e1rm = weight if reps == 1 else estimate_1rm(weight, reps)
+            key = (e1rm, weight, reps)
+            if best is None or key > best[0]:
+                best = (
+                    key,
+                    weight,
+                    reps,
+                    e1rm,
+                    self._to_date_str(s.session.date),
+                    s.session_id,
+                )
+
+        if best is None:
+            PersonalRecordModel.delete().where(
+                PersonalRecordModel.exercise == exercise_id
+            ).execute()
+            return
+
+        _, max_weight, max_reps, e1rm, pr_date, best_session_id = best
+        pr = PersonalRecordModel.get_or_none(
+            PersonalRecordModel.exercise == exercise_id
+        )
+        if pr is None:
+            PersonalRecordModel.create(
+                exercise=exercise_id,
+                max_weight=max_weight,
+                max_reps=max_reps,
+                estimated_1rm=e1rm,
+                date=pr_date,
+                session=best_session_id,
+            )
+        else:
+            pr.max_weight = max_weight
+            pr.max_reps = max_reps
+            pr.estimated_1rm = e1rm
+            pr.date = pr_date
+            pr.session = best_session_id
+            pr.save()

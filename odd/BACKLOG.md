@@ -45,6 +45,7 @@
 
 | Feature | File | Date |
 |---------|---------|-------|
+| `workout-form-ux-and-daily-overwrite` | `odd/tasks/workout-form-ux-and-daily-overwrite.md` | 2026-11 |
 | `ui-body-progress-tracking` | `odd/tasks/ui-body-progress-tracking.md` | 2026-11 |
 | `ui-workout-exercise-max-weight` | `odd/tasks/ui-workout-exercise-max-weight.md` | 2026-11 |
 | `ui-progress-tab` | `odd/tasks/ui-progress-tab.md` | 2026-11 |

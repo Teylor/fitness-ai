@@ -1054,7 +1054,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (mode === 'time') {{
         return '<tr><th style="width: 50px;">Set</th><th>Duración (minutos)</th><th style="width: 40px;"></th></tr>';
       }}
-      return '<tr><th style="width: 50px;">Set</th><th>Reps</th><th>Peso (kg)</th><th>1RM Est.</th><th style="width: 40px;"></th></tr>';
+      return '<tr><th style="width: 50px;">Set</th><th>Peso (kg)</th><th>Reps</th><th>1RM Est.</th><th style="width: 40px;"></th></tr>';
     }}
 
     function addExerciseBlock(name = '', mode = 'weight_reps') {{
@@ -1199,7 +1199,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove(); renumberSets('${{exBlockId}}');">×</button></td>
         `;
         tbody.appendChild(tr);
-        return;
+        return tr;
       }}
 
       const calc1rm = (w, r) => r === 1 ? w : Math.round(w * (1 + r / 30) * 100) / 100;
@@ -1208,12 +1208,13 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
       tr.innerHTML = `
         <td><span class="badge badge-info set-num">${{num}}</span></td>
-        <td><input type="number" class="set-reps" required value="${{reps}}" placeholder="Reps" min="1" style="width: 80px;" oninput="updateSet1RM(this)"></td>
         <td><input type="number" class="set-weight" required value="${{weight}}" placeholder="kg" step="any" min="0" style="width: 90px;" oninput="updateSet1RM(this)"></td>
+        <td><input type="number" class="set-reps" required value="${{reps}}" placeholder="Reps" min="1" style="width: 80px;" oninput="updateSet1RM(this)"></td>
         <td><span class="set-1rm" style="color: var(--primary); font-weight: 700;">${{initial1rm}}</span></td>
         <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove(); renumberSets('${{exBlockId}}');">×</button></td>
       `;
       tbody.appendChild(tr);
+      return tr;
     }}
 
     function updateSet1RM(input) {{
@@ -1236,6 +1237,37 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         tr.querySelector('.set-num').textContent = idx + 1;
       }});
     }}
+
+    function handleWorkoutFormKeydown(e) {{
+      if (e.key !== 'Enter' && e.keyCode !== 13) return;
+      const target = e.target;
+      if (!target) return;
+      const tag = target.tagName;
+      if (tag === 'BUTTON' || tag === 'TEXTAREA') return;
+
+      if (target.closest && target.closest('.sets-table tbody tr')) {{
+        e.preventDefault();
+        const block = target.closest('#workout-exercises-container > div');
+        if (block && block.id) {{
+          const newRow = addSetRow(block.id);
+          const nextInput = newRow
+            ? newRow.querySelector('.set-weight, .set-duration-min')
+            : null;
+          if (nextInput) nextInput.focus();
+        }}
+        return;
+      }}
+
+      if (tag === 'INPUT' || tag === 'SELECT') {{
+        e.preventDefault();
+      }}
+    }}
+
+    const workoutFormEl = document.getElementById('form-workout');
+    if (workoutFormEl) {{
+      workoutFormEl.addEventListener('keydown', handleWorkoutFormKeydown);
+    }}
+
     addExerciseBlock();
 
     // Universal Dispatch & Result Display
@@ -1246,7 +1278,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (d.recipe && d.recipe.name) return `Receta «${{d.recipe.name}}» guardada`;
       if (d.goal) return `Objetivo actualizado`;
       if (d.entry_id) return `Comida registrada`;
-      if (d.session) return `Entrenamiento registrado`;
+      if (d.session) return d.overwritten ? `Entrenamiento sobrescrito` : `Entrenamiento registrado`;
       if (d.progress && d.progress.date) return `Progreso del ${{d.progress.date}} guardado`;
       return 'Operación completada con éxito';
     }}
@@ -2854,8 +2886,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
               <tr>
                 <td><strong>${{escapeHtml(set.exercise)}}</strong></td>
                 <td>Serie ${{set.set_number}}</td>
-                <td><span class="badge" style="background: #1e3a8a; color: #93c5fd;">⏱️ Tiempo</span></td>
                 <td>${{durMin}} min</td>
+                <td><span class="badge" style="background: #1e3a8a; color: #93c5fd;">⏱️ Tiempo</span></td>
                 <td><span style="color: var(--text-muted);">-</span></td>
               </tr>
             `;
@@ -2864,8 +2896,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
               <tr>
                 <td><strong>${{escapeHtml(set.exercise)}}</strong></td>
                 <td>Serie ${{set.set_number}}</td>
-                <td><span class="badge" style="background: #4c1d95; color: #c4b5fd;">📏 Distancia</span></td>
                 <td>${{set.distance}} m</td>
+                <td><span class="badge" style="background: #4c1d95; color: #c4b5fd;">📏 Distancia</span></td>
                 <td><span style="color: var(--text-muted);">-</span></td>
               </tr>
             `;
@@ -2874,8 +2906,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
               <tr>
                 <td><strong>${{escapeHtml(set.exercise)}}</strong></td>
                 <td>Serie ${{set.set_number}}</td>
-                <td>${{set.reps ?? '-'}}</td>
                 <td>${{set.weight ?? 0}} kg</td>
+                <td>${{set.reps ?? '-'}}</td>
                 <td><span style="color: var(--primary); font-weight: 700;">${{e1rmStr}}</span></td>
               </tr>
             `;
@@ -2905,8 +2937,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
                 <tr>
                   <th>Ejercicio</th>
                   <th>Serie</th>
-                  <th>Reps</th>
                   <th>Peso / Duración</th>
+                  <th>Reps</th>
                   <th>1RM Est.</th>
                 </tr>
               </thead>

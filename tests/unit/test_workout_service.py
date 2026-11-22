@@ -366,3 +366,191 @@ def test_get_exercise_stats_counts_sets_at_max_weight_in_session(
     assert stats_inc[incline.id]["max_weight_sets"] == 3
 
 
+# --- Daily overwrite & PR recalculation ---
+
+
+def test_register_session_first_of_day_not_overwritten(db, workout_service, exercises):
+    result = workout_service.register_session(
+        WorkoutSession(date="15-05-2026 09:00", notes="morning"),
+        [{"name": "Bench Press", "sets": [{"set_number": 1, "reps": 8, "weight": 80}]}],
+    )
+    assert result["overwritten"] is False
+    assert result["replaced_sessions"] == 0
+
+
+def test_register_session_same_day_overwrites_existing_regardless_of_time(
+    db, workout_service, exercises
+):
+    first = workout_service.register_session(
+        WorkoutSession(date="15-05-2026 09:00", notes="morning push"),
+        [
+            {"name": "Bench Press", "sets": [{"set_number": 1, "reps": 10, "weight": 80}]},
+            {"name": "Plank", "sets": [{"set_number": 1, "duration": 60}]},
+        ],
+    )
+    assert first["overwritten"] is False
+    assert first["replaced_sessions"] == 0
+
+    # Other day must remain untouched
+    workout_service.register_session(
+        WorkoutSession(date="16-05-2026 18:00", notes="next day"),
+        [{"name": "Plank", "sets": [{"set_number": 1, "duration": 90}]}],
+    )
+
+    # Registering again on 15-05-2026 (different hour) overwrites the 15-05 session
+    second = workout_service.register_session(
+        WorkoutSession(date="15-05-2026 19:30", notes="evening revised"),
+        [{"name": "Bench Press", "sets": [{"set_number": 1, "reps": 6, "weight": 85}]}],
+    )
+    assert second["overwritten"] is True
+    assert second["replaced_sessions"] == 1
+
+    day15 = workout_service.get_by_day("15-05-2026")
+    assert len(day15) == 1
+    assert day15[0]["id"] == second["session"]["id"]
+    assert day15[0]["notes"] == "evening revised"
+    assert len(day15[0]["sets"]) == 1
+    assert day15[0]["sets"][0]["exercise"] == "Bench Press"
+    assert day15[0]["sets"][0]["weight"] == 85
+    assert day15[0]["sets"][0]["reps"] == 6
+
+    # Day 16 untouched
+    day16 = workout_service.get_by_day("16-05-2026")
+    assert len(day16) == 1
+    assert day16[0]["notes"] == "next day"
+
+
+def test_register_session_overwrites_multiple_legacy_sessions_on_same_day(
+    db, workout_service, exercises
+):
+    # Simulate two legacy sessions already present on the same calendar day
+    s1 = WorkoutSessionModel.create(date=datetime(2026, 5, 15, 8, 0), notes="legacy 1")
+    s2 = WorkoutSessionModel.create(date=datetime(2026, 5, 15, 17, 0), notes="legacy 2")
+    ExerciseSetModel.create(
+        session=s1.id, exercise=exercises["Bench Press"].id, set_number=1, reps=5, weight=90
+    )
+    ExerciseSetModel.create(
+        session=s2.id, exercise=exercises["Bench Press"].id, set_number=1, reps=5, weight=95
+    )
+
+    res = workout_service.register_session(
+        WorkoutSession(date="15-05-2026 20:00", notes="clean replacement"),
+        [{"name": "Bench Press", "sets": [{"set_number": 1, "reps": 8, "weight": 70}]}],
+    )
+    assert res["overwritten"] is True
+    assert res["replaced_sessions"] == 2
+    assert len(workout_service.get_by_day("15-05-2026")) == 1
+    assert workout_service.get_by_day("15-05-2026")[0]["notes"] == "clean replacement"
+
+
+def test_register_session_overwrite_recalculates_pr_on_typo_correction(
+    db, workout_service, exercises
+):
+    # Earlier real session: 100kg x 1 -> e1rm 100.0
+    earlier = workout_service.register_session(
+        WorkoutSession(date="10-05-2026"),
+        [{"name": "Bench Press", "sets": [{"set_number": 1, "reps": 1, "weight": 100}]}],
+    )
+    # Typo on 15-05-2026: 800kg x 5 -> inflated PR
+    workout_service.register_session(
+        WorkoutSession(date="15-05-2026"),
+        [{"name": "Bench Press", "sets": [{"set_number": 1, "reps": 5, "weight": 800}]}],
+    )
+    assert workout_service.get_personal_record("Bench Press").max_weight == 800
+
+    # Overwrite 15-05-2026 with corrected 80kg x 5 (e1rm 93.33 < 100.0)
+    res = workout_service.register_session(
+        WorkoutSession(date="15-05-2026"),
+        [{"name": "Bench Press", "sets": [{"set_number": 1, "reps": 5, "weight": 80}]}],
+    )
+    assert res["overwritten"] is True
+    assert res["new_prs"] == []
+
+    pr = workout_service.get_personal_record("Bench Press")
+    assert pr is not None
+    assert pr.max_weight == 100
+    assert pr.max_reps == 1
+    assert pr.estimated_1rm == 100.0
+    assert pr.date == "10-05-2026"
+    assert pr.session_id == earlier["session"]["id"]
+
+    # Also verify get_exercise_stats has no ghost 800kg value
+    stats = workout_service.get_exercise_stats(exercise_id=exercises["Bench Press"].id)
+    assert stats[exercises["Bench Press"].id]["max_weight"] == 100.0
+
+
+def test_register_session_overwrite_removes_pr_when_exercise_removed_and_no_other_sets(
+    db, workout_service, exercises
+):
+    workout_service.register_session(
+        WorkoutSession(date="15-05-2026"),
+        [{"name": "Bench Press", "sets": [{"set_number": 1, "reps": 8, "weight": 80}]}],
+    )
+    assert workout_service.get_personal_record("Bench Press") is not None
+
+    # Overwrite 15-05-2026 with only Plank (Bench Press removed completely)
+    res = workout_service.register_session(
+        WorkoutSession(date="15-05-2026"),
+        [{"name": "Plank", "sets": [{"set_number": 1, "duration": 60}]}],
+    )
+    assert res["overwritten"] is True
+    assert workout_service.get_personal_record("Bench Press") is None
+    stats = workout_service.get_exercise_stats(exercise_id=exercises["Bench Press"].id)
+    assert exercises["Bench Press"].id not in stats
+
+
+def test_register_session_overwrite_reverts_pr_when_removed_exercise_exists_on_earlier_day(
+    db, workout_service, exercises
+):
+    workout_service.register_session(
+        WorkoutSession(date="10-05-2026"),
+        [{"name": "Bench Press", "sets": [{"set_number": 1, "reps": 5, "weight": 60}]}],
+    )
+    workout_service.register_session(
+        WorkoutSession(date="15-05-2026"),
+        [{"name": "Bench Press", "sets": [{"set_number": 1, "reps": 5, "weight": 90}]}],
+    )
+    assert workout_service.get_personal_record("Bench Press").max_weight == 90
+
+    # Overwrite 15-05-2026 removing Bench Press -> PR reverts to 10-05-2026 (60kg)
+    workout_service.register_session(
+        WorkoutSession(date="15-05-2026"),
+        [{"name": "Plank", "sets": [{"set_number": 1, "duration": 90}]}],
+    )
+    pr = workout_service.get_personal_record("Bench Press")
+    assert pr is not None
+    assert pr.max_weight == 60
+    assert pr.date == "10-05-2026"
+
+
+def test_register_session_overwrite_rolls_back_on_validation_error(
+    db, workout_service, exercises
+):
+    original = workout_service.register_session(
+        WorkoutSession(date="15-05-2026", notes="original valid"),
+        [{"name": "Bench Press", "sets": [{"set_number": 1, "reps": 8, "weight": 80}]}],
+    )
+    original_pr = workout_service.get_personal_record("Bench Press")
+    assert original_pr is not None
+
+    # Attempt overwrite with invalid payload (missing weight for weight_reps)
+    with pytest.raises(ValidationError) as exc_info:
+        workout_service.register_session(
+            WorkoutSession(date="15-05-2026", notes="broken"),
+            [{"name": "Bench Press", "sets": [{"set_number": 1, "reps": 8}]}],
+        )
+    assert exc_info.value.code == "invalid_input"
+
+    # Existing session, sets, and PR remain completely intact
+    day15 = workout_service.get_by_day("15-05-2026")
+    assert len(day15) == 1
+    assert day15[0]["id"] == original["session"]["id"]
+    assert day15[0]["notes"] == "original valid"
+    assert day15[0]["sets"][0]["weight"] == 80
+    pr_after = workout_service.get_personal_record("Bench Press")
+    assert pr_after is not None
+    assert pr_after.max_weight == 80
+    assert pr_after.session_id == original["session"]["id"]
+
+
+

@@ -86,6 +86,7 @@ The system runs 24/7 on a local PC (server mode). An AI agent (Hermes Agent) con
   - `time`: `duration` in seconds (> 0) required;
   - `distance`: `distance` in meters (> 0) required;
   - `set_number` is a positive integer, unique per exercise within the session.
+- **FR5.5** At most one workout session is stored per calendar day (`DD-MM-YYYY`, ignoring time of day): registering a workout on a date that already has one or more sessions atomically replaces the existing session(s) and reports `overwritten` (`bool`) and `replaced_sessions` (`int`) in the response. Any validation error rolls back the transaction so existing sessions remain intact.
 
 ### FR6 — Personal records (PRs)
 
@@ -94,6 +95,7 @@ The system runs 24/7 on a local PC (server mode). An AI agent (Hermes Agent) con
 - **FR6.3** The PR row is created/updated only when the new estimated 1RM is **strictly greater** than the stored one.
 - **FR6.4** A PR records the date and the session that produced it (session link is nullable; deleting the session nulls it, deleting the exercise removes the PR).
 - **FR6.5** Exercise performance metrics queries (`WorkoutService.get_exercise_stats` / `list_exercises(include_prs=True)`) extract both the highest Estimated 1RM PR (`estimated_1rm`) and the Max Weight set (`max_weight` with `max_weight_reps`, `max_weight_sets` counting the sets performed at that weight in the session, and session date) across all historical sets, plus the set that produced the highest estimated 1RM (`estimated_1rm_weight`, `estimated_1rm_reps` and its date).
+- **FR6.6** When an existing daily workout session is overwritten (`FR5.5`), PR rows for all exercises affected by the replaced session(s) are atomically recalculated from the remaining and new `weight_reps` sets (and removed if no sets remain for that exercise).
 
 ### FR7 — Health & Activity Tracking (Google Health)
 
@@ -106,7 +108,7 @@ The system runs 24/7 on a local PC (server mode). An AI agent (Hermes Agent) con
 ### FR8 — Generative UI Artifacts & Views
 
 - **FR8.1** The MCP server generates standalone interactive HTML artifacts (`get_ui_form`, `generate_html`) for embedding in Antigravity or Hermes chat interfaces.
-- **FR8.2** The UI provides tabbed navigation: Daily Summary (goal comparison, progress bars, macro breakdown, and workout summary with per-set and per-exercise estimated 1RM plus cardio duration in minutes), Meals (with live ingredient/recipe search and delete action), Training (exercises and sets supporting both strength `weight_reps` and cardio `time` in minutes), Steps, Sleep, Weight, and Catalog management (inline creation, edition, and deletion).
+- **FR8.2** The UI provides tabbed navigation: Daily Summary (goal comparison, progress bars, macro breakdown, and workout summary with Weight/Duration before Reps, per-set and per-exercise estimated 1RM, plus cardio duration in minutes), Meals (with live ingredient/recipe search and delete action), Training (exercises and sets supporting both strength `weight_reps` with Weight on the left and Reps on the right and cardio `time` in minutes; pressing `Enter` inside the workout form never submits the form, preserves autocomplete selection, and inside any set row appends and focuses the next set row; direct daily overwrite with overwrite status feedback), Steps, Sleep, Weight, and Catalog management (inline creation, edition, and deletion).
 - **FR8.3** Direct HTTP endpoints (`/ui`, `/ui/{form_type}`, `/api/{tool_name}`) allow browser interaction and asynchronous tool execution directly from UI widgets.
 - **FR8.4** The web UI header and Daily Summary views provide one-click "Sincronizar Google Health" actions to trigger full synchronization and refresh metrics.
 - **FR8.5** A dedicated Exercises section (`/ui/exercise`) displays catalog exercises with muscle group, exercise type, and three PR columns — the estimated 1RM PR badge (`1RM Estimado`), the set that produced the highest estimated 1RM as weight × repetitions with its date (`Peso 1RM`), and the heaviest weight set badge with repetitions, the number of sets performed at that weight in parentheses when `> 1` (e.g. `75×10 (2)`), and its date (`Peso Máx`) — plus search and muscle group filter (options built dynamically from the groups actually present in the catalog, current selection preserved across refreshes), an inline per-row editor (muscle group input with datalist of existing groups plus free text, type select, saved via `POST /api/update_exercise` and row refresh), and an inline exercise creation form.
