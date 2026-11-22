@@ -5,20 +5,20 @@
 ## Spec
 > What and why (no technology)
 
-- [ ] C1: **Weight-before-Reps Column Order**:
+- [x] C1: **Weight-before-Reps Column Order**:
   - In `#tab-workout`, the strength exercise sets table displays **Peso (kg)** on the left and **Reps** on the right (both header columns and row inputs) while keeping live `1RM Est.` computation and submission payload unchanged.
   - In `#tab-summary`, the daily workout table displays **Peso / Duración** on the left and **Reps** on the right (keeping cardio/distance rows aligned cleanly with the updated column order).
-- [ ] C2: **Prevent `Enter` Form Submission in `#form-workout`**:
+- [x] C2: **Prevent `Enter` Form Submission in `#form-workout`**:
   - Pressing `Enter` inside any `<input>` or `<select>` within `#form-workout` never submits the workout form.
   - Autocomplete selection via `Enter` on `.ex-name` when a suggestion is highlighted (`activeIdx >= 0`) continues to pick the highlighted exercise cleanly, and explicit activation of the submit button (`Registrar Sesión`) continues to submit normally.
-- [ ] C3: **Create & Focus Next Set Row on `Enter`**:
+- [x] C3: **Create & Focus Next Set Row on `Enter`**:
   - Pressing `Enter` inside any set row input (`.set-weight`, `.set-reps`, or `.set-duration-min`, whether on the last row or an earlier row) creates a new set row for that exercise block and moves focus to the first input of the newly created row (`.set-weight` in `weight_reps` mode, `.set-duration-min` in `time` mode).
-- [ ] C4: **Daily Workout Overwrite & Atomic PR Recalculation**:
+- [x] C4: **Daily Workout Overwrite & Atomic PR Recalculation**:
   - Registering a workout for a calendar day (`DD-MM-YYYY`, ignoring time of day) that already has one or more workout sessions atomically replaces the existing session(s) for that day with the new session across both Web UI and MCP (`register_workout`).
   - If validation fails on the new workout payload, the transaction rolls back completely and existing workout data for that day remains intact.
   - Personal Records (`PersonalRecord`) for exercises affected by replaced session(s) are recalculated atomically from remaining + new `ExerciseSet` records (removing the PR row if no valid `weight_reps` sets remain for that exercise).
   - The response includes `"overwritten": bool` (and `"replaced_sessions": int`) so the Web UI displays `"Entrenamiento sobrescrito"` when overwriting vs `"Entrenamiento registrado"` for a new day.
-- [ ] C5: **Tests & Documentation**:
+- [x] C5: **Tests & Documentation**:
   - Unit tests (`tests/unit/test_workout_service.py`), MCP integration tests (`tests/integration/test_mcp_workout_tools.py`), UI/HTTP integration tests (`tests/integration/test_ui_web_routes.py`), JS syntax check (`node --check`), and full test suite pass.
   - OpenSpec documentation (`docs/specs/openspec/requirements.md`, `docs/specs/openspec/api-spec.md`) updated.
 
@@ -70,5 +70,15 @@
 ## Verification
 > Comparison against the spec (filled in at close)
 
+- **C1 (Weight-before-Reps Column Order)**: `getSetsTableHeaderHtml()` and `addSetRow()` in `src/ui/html_generator.py` render `Peso (kg)` (`.set-weight`) on the left and `Reps` (`.set-reps`) on the right; `renderSummaryWorkouts()` renders `Peso / Duración` before `Reps` across strength, cardio (`duration`), and distance rows. Verified by `test_ui_workout_form_ux_and_daily_overwrite` and `node --check` (`JS_SYNTAX_OK`).
+- **C2 (Prevent `Enter` Form Submission in `#form-workout`)**: `handleWorkoutFormKeydown()` attached to `#form-workout` calls `e.preventDefault()` on `Enter` for `<input>`/`<select>` elements while allowing `<button>`/`<textarea>` activation and preserving `.ex-name` autocomplete selection (`attachAutocomplete` runs in target phase before bubbling). Verified by `test_ui_workout_form_ux_and_daily_overwrite` and `node --check`.
+- **C3 (Create & Focus Next Set Row on `Enter`)**: Pressing `Enter` inside any `.sets-table tbody tr` input (`.set-weight`, `.set-reps`, `.set-duration-min`) calls `addSetRow(block.id)` (which now returns `tr`) and focuses `.set-weight, .set-duration-min` on the new row. Verified by `test_ui_workout_form_ux_and_daily_overwrite` and `node --check`.
+- **C4 (Daily Workout Overwrite & Atomic PR Recalculation)**: `WorkoutService.register_session()` atomically replaces any existing session(s) on `[day_start, day_end)`, recalculates `PersonalRecordModel` via `_recalculate_pr()` for all affected exercises (including selecting `WorkoutSessionModel.id` to preserve accurate `session_id`), rolls back completely on `ValidationError`, and returns `overwritten` / `replaced_sessions`; `summarizeSuccess()` displays `"Entrenamiento sobrescrito"` vs `"Entrenamiento registrado"`. Verified by 7 unit tests in `tests/unit/test_workout_service.py`, `test_register_workout_tool_overwrites_same_day_and_recalculates_pr`, and `test_ui_workout_form_ux_and_daily_overwrite`.
+- **C5 (Tests & Documentation)**: Full verification loop passed — `node --check` (`JS_SYNTAX_OK`), `pytest tests/ -q` (**242 passed in 3.38s**), hygiene/secrets scan clean, and `docs/specs/openspec/requirements.md` (FR5.5, FR6.6, FR8.2) + `docs/specs/openspec/api-spec.md` (`register_workout`) updated.
+
 ## Close
 > Close (filled in at close)
+
+- **Date**: 2026-11-22
+- **Implemented**: Weight-left / Reps-right column order in `#tab-workout` and `#tab-summary`, `#form-workout` `Enter` key handling (blocks accidental form submit, preserves autocomplete selection, appends & focuses next set row in strength and cardio modes), atomic same-day workout overwrite with Personal Record recalculation across both Web UI and MCP (`overwritten` / `replaced_sessions`), UI overwrite status feedback, unit/integration tests, and OpenSpec updates.
+- **Next step**: Push `feat/workout-form-ux-and-daily-overwrite` and open Pull Request to `main` for review/merge.
