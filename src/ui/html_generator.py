@@ -1199,7 +1199,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove(); renumberSets('${{exBlockId}}');">×</button></td>
         `;
         tbody.appendChild(tr);
-        return;
+        return tr;
       }}
 
       const calc1rm = (w, r) => r === 1 ? w : Math.round(w * (1 + r / 30) * 100) / 100;
@@ -1214,6 +1214,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove(); renumberSets('${{exBlockId}}');">×</button></td>
       `;
       tbody.appendChild(tr);
+      return tr;
     }}
 
     function updateSet1RM(input) {{
@@ -1236,6 +1237,37 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         tr.querySelector('.set-num').textContent = idx + 1;
       }});
     }}
+
+    function handleWorkoutFormKeydown(e) {{
+      if (e.key !== 'Enter' && e.keyCode !== 13) return;
+      const target = e.target;
+      if (!target) return;
+      const tag = target.tagName;
+      if (tag === 'BUTTON' || tag === 'TEXTAREA') return;
+
+      if (target.closest && target.closest('.sets-table tbody tr')) {{
+        e.preventDefault();
+        const block = target.closest('#workout-exercises-container > div');
+        if (block && block.id) {{
+          const newRow = addSetRow(block.id);
+          const nextInput = newRow
+            ? newRow.querySelector('.set-weight, .set-duration-min')
+            : null;
+          if (nextInput) nextInput.focus();
+        }}
+        return;
+      }}
+
+      if (tag === 'INPUT' || tag === 'SELECT') {{
+        e.preventDefault();
+      }}
+    }}
+
+    const workoutFormEl = document.getElementById('form-workout');
+    if (workoutFormEl) {{
+      workoutFormEl.addEventListener('keydown', handleWorkoutFormKeydown);
+    }}
+
     addExerciseBlock();
 
     // Universal Dispatch & Result Display
@@ -1246,7 +1278,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (d.recipe && d.recipe.name) return `Receta «${{d.recipe.name}}» guardada`;
       if (d.goal) return `Objetivo actualizado`;
       if (d.entry_id) return `Comida registrada`;
-      if (d.session) return `Entrenamiento registrado`;
+      if (d.session) return d.overwritten ? `Entrenamiento sobrescrito` : `Entrenamiento registrado`;
       if (d.progress && d.progress.date) return `Progreso del ${{d.progress.date}} guardado`;
       return 'Operación completada con éxito';
     }}
