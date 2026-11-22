@@ -345,7 +345,7 @@ Errors: `not_found` (no goal at all), `invalid_input` (bad date), `internal`.
 
 ### `register_workout`
 
-Register a workout session. **Atomic**: the session and all its sets are created or none (rollback on any error). Unknown exercises are auto-created (type inferred from the set payload) and reported in `auto_created`. PRs are upserted for `weight_reps` exercises.
+Register a workout session. **Atomic**: if one or more workout sessions already exist on the same calendar day (`DD-MM-YYYY`, ignoring time of day), they are atomically replaced and Personal Records for affected exercises are recalculated from remaining and new sets (rolling back completely on any validation error so prior data is preserved). Unknown exercises are auto-created (type inferred from the set payload) and reported in `auto_created`. PRs are upserted for `weight_reps` exercises.
 
 | Arg | Type | Req | Default | Description |
 |---|---|---|---|---|
@@ -359,7 +359,9 @@ Register a workout session. **Atomic**: the session and all its sets are created
   "session": {"id": 3, "date": "09-11-2026 17:00:00", "notes": "push day"},
   "sets": [{"exercise": "bench press", "set_number": 1, "reps": 8, "weight": 80.0, "duration": null, "distance": null}],
   "new_prs": [{"exercise": "bench press", "max_weight": 80.0, "max_reps": 8, "estimated_1rm": 94.67, "date": "09-11-2026"}],
-  "auto_created": []
+  "auto_created": [],
+  "overwritten": false,
+  "replaced_sessions": 0
 }
 ```
 

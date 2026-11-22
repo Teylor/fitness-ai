@@ -65,7 +65,7 @@
 - [x] T2: Swap Weight (`Peso (kg)` / `Peso / Duración`, left) and Reps (`Reps`, right) columns in `#tab-workout` (`getSetsTableHeaderHtml`, `addSetRow`) and `#tab-summary` (`renderSummaryWorkouts`) in `src/ui/html_generator.py` → verify: `node --check` (`JS_SYNTAX_OK`) + `pytest tests/integration/test_ui_web_routes.py -v` → PASSED (18 passed in 1.24s)
 - [x] T3: Add `#form-workout` `Enter` key handler (block form submission on inputs/selects while preserving `.ex-name` autocomplete selection, and append + focus next set row when pressing `Enter` in strength or cardio set inputs) and update `summarizeSuccess()` overwrite message in `src/ui/html_generator.py` → verify: `node --check` (`JS_SYNTAX_OK`) + `pytest tests/integration/test_ui_web_routes.py -v` → PASSED (18 passed in 0.87s)
 - [x] T4: Add UI/HTTP integration tests in `tests/integration/test_ui_web_routes.py` covering Weight-left/Reps-right order in `#tab-workout` and `#tab-summary`, `Enter` key handling, and `/api/register_workout` daily overwrite flow, then run the full test suite → verify: `node --check` (`JS_SYNTAX_OK`) + `pytest tests/ -v` → PASSED (242 passed in 3.65s)
-- [ ] T5: Update OpenSpec docs (`docs/specs/openspec/requirements.md`, `docs/specs/openspec/api-spec.md`) to document daily overwrite semantics, PR recalculation, and Training/Summary UI updates → verify: `pytest tests/ -v`
+- [x] T5: Update OpenSpec docs (`docs/specs/openspec/requirements.md`, `docs/specs/openspec/api-spec.md`) to document daily overwrite semantics, PR recalculation, and Training/Summary UI updates → verify: `pytest tests/ -v` → PASSED (242 passed in 3.41s)
 
 ## Verification
 > Comparison against the spec (filled in at close)
