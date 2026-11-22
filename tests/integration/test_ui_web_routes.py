@@ -1011,6 +1011,98 @@ async def test_ui_body_progress_tracking_view_and_api(db):
         assert listed_after.json()["count"] == 1
 
 
+@pytest.mark.anyio
+async def test_ui_workout_form_ux_and_daily_overwrite(db):
+    server = create_server()
+    app = server.streamable_http_app()
+    transport = httpx2.ASGITransport(app=app)
+
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
+        # 1. Verify Weight-left / Reps-right column order in #tab-workout and #tab-summary
+        wo_res = await client.get("/ui/workout")
+        assert wo_res.status_code == 200
+        html = wo_res.text
+
+        assert '<th style="width: 50px;">Set</th><th>Peso (kg)</th><th>Reps</th><th>1RM Est.</th>' in html
+        add_row_start = html.index("function addSetRow(")
+        add_row_end = html.index("function updateSet1RM(")
+        add_row_snippet = html[add_row_start:add_row_end]
+        assert add_row_snippet.index('class="set-weight"') < add_row_snippet.index('class="set-reps"')
+
+        summary_start = html.index("function renderSummaryWorkouts(")
+        summary_end = html.index("// BODY PROGRESS TRACKING")
+        summary_snippet = html[summary_start:summary_end]
+        assert summary_snippet.index("<th>Peso / Duración</th>") < summary_snippet.index("<th>Reps</th>")
+        assert summary_snippet.index("<td>${set.weight ?? 0} kg</td>") < summary_snippet.index("<td>${set.reps ?? '-'}</td>")
+        assert summary_snippet.index("<td>${durMin} min</td>") < summary_snippet.index("⏱️ Tiempo")
+
+        # 2. Verify #form-workout Enter key handling & overwrite feedback message
+        assert "function handleWorkoutFormKeydown(" in html
+        assert "workoutFormEl.addEventListener('keydown', handleWorkoutFormKeydown)" in html
+        assert "target.closest('.sets-table tbody tr')" in html
+        assert "const newRow = addSetRow(block.id);" in html
+        assert "newRow.querySelector('.set-weight, .set-duration-min')" in html
+        assert "if (nextInput) nextInput.focus();" in html
+        assert "d.overwritten ? `Entrenamiento sobrescrito` : `Entrenamiento registrado`" in html
+
+        # 3. End-to-end HTTP /api/register_workout daily overwrite & PR recalculation
+        first = await client.post(
+            "/api/register_workout",
+            json={
+                "date": "29-11-2026 09:00",
+                "notes": "Initial typo",
+                "exercises": [
+                    {
+                        "name": "Sentadilla",
+                        "sets": [{"set_number": 1, "reps": 5, "weight": 500.0}],
+                    }
+                ],
+            },
+        )
+        assert first.status_code == 200
+        first_data = first.json()
+        assert first_data["status"] == "ok"
+        assert first_data["overwritten"] is False
+        assert first_data["replaced_sessions"] == 0
+
+        second = await client.post(
+            "/api/register_workout",
+            json={
+                "date": "29-11-2026 19:00",
+                "notes": "Corrected workout",
+                "exercises": [
+                    {
+                        "name": "Sentadilla",
+                        "sets": [
+                            {"set_number": 1, "reps": 8, "weight": 100.0},
+                            {"set_number": 2, "reps": 8, "weight": 100.0},
+                        ],
+                    }
+                ],
+            },
+        )
+        assert second.status_code == 200
+        second_data = second.json()
+        assert second_data["status"] == "ok"
+        assert second_data["overwritten"] is True
+        assert second_data["replaced_sessions"] == 1
+
+        day = await client.get("/api/get_workouts_by_day?date=29-11-2026")
+        assert day.status_code == 200
+        day_data = day.json()
+        assert day_data["count"] == 1
+        assert day_data["sessions"][0]["notes"] == "Corrected workout"
+        assert len(day_data["sessions"][0]["sets"]) == 2
+        assert day_data["sessions"][0]["sets"][0]["weight"] == 100.0
+
+        ex_res = await client.get("/api/list_exercises?include_prs=true")
+        assert ex_res.status_code == 200
+        squat = next(e for e in ex_res.json()["exercises"] if e["name"] == "Sentadilla")
+        assert squat["pr"]["max_weight"] == 100.0
+        assert squat["pr"]["max_weight_sets"] == 2
+
+
+
 
 
 
