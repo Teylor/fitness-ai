@@ -38,6 +38,7 @@
 
 | Feature | File |
 |---------|---------|
+| `workout-form-ux-and-daily-overwrite` | `odd/tasks/workout-form-ux-and-daily-overwrite.md` |
 
 ---
 
