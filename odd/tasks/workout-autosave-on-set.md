@@ -5,21 +5,21 @@
 ## Spec
 > What and why (no technology)
 
-- [ ] C1: **Filtered Payload Builder & Safe Serialized Auto-Save**:
+- [x] C1: **Filtered Payload Builder & Safe Serialized Auto-Save**:
   - Auto-save constructs a clean workout payload that skips incomplete set rows (e.g., blank trailing rows added by `Enter`) and exercise blocks with blank names, supports `0 kg` bodyweight strength sets (`weight >= 0` and integer `reps >= 1`) and positive cardio durations (`duration > 0` min), merges duplicate exercise blocks sharing the same trimmed name (case-insensitive) with sequential `set_number` (`1..N`), and never sends an empty `exercises: []` payload.
   - Concurrent edits are serialized with a single-flight save queue and payload fingerprint deduplication so out-of-order HTTP responses can never overwrite newer edits, without clearing the form, stealing focus, or modifying the manual `#workout-result` banner.
   - A subtle inline status indicator next to `Registrar Sesión` reports auto-save progress and outcome (`Guardando...`, `✓ Guardado automáticamente HH:MM`, or `⚠️ Error al autoguardar`).
   - Clicking `Registrar Sesión` continues to work as an explicit manual save, cancelling pending debounce timers and syncing auto-save state on success.
-- [ ] C2: **Non-Intrusive Set & Edit Auto-Save Triggers**:
+- [x] C2: **Non-Intrusive Set & Edit Auto-Save Triggers**:
   - Strength set inputs (`.set-weight`, `.set-reps`) and cardio duration inputs (`.set-duration-min`) trigger debounced auto-save on `input` (`700ms`) and immediate auto-save on `change`.
   - Pressing `Enter` inside a set row triggers an immediate auto-save of the completed set while appending and focusing the next empty set row (preserving existing `Enter` UX).
   - Removing a set row or removing an exercise block triggers immediate auto-save (no-op when 0 valid sets remain).
   - Editing `#workout-notes` (`change`) or finalizing an exercise name (`.ex-name` `change` or autocomplete `pick`) triggers immediate auto-save if at least one valid set exists, while raw keystrokes in `.ex-name` NEVER trigger auto-save so half-typed exercise names are never auto-created in the catalog.
-- [ ] C3: **Auto-Hydrate Existing Daily Workout on Open & Date Change**:
+- [x] C3: **Auto-Hydrate Existing Daily Workout on Open & Date Change**:
   - Opening the app or changing `#workout-date` to a different calendar day (`DD-MM-YYYY`) loads any existing session for that day via `GET /api/get_workouts_by_day?date=...` into `#tab-workout` (notes, exercise blocks, strength/cardio modes, set values, 1RM estimates, and max-weight reference badges) while suppressing auto-save during hydration.
   - Switching tabs back and forth for the same already-hydrated date does not wipe in-progress edits.
   - Selecting a calendar day with no saved workout resets the form to a clean single empty exercise block.
-- [ ] C4: **Tests, OpenSpec & Verification**:
+- [x] C4: **Tests, OpenSpec & Verification**:
   - UI/HTTP integration tests in `tests/integration/test_ui_web_routes.py` verify auto-save markup/handlers, daily hydration wiring, and progressive set-by-set daily overwrite round-trips (including `0 kg` bodyweight and cardio sets).
   - OpenSpec requirements (`docs/specs/openspec/requirements.md`) document set-level workout auto-save and daily hydration.
   - `node --check` on extracted inline JS and the full `pytest tests/ -v` suite pass cleanly.
@@ -58,5 +58,14 @@
 ## Verification
 > Comparison against the spec (filled in at close)
 
+- **C1 (Filtered Payload Builder & Safe Serialized Auto-Save)**: `buildWorkoutPayload({ skipIncomplete })`, `scheduleWorkoutAutoSave()`, `flushWorkoutAutoSave()`, and `#workout-autosave-status` in `src/ui/html_generator.py` filter out blank exercise names and incomplete rows, accept `0 kg` bodyweight strength sets (`weight >= 0`, integer `reps >= 1`) and positive cardio durations (`mins > 0`), merge duplicate exercise names case-insensitively with sequential `set_number` `1..N`, skip empty `exercises: []`, serialize concurrent saves via `workoutAutosaveInFlight` / `workoutAutosavePending` + `lastSavedWorkoutFingerprint`, and leave `#workout-result` / focus untouched while preserving manual `submitWorkout()`. Verified by `test_ui_workout_autosave_on_set_and_hydration` and `node --check` (`JS_SYNTAX_OK`).
+- **C2 (Non-Intrusive Set & Edit Auto-Save Triggers)**: `.set-weight`, `.set-reps` (`updateSet1RM` → `onWorkoutSetInput`), and `.set-duration-min` (`onWorkoutSetInput`) debounce (`700ms`) on `input` and flush immediately on `change`; `handleWorkoutFormKeydown()` triggers immediate auto-save on `Enter` in set rows while appending and focusing the next row; `removeSetRow()`, `removeExerciseBlock()`, `#workout-notes` `change`, and `.ex-name` `change` / autocomplete `onPick` trigger immediate auto-save; `onExerciseNameInput()` does not call auto-save on raw keystrokes. Verified by `test_ui_workout_autosave_on_set_and_hydration` and `test_ui_workout_form_ux_and_daily_overwrite`.
+- **C3 (Auto-Hydrate Existing Daily Workout on Open & Date Change)**: `loadWorkoutForSelectedDate()` fetches `GET /api/get_workouts_by_day?date=...` on initial load, `#workout-date` `change`, and `switchTab('workout')` (guarded by `lastHydratedWorkoutDate`, `workoutHydrationSeq`, and `isHydratingWorkout` so tab switching and in-progress edits are never wiped), reconstructs notes + strength/cardio exercise blocks + sets + 1RM + max-weight badges, resets cleanly on empty days, and syncs `lastSavedWorkoutFingerprint` to prevent immediate redundant POSTs. Verified by `test_ui_workout_autosave_on_set_and_hydration` and `node --check`.
+- **C4 (Tests, OpenSpec & Verification)**: Verification loop passed cleanly after final edits — `py_compile` clean, `node --check` (`JS_SYNTAX_OK`), `pytest tests/ -q` (**243 passed in 3.58s**), hygiene/secrets scan on `git diff main...HEAD` clean (0 findings), and `docs/specs/openspec/requirements.md` (`FR8.2`) updated.
+
 ## Close
 > Close (filled in at close)
+
+- **Date**: 2026-11-24
+- **Implemented**: Automatic set-level workout auto-save in `#tab-workout` (filtered payload builder, `0 kg` bodyweight & cardio duration support, single-flight serialized queue with fingerprint deduplication, inline `#workout-autosave-status` indicator, non-intrusive event triggers without auto-creating half-typed exercises), automatic daily workout hydration on page load and date change via `GET /api/get_workouts_by_day`, UI/HTTP integration tests, and OpenSpec updates.
+- **Next step**: Push `feat/workout-autosave-on-set` and open Pull Request to `main` for review/merge.
