@@ -708,11 +708,11 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         <div class="form-grid">
           <div class="form-group">
             <label for="workout-date">Fecha y Hora (opcional)</label>
-            <input type="datetime-local" id="workout-date" onclick="this.showPicker && this.showPicker()">
+            <input type="datetime-local" id="workout-date" onclick="this.showPicker && this.showPicker()" onchange="loadWorkoutForSelectedDate()">
           </div>
           <div class="form-group" style="grid-column: 1 / -1;">
             <label for="workout-notes">Notas de la sesión</label>
-            <input type="text" id="workout-notes" placeholder="Ej: Push day enfocado en fuerza...">
+            <input type="text" id="workout-notes" placeholder="Ej: Push day enfocado en fuerza..." onchange="scheduleWorkoutAutoSave({{ immediate: true }})">
           </div>
         </div>
 
@@ -725,8 +725,9 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <button type="button" class="btn btn-secondary btn-sm" style="border-color: var(--cyan); color: var(--cyan);" onclick="addExerciseBlock('', 'time')">⏱️ + Añadir Cardio (Tiempo)</button>
         </div>
 
-        <div style="margin-top: 14px; display: flex; gap: 8px;">
+        <div style="margin-top: 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
           <button type="submit" class="btn">Registrar Sesión</button>
+          <span id="workout-autosave-status" aria-live="polite" style="font-size: var(--fs-md); color: var(--text-muted);"></span>
         </div>
       </form>
       <div id="workout-result" class="result-box"></div>
@@ -978,6 +979,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (tabName === 'ingredient') fetchIngredientsList();
       if (tabName === 'recipe') fetchRecipesList();
       if (tabName === 'workout') fetchExercisesList();
+      if (tabName === 'workout') loadWorkoutForSelectedDate();
       if (tabName === 'exercise') fetchExercisesList();
       if (tabName === 'progress') fetchBodyProgress();
       if (tabName === 'summary') fetchSummary();
@@ -1067,12 +1069,12 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const placeholderText = mode === 'time' ? 'Nombre del cardio (ej: Cinta, Bici, Elíptica...)' : 'Nombre del ejercicio...';
       div.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
-          <input type="text" class="ex-name" list="exercises-datalist" autocomplete="off" required value="${{name}}" style="font-weight: 700; flex: 1 1 200px;" placeholder="${{placeholderText}}" oninput="onExerciseNameInput('${{id}}', this)">
+          <input type="text" class="ex-name" list="exercises-datalist" autocomplete="off" required value="${{name}}" style="font-weight: 700; flex: 1 1 200px;" placeholder="${{placeholderText}}" oninput="onExerciseNameInput('${{id}}', this)" onchange="scheduleWorkoutAutoSave({{ immediate: true }})">
           <select class="ex-mode" style="padding: 6px 10px; font-size: var(--fs-md);" onchange="onExerciseModeChange('${{id}}', this.value)">
             <option value="weight_reps" ${{mode === 'weight_reps' ? 'selected' : ''}}>🏋️ Peso y Reps</option>
             <option value="time" ${{mode === 'time' ? 'selected' : ''}}>⏱️ Cardio / Tiempo (min)</option>
           </select>
-          <button type="button" class="btn btn-danger btn-sm" onclick="document.getElementById('${{id}}').remove()">Eliminar Ejercicio</button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="removeExerciseBlock('${{id}}')">Eliminar Ejercicio</button>
         </div>
         <div class="ex-max-weight-ref" style="display: none; align-items: center; gap: 8px; flex-wrap: wrap; font-size: var(--fs-md); color: var(--text-muted); padding: 2px 2px;"></div>
         <div class="table-container">
@@ -1097,11 +1099,21 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             }}
             return {{ value: ex.name, sub: parts.join(' · ') }};
           }}),
-          () => onExerciseNameInput(id, exInput)
+          () => {{
+            onExerciseNameInput(id, exInput);
+            scheduleWorkoutAutoSave({{ immediate: true }});
+          }}
         );
       }}
       addSetRow(id, 1, '', '', '');
       if (name) updateExerciseMaxWeightRef(id);
+      return div;
+    }}
+
+    function removeExerciseBlock(exBlockId) {{
+      const block = document.getElementById(exBlockId);
+      if (block) block.remove();
+      scheduleWorkoutAutoSave({{ immediate: true }});
     }}
 
     function updateExerciseMaxWeightRef(exBlockId, matchedEx = null) {{
@@ -1195,8 +1207,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (mode === 'time') {{
         tr.innerHTML = `
           <td><span class="badge badge-info set-num">${{num}}</span></td>
-          <td><input type="number" class="set-duration-min" required value="${{durationMin}}" placeholder="Minutos (ej: 20)" step="any" min="0.1" style="width: 150px;"></td>
-          <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove(); renumberSets('${{exBlockId}}');">×</button></td>
+          <td><input type="number" class="set-duration-min" required value="${{durationMin}}" placeholder="Minutos (ej: 20)" step="any" min="0.1" style="width: 150px;" oninput="onWorkoutSetInput(this)" onchange="scheduleWorkoutAutoSave({{ immediate: true }})"></td>
+          <td><button type="button" class="btn btn-danger btn-sm" onclick="removeSetRow(this, '${{exBlockId}}')">×</button></td>
         `;
         tbody.appendChild(tr);
         return tr;
@@ -1208,10 +1220,10 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
       tr.innerHTML = `
         <td><span class="badge badge-info set-num">${{num}}</span></td>
-        <td><input type="number" class="set-weight" required value="${{weight}}" placeholder="kg" step="any" min="0" style="width: 90px;" oninput="updateSet1RM(this)"></td>
-        <td><input type="number" class="set-reps" required value="${{reps}}" placeholder="Reps" min="1" style="width: 80px;" oninput="updateSet1RM(this)"></td>
+        <td><input type="number" class="set-weight" required value="${{weight}}" placeholder="kg" step="any" min="0" style="width: 90px;" oninput="updateSet1RM(this)" onchange="scheduleWorkoutAutoSave({{ immediate: true }})"></td>
+        <td><input type="number" class="set-reps" required value="${{reps}}" placeholder="Reps" min="1" style="width: 80px;" oninput="updateSet1RM(this)" onchange="scheduleWorkoutAutoSave({{ immediate: true }})"></td>
         <td><span class="set-1rm" style="color: var(--primary); font-weight: 700;">${{initial1rm}}</span></td>
-        <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove(); renumberSets('${{exBlockId}}');">×</button></td>
+        <td><button type="button" class="btn btn-danger btn-sm" onclick="removeSetRow(this, '${{exBlockId}}')">×</button></td>
       `;
       tbody.appendChild(tr);
       return tr;
@@ -1229,6 +1241,35 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const weight = parseFloat(weightRaw) || 0;
       const est1rm = reps === 1 ? weight : Math.round(weight * (1 + reps / 30) * 100) / 100;
       tr.querySelector('.set-1rm').textContent = `${{est1rm}} kg`;
+      onWorkoutSetInput(input);
+    }}
+
+    function onWorkoutSetInput(input) {{
+      const tr = input ? input.closest('tr') : null;
+      if (!tr) return;
+      const durInput = tr.querySelector('.set-duration-min');
+      if (durInput) {{
+        const mins = Number(String(durInput.value).trim());
+        if (String(durInput.value).trim() !== '' && Number.isFinite(mins) && mins > 0) {{
+          scheduleWorkoutAutoSave({{ immediate: false }});
+        }}
+        return;
+      }}
+      const weightRaw = String(tr.querySelector('.set-weight')?.value ?? '').trim();
+      const repsRaw = String(tr.querySelector('.set-reps')?.value ?? '').trim();
+      if (weightRaw === '' || repsRaw === '') return;
+      const weight = Number(weightRaw);
+      const reps = Number(repsRaw);
+      if (Number.isFinite(weight) && weight >= 0 && Number.isInteger(reps) && reps >= 1) {{
+        scheduleWorkoutAutoSave({{ immediate: false }});
+      }}
+    }}
+
+    function removeSetRow(btn, exBlockId) {{
+      const tr = btn ? btn.closest('tr') : null;
+      if (tr) tr.remove();
+      renumberSets(exBlockId);
+      scheduleWorkoutAutoSave({{ immediate: true }});
     }}
 
     function renumberSets(exBlockId) {{
@@ -1247,6 +1288,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
       if (target.closest && target.closest('.sets-table tbody tr')) {{
         e.preventDefault();
+        scheduleWorkoutAutoSave({{ immediate: true }});
         const block = target.closest('#workout-exercises-container > div');
         if (block && block.id) {{
           const newRow = addSetRow(block.id);
@@ -2216,41 +2258,287 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       }}
     }}
 
-    async function submitWorkout(e) {{
-      e.preventDefault();
-      const exercises = [];
+    let workoutAutosaveTimer = null;
+    let workoutAutosaveInFlight = false;
+    let workoutAutosavePending = false;
+    let lastSavedWorkoutFingerprint = null;
+    let isHydratingWorkout = false;
+    let lastHydratedWorkoutDate = null;
+    let workoutHydrationSeq = 0;
+
+    function getSelectedWorkoutDayStr() {{
+      const raw = document.getElementById('workout-date')?.value || '';
+      const datePart = raw ? raw.split('T')[0] : formatTodayIso(false);
+      return toBackendDate(datePart) || toBackendDate(formatTodayIso(false));
+    }}
+
+    async function loadWorkoutForSelectedDate({{ force = false }} = {{}}) {{
+      const container = document.getElementById('workout-exercises-container');
+      const notesEl = document.getElementById('workout-notes');
+      if (!container || !notesEl) return;
+
+      const dateStr = getSelectedWorkoutDayStr();
+      if (!force && dateStr === lastHydratedWorkoutDate) return;
+
+      const seq = ++workoutHydrationSeq;
+      if (workoutAutosaveTimer) {{
+        clearTimeout(workoutAutosaveTimer);
+        workoutAutosaveTimer = null;
+      }}
+      workoutAutosavePending = false;
+      isHydratingWorkout = true;
+
+      try {{
+        const resp = await fetch(`/api/get_workouts_by_day?date=${{encodeURIComponent(dateStr)}}`);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        if (seq !== workoutHydrationSeq) return;
+        if (!data || data.status !== 'ok') return;
+
+        const sessions = data.sessions || [];
+        const resEl = document.getElementById('workout-result');
+        if (resEl) resEl.style.display = 'none';
+
+        if (sessions.length === 0) {{
+          notesEl.value = '';
+          container.innerHTML = '';
+          addExerciseBlock();
+          lastSavedWorkoutFingerprint = null;
+          lastHydratedWorkoutDate = dateStr;
+          setWorkoutAutoSaveStatus('', 'muted');
+          return;
+        }}
+
+        const session = sessions[sessions.length - 1];
+        notesEl.value = session.notes || '';
+
+        const grouped = [];
+        const byEx = new Map();
+        (session.sets || []).forEach(s => {{
+          const exName = s.exercise || '';
+          if (!exName) return;
+          if (!byEx.has(exName)) {{
+            const isTime = s.duration !== null && s.duration !== undefined && (s.reps === null || s.reps === undefined);
+            const grp = {{ name: exName, mode: isTime ? 'time' : 'weight_reps', sets: [] }};
+            byEx.set(exName, grp);
+            grouped.push(grp);
+          }}
+          byEx.get(exName).sets.push(s);
+        }});
+
+        container.innerHTML = '';
+        if (grouped.length === 0) {{
+          addExerciseBlock();
+          lastSavedWorkoutFingerprint = null;
+          lastHydratedWorkoutDate = dateStr;
+          setWorkoutAutoSaveStatus('', 'muted');
+          return;
+        }}
+
+        grouped.forEach(grp => {{
+          const block = addExerciseBlock('', grp.mode);
+          const exInput = block ? block.querySelector('.ex-name') : null;
+          if (exInput) exInput.value = grp.name;
+          const tbody = block ? block.querySelector('.sets-table tbody') : null;
+          if (tbody) tbody.innerHTML = '';
+          grp.sets.forEach((s, idx) => {{
+            if (grp.mode === 'time') {{
+              const mins = s.duration !== null && s.duration !== undefined
+                ? Math.round((Number(s.duration) / 60) * 100) / 100
+                : '';
+              addSetRow(block.id, idx + 1, '', '', mins);
+            }} else {{
+              const repsVal = s.reps !== null && s.reps !== undefined ? s.reps : '';
+              const weightVal = s.weight !== null && s.weight !== undefined ? s.weight : '';
+              const tr = addSetRow(block.id, idx + 1, repsVal, weightVal, '');
+              const weightInput = tr ? tr.querySelector('.set-weight') : null;
+              if (weightInput) updateSet1RM(weightInput);
+            }}
+          }});
+          if (block) updateExerciseMaxWeightRef(block.id);
+        }});
+
+        lastSavedWorkoutFingerprint = getWorkoutPayloadFingerprint(buildWorkoutPayload({{ skipIncomplete: true }}));
+        lastHydratedWorkoutDate = dateStr;
+        setWorkoutAutoSaveStatus('✓ Entrenamiento cargado', 'ok');
+      }} catch (err) {{
+        // Keep current form untouched if offline/unreachable
+      }} finally {{
+        if (seq === workoutHydrationSeq) {{
+          isHydratingWorkout = false;
+        }}
+      }}
+    }}
+
+    function formatTimeHHMM(dateObj = new Date()) {{
+      const pad = n => String(n).padStart(2, '0');
+      return `${{pad(dateObj.getHours())}}:${{pad(dateObj.getMinutes())}}`;
+    }}
+
+    function setWorkoutAutoSaveStatus(text, tone = 'muted') {{
+      const el = document.getElementById('workout-autosave-status');
+      if (!el) return;
+      el.textContent = text || '';
+      if (tone === 'ok') {{
+        el.style.color = '#34d399';
+      }} else if (tone === 'error') {{
+        el.style.color = '#f87171';
+      }} else {{
+        el.style.color = 'var(--text-muted)';
+      }}
+    }}
+
+    function getWorkoutPayloadFingerprint(payload) {{
+      return JSON.stringify({{
+        date: payload.date || '',
+        notes: payload.notes || '',
+        exercises: payload.exercises || []
+      }});
+    }}
+
+    function buildWorkoutPayload({{ skipIncomplete = false }} = {{}}) {{
+      const mergedByKey = new Map();
       document.querySelectorAll('#workout-exercises-container > div').forEach(div => {{
-        const exName = div.querySelector('.ex-name').value;
+        const rawName = div.querySelector('.ex-name') ? div.querySelector('.ex-name').value : '';
+        const exName = rawName.trim();
+        if (skipIncomplete && !exName) return;
+
         const mode = div.querySelector('.ex-mode') ? div.querySelector('.ex-mode').value : 'weight_reps';
-        const sets = [];
-        div.querySelectorAll('.sets-table tbody tr').forEach((tr, i) => {{
+        const blockSets = [];
+
+        div.querySelectorAll('.sets-table tbody tr').forEach(tr => {{
           const durInput = tr.querySelector('.set-duration-min');
           if (mode === 'time' || durInput) {{
-            const mins = parseFloat(durInput ? durInput.value : 0) || 1;
-            sets.push({{
-              set_number: i + 1,
-              duration: Math.max(1, Math.round(mins * 60))
-            }});
+            const durRaw = durInput ? String(durInput.value).trim() : '';
+            if (skipIncomplete) {{
+              if (durRaw === '') return;
+              const mins = Number(durRaw);
+              if (!Number.isFinite(mins) || mins <= 0) return;
+              blockSets.push({{ duration: Math.max(1, Math.round(mins * 60)) }});
+            }} else {{
+              const mins = parseFloat(durRaw) || 1;
+              blockSets.push({{ duration: Math.max(1, Math.round(mins * 60)) }});
+            }}
           }} else {{
-            sets.push({{
-              set_number: i + 1,
-              reps: parseInt(tr.querySelector('.set-reps').value) || 1,
-              weight: parseFloat(tr.querySelector('.set-weight').value) || 0
-            }});
+            const weightEl = tr.querySelector('.set-weight');
+            const repsEl = tr.querySelector('.set-reps');
+            const weightRaw = weightEl ? String(weightEl.value).trim() : '';
+            const repsRaw = repsEl ? String(repsEl.value).trim() : '';
+            if (skipIncomplete) {{
+              if (weightRaw === '' || repsRaw === '') return;
+              const weight = Number(weightRaw);
+              const reps = Number(repsRaw);
+              if (!Number.isFinite(weight) || weight < 0 || !Number.isInteger(reps) || reps < 1) return;
+              blockSets.push({{ reps, weight }});
+            }} else {{
+              blockSets.push({{
+                reps: parseInt(repsRaw, 10) || 1,
+                weight: parseFloat(weightRaw) || 0
+              }});
+            }}
           }}
         }});
-        exercises.push({{ name: exName, sets }});
+
+        if (skipIncomplete && blockSets.length === 0) return;
+
+        const key = exName.toLowerCase();
+        if (!mergedByKey.has(key)) {{
+          mergedByKey.set(key, {{ name: exName || rawName, sets: [] }});
+        }}
+        const entry = mergedByKey.get(key);
+        blockSets.forEach(s => {{
+          entry.sets.push({{ set_number: entry.sets.length + 1, ...s }});
+        }});
       }});
+
+      const exercises = Array.from(mergedByKey.values());
       const rawDate = document.getElementById('workout-date').value;
       const formattedDate = rawDate ? toBackendDateTime(rawDate) : undefined;
-      const payload = {{
+      const notesVal = document.getElementById('workout-notes').value;
+      return {{
         date: formattedDate,
-        notes: document.getElementById('workout-notes').value || undefined,
+        notes: notesVal || undefined,
         exercises
       }};
-      const prompt = `Registra entrenamiento: ` + exercises.map(e => `${{e.name}} (${{e.sets.length}} series)`).join(', ');
+    }}
+
+    function scheduleWorkoutAutoSave({{ immediate = false }} = {{}}) {{
+      if (isHydratingWorkout) return;
+      if (workoutAutosaveTimer) {{
+        clearTimeout(workoutAutosaveTimer);
+        workoutAutosaveTimer = null;
+      }}
+      if (immediate) {{
+        flushWorkoutAutoSave();
+      }} else {{
+        workoutAutosaveTimer = setTimeout(() => {{
+          workoutAutosaveTimer = null;
+          flushWorkoutAutoSave();
+        }}, 700);
+      }}
+    }}
+
+    async function flushWorkoutAutoSave() {{
+      if (isHydratingWorkout) return;
+      if (workoutAutosaveTimer) {{
+        clearTimeout(workoutAutosaveTimer);
+        workoutAutosaveTimer = null;
+      }}
+      if (workoutAutosaveInFlight) {{
+        workoutAutosavePending = true;
+        return;
+      }}
+
+      workoutAutosaveInFlight = true;
+      try {{
+        do {{
+          workoutAutosavePending = false;
+          if (isHydratingWorkout) break;
+          const payload = buildWorkoutPayload({{ skipIncomplete: true }});
+          if (!payload.exercises || payload.exercises.length === 0) break;
+
+          const fingerprint = getWorkoutPayloadFingerprint(payload);
+          if (fingerprint === lastSavedWorkoutFingerprint) break;
+
+          setWorkoutAutoSaveStatus('Guardando...', 'muted');
+          try {{
+            const resp = await fetch('/api/register_workout', {{
+              method: 'POST',
+              headers: {{ 'Content-Type': 'application/json' }},
+              body: JSON.stringify(payload)
+            }});
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const data = await resp.json();
+            if (data.status !== 'ok') {{
+              throw new Error(data.message || data.code || 'Error desconocido');
+            }}
+            lastSavedWorkoutFingerprint = fingerprint;
+            lastHydratedWorkoutDate = getSelectedWorkoutDayStr();
+            setWorkoutAutoSaveStatus(`✓ Guardado automáticamente ${{formatTimeHHMM()}}`, 'ok');
+            fetchExercisesList().catch(() => {{}});
+          }} catch (err) {{
+            setWorkoutAutoSaveStatus('⚠️ Error al autoguardar', 'error');
+          }}
+        }} while (workoutAutosavePending);
+      }} finally {{
+        workoutAutosaveInFlight = false;
+      }}
+    }}
+
+    async function submitWorkout(e) {{
+      e.preventDefault();
+      if (workoutAutosaveTimer) {{
+        clearTimeout(workoutAutosaveTimer);
+        workoutAutosaveTimer = null;
+      }}
+      workoutAutosavePending = false;
+      const payload = buildWorkoutPayload({{ skipIncomplete: false }});
+      const prompt = `Registra entrenamiento: ` + payload.exercises.map(ex => `${{ex.name}} (${{ex.sets.length}} series)`).join(', ');
       const res = await executeAction('register_workout', payload, 'workout-result', prompt);
       if (res && res.status === 'ok') {{
+        lastSavedWorkoutFingerprint = getWorkoutPayloadFingerprint(buildWorkoutPayload({{ skipIncomplete: true }}));
+        lastHydratedWorkoutDate = getSelectedWorkoutDayStr();
+        setWorkoutAutoSaveStatus(`✓ Guardado ${{formatTimeHHMM()}}`, 'ok');
         await fetchExercisesList();
       }}
     }}
@@ -3279,6 +3567,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     fetchIngredientsList();
     fetchRecipesList();
     fetchExercisesList();
+    loadWorkoutForSelectedDate();
     fetchBodyProgress();
     fetchSummary();
 
