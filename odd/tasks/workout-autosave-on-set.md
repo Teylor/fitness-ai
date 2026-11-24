@@ -51,7 +51,7 @@
 > Implementation checklist
 
 - [x] T1: Add filtered workout payload builder, single-flight debounced/immediate auto-save queue, and subtle `#workout-autosave-status` indicator in `src/ui/html_generator.py` → verify: `node --check` (`JS_SYNTAX_OK`) + `pytest tests/integration/test_ui_web_routes.py -v` → PASSED (19 passed in 1.18s)
-- [ ] T2: Wire auto-save triggers on complete set `input`/`change`/`Enter`, set/block deletion, `.ex-name` `change`/autocomplete pick, and `#workout-notes` `change` in `src/ui/html_generator.py` → verify: `node --check` + `pytest tests/integration/test_ui_web_routes.py -v`
+- [x] T2: Wire auto-save triggers on complete set `input`/`change`/`Enter`, set/block deletion, `.ex-name` `change`/autocomplete pick, and `#workout-notes` `change` in `src/ui/html_generator.py` → verify: `node --check` (`JS_SYNTAX_OK`) + `pytest tests/integration/test_ui_web_routes.py -v` → PASSED (19 passed in 0.87s)
 - [ ] T3: Add `loadWorkoutForSelectedDate()` hydration via `GET /api/get_workouts_by_day` on initial load and `#workout-date` calendar-day change in `src/ui/html_generator.py` → verify: `node --check` + `pytest tests/integration/test_ui_web_routes.py -v`
 - [ ] T4: Add UI/HTTP integration tests in `tests/integration/test_ui_web_routes.py` and update `docs/specs/openspec/requirements.md`, then run full `node --check` + `pytest tests/ -v` → verify: `node --check` + `pytest tests/ -v`
 

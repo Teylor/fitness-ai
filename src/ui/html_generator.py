@@ -712,7 +712,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           </div>
           <div class="form-group" style="grid-column: 1 / -1;">
             <label for="workout-notes">Notas de la sesión</label>
-            <input type="text" id="workout-notes" placeholder="Ej: Push day enfocado en fuerza...">
+            <input type="text" id="workout-notes" placeholder="Ej: Push day enfocado en fuerza..." onchange="scheduleWorkoutAutoSave({{ immediate: true }})">
           </div>
         </div>
 
@@ -1068,12 +1068,12 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const placeholderText = mode === 'time' ? 'Nombre del cardio (ej: Cinta, Bici, Elíptica...)' : 'Nombre del ejercicio...';
       div.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
-          <input type="text" class="ex-name" list="exercises-datalist" autocomplete="off" required value="${{name}}" style="font-weight: 700; flex: 1 1 200px;" placeholder="${{placeholderText}}" oninput="onExerciseNameInput('${{id}}', this)">
+          <input type="text" class="ex-name" list="exercises-datalist" autocomplete="off" required value="${{name}}" style="font-weight: 700; flex: 1 1 200px;" placeholder="${{placeholderText}}" oninput="onExerciseNameInput('${{id}}', this)" onchange="scheduleWorkoutAutoSave({{ immediate: true }})">
           <select class="ex-mode" style="padding: 6px 10px; font-size: var(--fs-md);" onchange="onExerciseModeChange('${{id}}', this.value)">
             <option value="weight_reps" ${{mode === 'weight_reps' ? 'selected' : ''}}>🏋️ Peso y Reps</option>
             <option value="time" ${{mode === 'time' ? 'selected' : ''}}>⏱️ Cardio / Tiempo (min)</option>
           </select>
-          <button type="button" class="btn btn-danger btn-sm" onclick="document.getElementById('${{id}}').remove()">Eliminar Ejercicio</button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="removeExerciseBlock('${{id}}')">Eliminar Ejercicio</button>
         </div>
         <div class="ex-max-weight-ref" style="display: none; align-items: center; gap: 8px; flex-wrap: wrap; font-size: var(--fs-md); color: var(--text-muted); padding: 2px 2px;"></div>
         <div class="table-container">
@@ -1098,11 +1098,20 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
             }}
             return {{ value: ex.name, sub: parts.join(' · ') }};
           }}),
-          () => onExerciseNameInput(id, exInput)
+          () => {{
+            onExerciseNameInput(id, exInput);
+            scheduleWorkoutAutoSave({{ immediate: true }});
+          }}
         );
       }}
       addSetRow(id, 1, '', '', '');
       if (name) updateExerciseMaxWeightRef(id);
+    }}
+
+    function removeExerciseBlock(exBlockId) {{
+      const block = document.getElementById(exBlockId);
+      if (block) block.remove();
+      scheduleWorkoutAutoSave({{ immediate: true }});
     }}
 
     function updateExerciseMaxWeightRef(exBlockId, matchedEx = null) {{
@@ -1196,8 +1205,8 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (mode === 'time') {{
         tr.innerHTML = `
           <td><span class="badge badge-info set-num">${{num}}</span></td>
-          <td><input type="number" class="set-duration-min" required value="${{durationMin}}" placeholder="Minutos (ej: 20)" step="any" min="0.1" style="width: 150px;"></td>
-          <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove(); renumberSets('${{exBlockId}}');">×</button></td>
+          <td><input type="number" class="set-duration-min" required value="${{durationMin}}" placeholder="Minutos (ej: 20)" step="any" min="0.1" style="width: 150px;" oninput="onWorkoutSetInput(this)" onchange="scheduleWorkoutAutoSave({{ immediate: true }})"></td>
+          <td><button type="button" class="btn btn-danger btn-sm" onclick="removeSetRow(this, '${{exBlockId}}')">×</button></td>
         `;
         tbody.appendChild(tr);
         return tr;
@@ -1209,10 +1218,10 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
       tr.innerHTML = `
         <td><span class="badge badge-info set-num">${{num}}</span></td>
-        <td><input type="number" class="set-weight" required value="${{weight}}" placeholder="kg" step="any" min="0" style="width: 90px;" oninput="updateSet1RM(this)"></td>
-        <td><input type="number" class="set-reps" required value="${{reps}}" placeholder="Reps" min="1" style="width: 80px;" oninput="updateSet1RM(this)"></td>
+        <td><input type="number" class="set-weight" required value="${{weight}}" placeholder="kg" step="any" min="0" style="width: 90px;" oninput="updateSet1RM(this)" onchange="scheduleWorkoutAutoSave({{ immediate: true }})"></td>
+        <td><input type="number" class="set-reps" required value="${{reps}}" placeholder="Reps" min="1" style="width: 80px;" oninput="updateSet1RM(this)" onchange="scheduleWorkoutAutoSave({{ immediate: true }})"></td>
         <td><span class="set-1rm" style="color: var(--primary); font-weight: 700;">${{initial1rm}}</span></td>
-        <td><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove(); renumberSets('${{exBlockId}}');">×</button></td>
+        <td><button type="button" class="btn btn-danger btn-sm" onclick="removeSetRow(this, '${{exBlockId}}')">×</button></td>
       `;
       tbody.appendChild(tr);
       return tr;
@@ -1230,6 +1239,35 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const weight = parseFloat(weightRaw) || 0;
       const est1rm = reps === 1 ? weight : Math.round(weight * (1 + reps / 30) * 100) / 100;
       tr.querySelector('.set-1rm').textContent = `${{est1rm}} kg`;
+      onWorkoutSetInput(input);
+    }}
+
+    function onWorkoutSetInput(input) {{
+      const tr = input ? input.closest('tr') : null;
+      if (!tr) return;
+      const durInput = tr.querySelector('.set-duration-min');
+      if (durInput) {{
+        const mins = Number(String(durInput.value).trim());
+        if (String(durInput.value).trim() !== '' && Number.isFinite(mins) && mins > 0) {{
+          scheduleWorkoutAutoSave({{ immediate: false }});
+        }}
+        return;
+      }}
+      const weightRaw = String(tr.querySelector('.set-weight')?.value ?? '').trim();
+      const repsRaw = String(tr.querySelector('.set-reps')?.value ?? '').trim();
+      if (weightRaw === '' || repsRaw === '') return;
+      const weight = Number(weightRaw);
+      const reps = Number(repsRaw);
+      if (Number.isFinite(weight) && weight >= 0 && Number.isInteger(reps) && reps >= 1) {{
+        scheduleWorkoutAutoSave({{ immediate: false }});
+      }}
+    }}
+
+    function removeSetRow(btn, exBlockId) {{
+      const tr = btn ? btn.closest('tr') : null;
+      if (tr) tr.remove();
+      renumberSets(exBlockId);
+      scheduleWorkoutAutoSave({{ immediate: true }});
     }}
 
     function renumberSets(exBlockId) {{
@@ -1248,6 +1286,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
 
       if (target.closest && target.closest('.sets-table tbody tr')) {{
         e.preventDefault();
+        scheduleWorkoutAutoSave({{ immediate: true }});
         const block = target.closest('#workout-exercises-container > div');
         if (block && block.id) {{
           const newRow = addSetRow(block.id);
