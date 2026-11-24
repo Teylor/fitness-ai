@@ -708,7 +708,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         <div class="form-grid">
           <div class="form-group">
             <label for="workout-date">Fecha y Hora (opcional)</label>
-            <input type="datetime-local" id="workout-date" onclick="this.showPicker && this.showPicker()">
+            <input type="datetime-local" id="workout-date" onclick="this.showPicker && this.showPicker()" onchange="loadWorkoutForSelectedDate()">
           </div>
           <div class="form-group" style="grid-column: 1 / -1;">
             <label for="workout-notes">Notas de la sesión</label>
@@ -979,6 +979,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       if (tabName === 'ingredient') fetchIngredientsList();
       if (tabName === 'recipe') fetchRecipesList();
       if (tabName === 'workout') fetchExercisesList();
+      if (tabName === 'workout') loadWorkoutForSelectedDate();
       if (tabName === 'exercise') fetchExercisesList();
       if (tabName === 'progress') fetchBodyProgress();
       if (tabName === 'summary') fetchSummary();
@@ -1106,6 +1107,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       }}
       addSetRow(id, 1, '', '', '');
       if (name) updateExerciseMaxWeightRef(id);
+      return div;
     }}
 
     function removeExerciseBlock(exBlockId) {{
@@ -2262,6 +2264,111 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     let lastSavedWorkoutFingerprint = null;
     let isHydratingWorkout = false;
     let lastHydratedWorkoutDate = null;
+    let workoutHydrationSeq = 0;
+
+    function getSelectedWorkoutDayStr() {{
+      const raw = document.getElementById('workout-date')?.value || '';
+      const datePart = raw ? raw.split('T')[0] : formatTodayIso(false);
+      return toBackendDate(datePart) || toBackendDate(formatTodayIso(false));
+    }}
+
+    async function loadWorkoutForSelectedDate({{ force = false }} = {{}}) {{
+      const container = document.getElementById('workout-exercises-container');
+      const notesEl = document.getElementById('workout-notes');
+      if (!container || !notesEl) return;
+
+      const dateStr = getSelectedWorkoutDayStr();
+      if (!force && dateStr === lastHydratedWorkoutDate) return;
+
+      const seq = ++workoutHydrationSeq;
+      if (workoutAutosaveTimer) {{
+        clearTimeout(workoutAutosaveTimer);
+        workoutAutosaveTimer = null;
+      }}
+      workoutAutosavePending = false;
+      isHydratingWorkout = true;
+
+      try {{
+        const resp = await fetch(`/api/get_workouts_by_day?date=${{encodeURIComponent(dateStr)}}`);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        if (seq !== workoutHydrationSeq) return;
+        if (!data || data.status !== 'ok') return;
+
+        const sessions = data.sessions || [];
+        const resEl = document.getElementById('workout-result');
+        if (resEl) resEl.style.display = 'none';
+
+        if (sessions.length === 0) {{
+          notesEl.value = '';
+          container.innerHTML = '';
+          addExerciseBlock();
+          lastSavedWorkoutFingerprint = null;
+          lastHydratedWorkoutDate = dateStr;
+          setWorkoutAutoSaveStatus('', 'muted');
+          return;
+        }}
+
+        const session = sessions[sessions.length - 1];
+        notesEl.value = session.notes || '';
+
+        const grouped = [];
+        const byEx = new Map();
+        (session.sets || []).forEach(s => {{
+          const exName = s.exercise || '';
+          if (!exName) return;
+          if (!byEx.has(exName)) {{
+            const isTime = s.duration !== null && s.duration !== undefined && (s.reps === null || s.reps === undefined);
+            const grp = {{ name: exName, mode: isTime ? 'time' : 'weight_reps', sets: [] }};
+            byEx.set(exName, grp);
+            grouped.push(grp);
+          }}
+          byEx.get(exName).sets.push(s);
+        }});
+
+        container.innerHTML = '';
+        if (grouped.length === 0) {{
+          addExerciseBlock();
+          lastSavedWorkoutFingerprint = null;
+          lastHydratedWorkoutDate = dateStr;
+          setWorkoutAutoSaveStatus('', 'muted');
+          return;
+        }}
+
+        grouped.forEach(grp => {{
+          const block = addExerciseBlock('', grp.mode);
+          const exInput = block ? block.querySelector('.ex-name') : null;
+          if (exInput) exInput.value = grp.name;
+          const tbody = block ? block.querySelector('.sets-table tbody') : null;
+          if (tbody) tbody.innerHTML = '';
+          grp.sets.forEach((s, idx) => {{
+            if (grp.mode === 'time') {{
+              const mins = s.duration !== null && s.duration !== undefined
+                ? Math.round((Number(s.duration) / 60) * 100) / 100
+                : '';
+              addSetRow(block.id, idx + 1, '', '', mins);
+            }} else {{
+              const repsVal = s.reps !== null && s.reps !== undefined ? s.reps : '';
+              const weightVal = s.weight !== null && s.weight !== undefined ? s.weight : '';
+              const tr = addSetRow(block.id, idx + 1, repsVal, weightVal, '');
+              const weightInput = tr ? tr.querySelector('.set-weight') : null;
+              if (weightInput) updateSet1RM(weightInput);
+            }}
+          }});
+          if (block) updateExerciseMaxWeightRef(block.id);
+        }});
+
+        lastSavedWorkoutFingerprint = getWorkoutPayloadFingerprint(buildWorkoutPayload({{ skipIncomplete: true }}));
+        lastHydratedWorkoutDate = dateStr;
+        setWorkoutAutoSaveStatus('✓ Entrenamiento cargado', 'ok');
+      }} catch (err) {{
+        // Keep current form untouched if offline/unreachable
+      }} finally {{
+        if (seq === workoutHydrationSeq) {{
+          isHydratingWorkout = false;
+        }}
+      }}
+    }}
 
     function formatTimeHHMM(dateObj = new Date()) {{
       const pad = n => String(n).padStart(2, '0');
@@ -2406,6 +2513,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
               throw new Error(data.message || data.code || 'Error desconocido');
             }}
             lastSavedWorkoutFingerprint = fingerprint;
+            lastHydratedWorkoutDate = getSelectedWorkoutDayStr();
             setWorkoutAutoSaveStatus(`✓ Guardado automáticamente ${{formatTimeHHMM()}}`, 'ok');
             fetchExercisesList().catch(() => {{}});
           }} catch (err) {{
@@ -2429,6 +2537,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       const res = await executeAction('register_workout', payload, 'workout-result', prompt);
       if (res && res.status === 'ok') {{
         lastSavedWorkoutFingerprint = getWorkoutPayloadFingerprint(buildWorkoutPayload({{ skipIncomplete: true }}));
+        lastHydratedWorkoutDate = getSelectedWorkoutDayStr();
         setWorkoutAutoSaveStatus(`✓ Guardado ${{formatTimeHHMM()}}`, 'ok');
         await fetchExercisesList();
       }}
@@ -3458,6 +3567,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     fetchIngredientsList();
     fetchRecipesList();
     fetchExercisesList();
+    loadWorkoutForSelectedDate();
     fetchBodyProgress();
     fetchSummary();
 
