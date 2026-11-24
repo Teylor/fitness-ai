@@ -1102,6 +1102,152 @@ async def test_ui_workout_form_ux_and_daily_overwrite(db):
         assert squat["pr"]["max_weight_sets"] == 2
 
 
+@pytest.mark.anyio
+async def test_ui_workout_autosave_on_set_and_hydration(db):
+    server = create_server()
+    app = server.streamable_http_app()
+    transport = httpx2.ASGITransport(app=app)
+
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
+        # 1. Verify HTML/JS auto-save & daily hydration contracts
+        wo_res = await client.get("/ui/workout")
+        assert wo_res.status_code == 200
+        html = wo_res.text
+
+        assert 'id="workout-autosave-status"' in html
+        assert "function buildWorkoutPayload(" in html
+        assert "function scheduleWorkoutAutoSave(" in html
+        assert "async function flushWorkoutAutoSave()" in html
+        assert "async function loadWorkoutForSelectedDate(" in html
+        assert "function onWorkoutSetInput(" in html
+        assert "function removeSetRow(" in html
+        assert "function removeExerciseBlock(" in html
+        assert 'id="workout-date"' in html and 'onchange="loadWorkoutForSelectedDate()"' in html
+        assert "loadWorkoutForSelectedDate();" in html
+        assert "workoutAutosaveInFlight" in html
+        assert "workoutAutosavePending" in html
+        assert "lastSavedWorkoutFingerprint" in html
+        assert "isHydratingWorkout" in html
+
+        # Raw typing in .ex-name (onExerciseNameInput) must NOT trigger auto-save
+        ex_input_start = html.index("function onExerciseNameInput(")
+        ex_input_end = html.index("function onExerciseModeChange(")
+        ex_input_snippet = html[ex_input_start:ex_input_end]
+        assert "scheduleWorkoutAutoSave" not in ex_input_snippet
+        assert "flushWorkoutAutoSave" not in ex_input_snippet
+
+        # .ex-name onchange, notes onchange, and Enter inside set rows DO trigger immediate auto-save
+        assert 'onchange="scheduleWorkoutAutoSave({ immediate: true })"' in html
+        keydown_start = html.index("function handleWorkoutFormKeydown(")
+        keydown_end = html.index("const workoutFormEl = document.getElementById('form-workout');")
+        keydown_snippet = html[keydown_start:keydown_end]
+        assert "scheduleWorkoutAutoSave({ immediate: true });" in keydown_snippet
+
+        # 2. Simulate progressive set-by-set auto-saves on the same day (daily overwrite)
+        # Auto-save #1: Set 1 of Press Banca
+        s1 = await client.post(
+            "/api/register_workout",
+            json={
+                "date": "30-11-2026 18:00",
+                "notes": "Push + Pull + Cardio",
+                "exercises": [
+                    {
+                        "name": "Press Banca",
+                        "sets": [{"set_number": 1, "reps": 10, "weight": 80.0}],
+                    }
+                ],
+            },
+        )
+        assert s1.status_code == 200
+        d1 = s1.json()
+        assert d1["status"] == "ok"
+        assert d1["overwritten"] is False
+        assert d1["replaced_sessions"] == 0
+
+        # Auto-save #2: Set 2 added to Press Banca
+        s2 = await client.post(
+            "/api/register_workout",
+            json={
+                "date": "30-11-2026 18:05",
+                "notes": "Push + Pull + Cardio",
+                "exercises": [
+                    {
+                        "name": "Press Banca",
+                        "sets": [
+                            {"set_number": 1, "reps": 10, "weight": 80.0},
+                            {"set_number": 2, "reps": 8, "weight": 85.0},
+                        ],
+                    }
+                ],
+            },
+        )
+        assert s2.status_code == 200
+        d2 = s2.json()
+        assert d2["status"] == "ok"
+        assert d2["overwritten"] is True
+        assert d2["replaced_sessions"] == 1
+
+        # Auto-save #3: Bodyweight exercise (0 kg) + Cardio (duration seconds) added
+        s3 = await client.post(
+            "/api/register_workout",
+            json={
+                "date": "30-11-2026 18:20",
+                "notes": "Push + Pull + Cardio",
+                "exercises": [
+                    {
+                        "name": "Press Banca",
+                        "sets": [
+                            {"set_number": 1, "reps": 10, "weight": 80.0},
+                            {"set_number": 2, "reps": 8, "weight": 85.0},
+                        ],
+                    },
+                    {
+                        "name": "Dominadas",
+                        "sets": [{"set_number": 1, "reps": 12, "weight": 0.0}],
+                    },
+                    {
+                        "name": "Cinta",
+                        "sets": [{"set_number": 1, "duration": 1200}],
+                    },
+                ],
+            },
+        )
+        assert s3.status_code == 200
+        d3 = s3.json()
+        assert d3["status"] == "ok"
+        assert d3["overwritten"] is True
+        assert d3["replaced_sessions"] == 1
+
+        # 3. Verify GET /api/get_workouts_by_day hydration source returns 1 consolidated session
+        day = await client.get("/api/get_workouts_by_day?date=30-11-2026")
+        assert day.status_code == 200
+        day_data = day.json()
+        assert day_data["status"] == "ok"
+        assert day_data["count"] == 1
+        session = day_data["sessions"][0]
+        assert session["notes"] == "Push + Pull + Cardio"
+        assert len(session["sets"]) == 4
+
+        pb_sets = [s for s in session["sets"] if s["exercise"] == "Press Banca"]
+        assert len(pb_sets) == 2
+        assert pb_sets[1]["weight"] == 85.0 and pb_sets[1]["reps"] == 8
+
+        dom_set = next(s for s in session["sets"] if s["exercise"] == "Dominadas")
+        assert dom_set["weight"] == 0.0 and dom_set["reps"] == 12
+
+        cinta_set = next(s for s in session["sets"] if s["exercise"] == "Cinta")
+        assert cinta_set["duration"] == 1200 and cinta_set["reps"] is None
+
+        # 4. Verify PRs remain accurate after sequential auto-saves
+        ex_res = await client.get("/api/list_exercises?include_prs=true")
+        assert ex_res.status_code == 200
+        pb = next(e for e in ex_res.json()["exercises"] if e["name"] == "Press Banca")
+        assert pb["pr"]["max_weight"] == 85.0
+        assert pb["pr"]["max_weight_reps"] == 8
+        assert pb["pr"]["estimated_1rm"] == 107.7
+
+
+
 
 
 
