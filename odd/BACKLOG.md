@@ -38,6 +38,7 @@
 
 | Feature | File |
 |---------|---------|
+| `workout-autosave-on-set` | `odd/tasks/workout-autosave-on-set.md` |
 
 ---
 

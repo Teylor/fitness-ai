@@ -725,8 +725,9 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           <button type="button" class="btn btn-secondary btn-sm" style="border-color: var(--cyan); color: var(--cyan);" onclick="addExerciseBlock('', 'time')">⏱️ + Añadir Cardio (Tiempo)</button>
         </div>
 
-        <div style="margin-top: 14px; display: flex; gap: 8px;">
+        <div style="margin-top: 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
           <button type="submit" class="btn">Registrar Sesión</button>
+          <span id="workout-autosave-status" aria-live="polite" style="font-size: var(--fs-md); color: var(--text-muted);"></span>
         </div>
       </form>
       <div id="workout-result" class="result-box"></div>
@@ -2216,41 +2217,180 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
       }}
     }}
 
-    async function submitWorkout(e) {{
-      e.preventDefault();
-      const exercises = [];
+    let workoutAutosaveTimer = null;
+    let workoutAutosaveInFlight = false;
+    let workoutAutosavePending = false;
+    let lastSavedWorkoutFingerprint = null;
+    let isHydratingWorkout = false;
+    let lastHydratedWorkoutDate = null;
+
+    function formatTimeHHMM(dateObj = new Date()) {{
+      const pad = n => String(n).padStart(2, '0');
+      return `${{pad(dateObj.getHours())}}:${{pad(dateObj.getMinutes())}}`;
+    }}
+
+    function setWorkoutAutoSaveStatus(text, tone = 'muted') {{
+      const el = document.getElementById('workout-autosave-status');
+      if (!el) return;
+      el.textContent = text || '';
+      if (tone === 'ok') {{
+        el.style.color = '#34d399';
+      }} else if (tone === 'error') {{
+        el.style.color = '#f87171';
+      }} else {{
+        el.style.color = 'var(--text-muted)';
+      }}
+    }}
+
+    function getWorkoutPayloadFingerprint(payload) {{
+      return JSON.stringify({{
+        date: payload.date || '',
+        notes: payload.notes || '',
+        exercises: payload.exercises || []
+      }});
+    }}
+
+    function buildWorkoutPayload({{ skipIncomplete = false }} = {{}}) {{
+      const mergedByKey = new Map();
       document.querySelectorAll('#workout-exercises-container > div').forEach(div => {{
-        const exName = div.querySelector('.ex-name').value;
+        const rawName = div.querySelector('.ex-name') ? div.querySelector('.ex-name').value : '';
+        const exName = rawName.trim();
+        if (skipIncomplete && !exName) return;
+
         const mode = div.querySelector('.ex-mode') ? div.querySelector('.ex-mode').value : 'weight_reps';
-        const sets = [];
-        div.querySelectorAll('.sets-table tbody tr').forEach((tr, i) => {{
+        const blockSets = [];
+
+        div.querySelectorAll('.sets-table tbody tr').forEach(tr => {{
           const durInput = tr.querySelector('.set-duration-min');
           if (mode === 'time' || durInput) {{
-            const mins = parseFloat(durInput ? durInput.value : 0) || 1;
-            sets.push({{
-              set_number: i + 1,
-              duration: Math.max(1, Math.round(mins * 60))
-            }});
+            const durRaw = durInput ? String(durInput.value).trim() : '';
+            if (skipIncomplete) {{
+              if (durRaw === '') return;
+              const mins = Number(durRaw);
+              if (!Number.isFinite(mins) || mins <= 0) return;
+              blockSets.push({{ duration: Math.max(1, Math.round(mins * 60)) }});
+            }} else {{
+              const mins = parseFloat(durRaw) || 1;
+              blockSets.push({{ duration: Math.max(1, Math.round(mins * 60)) }});
+            }}
           }} else {{
-            sets.push({{
-              set_number: i + 1,
-              reps: parseInt(tr.querySelector('.set-reps').value) || 1,
-              weight: parseFloat(tr.querySelector('.set-weight').value) || 0
-            }});
+            const weightEl = tr.querySelector('.set-weight');
+            const repsEl = tr.querySelector('.set-reps');
+            const weightRaw = weightEl ? String(weightEl.value).trim() : '';
+            const repsRaw = repsEl ? String(repsEl.value).trim() : '';
+            if (skipIncomplete) {{
+              if (weightRaw === '' || repsRaw === '') return;
+              const weight = Number(weightRaw);
+              const reps = Number(repsRaw);
+              if (!Number.isFinite(weight) || weight < 0 || !Number.isInteger(reps) || reps < 1) return;
+              blockSets.push({{ reps, weight }});
+            }} else {{
+              blockSets.push({{
+                reps: parseInt(repsRaw, 10) || 1,
+                weight: parseFloat(weightRaw) || 0
+              }});
+            }}
           }}
         }});
-        exercises.push({{ name: exName, sets }});
+
+        if (skipIncomplete && blockSets.length === 0) return;
+
+        const key = exName.toLowerCase();
+        if (!mergedByKey.has(key)) {{
+          mergedByKey.set(key, {{ name: exName || rawName, sets: [] }});
+        }}
+        const entry = mergedByKey.get(key);
+        blockSets.forEach(s => {{
+          entry.sets.push({{ set_number: entry.sets.length + 1, ...s }});
+        }});
       }});
+
+      const exercises = Array.from(mergedByKey.values());
       const rawDate = document.getElementById('workout-date').value;
       const formattedDate = rawDate ? toBackendDateTime(rawDate) : undefined;
-      const payload = {{
+      const notesVal = document.getElementById('workout-notes').value;
+      return {{
         date: formattedDate,
-        notes: document.getElementById('workout-notes').value || undefined,
+        notes: notesVal || undefined,
         exercises
       }};
-      const prompt = `Registra entrenamiento: ` + exercises.map(e => `${{e.name}} (${{e.sets.length}} series)`).join(', ');
+    }}
+
+    function scheduleWorkoutAutoSave({{ immediate = false }} = {{}}) {{
+      if (isHydratingWorkout) return;
+      if (workoutAutosaveTimer) {{
+        clearTimeout(workoutAutosaveTimer);
+        workoutAutosaveTimer = null;
+      }}
+      if (immediate) {{
+        flushWorkoutAutoSave();
+      }} else {{
+        workoutAutosaveTimer = setTimeout(() => {{
+          workoutAutosaveTimer = null;
+          flushWorkoutAutoSave();
+        }}, 700);
+      }}
+    }}
+
+    async function flushWorkoutAutoSave() {{
+      if (isHydratingWorkout) return;
+      if (workoutAutosaveTimer) {{
+        clearTimeout(workoutAutosaveTimer);
+        workoutAutosaveTimer = null;
+      }}
+      if (workoutAutosaveInFlight) {{
+        workoutAutosavePending = true;
+        return;
+      }}
+
+      workoutAutosaveInFlight = true;
+      try {{
+        do {{
+          workoutAutosavePending = false;
+          if (isHydratingWorkout) break;
+          const payload = buildWorkoutPayload({{ skipIncomplete: true }});
+          if (!payload.exercises || payload.exercises.length === 0) break;
+
+          const fingerprint = getWorkoutPayloadFingerprint(payload);
+          if (fingerprint === lastSavedWorkoutFingerprint) break;
+
+          setWorkoutAutoSaveStatus('Guardando...', 'muted');
+          try {{
+            const resp = await fetch('/api/register_workout', {{
+              method: 'POST',
+              headers: {{ 'Content-Type': 'application/json' }},
+              body: JSON.stringify(payload)
+            }});
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const data = await resp.json();
+            if (data.status !== 'ok') {{
+              throw new Error(data.message || data.code || 'Error desconocido');
+            }}
+            lastSavedWorkoutFingerprint = fingerprint;
+            setWorkoutAutoSaveStatus(`✓ Guardado automáticamente ${{formatTimeHHMM()}}`, 'ok');
+            fetchExercisesList().catch(() => {{}});
+          }} catch (err) {{
+            setWorkoutAutoSaveStatus('⚠️ Error al autoguardar', 'error');
+          }}
+        }} while (workoutAutosavePending);
+      }} finally {{
+        workoutAutosaveInFlight = false;
+      }}
+    }}
+
+    async function submitWorkout(e) {{
+      e.preventDefault();
+      if (workoutAutosaveTimer) {{
+        clearTimeout(workoutAutosaveTimer);
+        workoutAutosaveTimer = null;
+      }}
+      workoutAutosavePending = false;
+      const payload = buildWorkoutPayload({{ skipIncomplete: false }});
+      const prompt = `Registra entrenamiento: ` + payload.exercises.map(ex => `${{ex.name}} (${{ex.sets.length}} series)`).join(', ');
       const res = await executeAction('register_workout', payload, 'workout-result', prompt);
       if (res && res.status === 'ok') {{
+        lastSavedWorkoutFingerprint = getWorkoutPayloadFingerprint(buildWorkoutPayload({{ skipIncomplete: true }}));
+        setWorkoutAutoSaveStatus(`✓ Guardado ${{formatTimeHHMM()}}`, 'ok');
         await fetchExercisesList();
       }}
     }}
