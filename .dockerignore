@@ -13,7 +13,6 @@ data/*.db*
 data/.google_health_token
 .env
 .env.*
-odd/
 docs/
 tests/
 *.md
