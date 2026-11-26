@@ -1247,6 +1247,73 @@ async def test_ui_workout_autosave_on_set_and_hydration(db):
         assert pb["pr"]["estimated_1rm"] == 107.7
 
 
+@pytest.mark.anyio
+async def test_ui_meal_recipe_autoselects_units(db):
+    server = create_server()
+    app = server.streamable_http_app()
+    transport = httpx2.ASGITransport(app=app)
+
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
+        res = await client.get("/ui/meal")
+        assert res.status_code == 200
+        html = res.text
+
+        assert 'id="meal-item-type" onchange="onMealItemTypeChange()"' in html
+        assert "function onMealItemTypeChange()" in html
+
+        type_start = html.index("function onMealItemTypeChange()")
+        type_end = html.index("function updateMealDatalist()")
+        type_snippet = html[type_start:type_end]
+        assert "if (type === 'recipe')" in type_snippet
+        assert "unitEl.value = 'u'" in type_snippet
+        assert "qtyEl.placeholder = '1'" in type_snippet
+        assert "qtyEl.placeholder = '100'" in type_snippet
+
+        input_start = html.index("function onMealItemInput()")
+        input_end = html.index("function updateRecipeDatalist()")
+        input_snippet = html[input_start:input_end]
+        assert "if (type === 'recipe')" in input_snippet
+        assert "unitEl.value = 'u'" in input_snippet
+
+        # Verify decimal recipe ration (e.g. 1.5 u) works end-to-end via /api/register_meal
+        await client.post(
+            "/api/set_daily_goal",
+            json={"date": "26-11-2026", "kcal": 2200.0, "protein": 150.0, "carbs": 220.0, "fat": 70.0},
+        )
+        await client.post(
+            "/api/create_ingredient",
+            json={"name": "Arroz Test", "unit": "gr", "kcal": 350.0, "protein": 7.0, "carbs": 78.0, "fat": 1.0, "price": 2.0},
+        )
+        await client.post(
+            "/api/create_recipe",
+            json={
+                "name": "Bowl Test",
+                "ingredients": [{"name": "Arroz Test", "quantity": 100, "unit": "gr"}],
+            },
+        )
+        meal_res = await client.post(
+            "/api/register_meal",
+            json={
+                "date": "26-11-2026",
+                "item_name": "Bowl Test",
+                "item_type": "recipe",
+                "meal_type": "comida",
+                "quantity": 1.5,
+                "unit": "u",
+            },
+        )
+        assert meal_res.status_code == 200
+        assert meal_res.json()["status"] == "ok"
+
+        summary = await client.get("/api/get_day_summary?date=26-11-2026")
+        assert summary.status_code == 200
+        s_data = summary.json()
+        assert s_data["consumed"]["kcal"] == 525.0
+        bowl_meal = next(m for m in s_data["meals"] if m["name"] == "Bowl Test")
+        assert bowl_meal["entry"]["quantity"] == 1.5
+        assert bowl_meal["entry"]["unit"] == "u"
+
+
 
 
 

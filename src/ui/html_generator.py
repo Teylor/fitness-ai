@@ -479,7 +479,7 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           </div>
           <div class="form-group">
             <label for="meal-item-type">Tipo de Alimento</label>
-            <select id="meal-item-type" onchange="updateMealDatalist()">
+            <select id="meal-item-type" onchange="onMealItemTypeChange()">
               <option value="ingredient">Ingrediente</option>
               <option value="recipe">Receta</option>
             </select>
@@ -1452,6 +1452,22 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
         .replace(/"/g, '&quot;');
     }}
 
+    function onMealItemTypeChange() {{
+      updateMealDatalist();
+      const type = document.getElementById('meal-item-type')?.value;
+      const unitEl = document.getElementById('meal-unit');
+      const qtyEl = document.getElementById('meal-qty');
+      if (type === 'recipe') {{
+        if (unitEl) unitEl.value = 'u';
+        if (qtyEl) qtyEl.placeholder = '1';
+      }} else {{
+        if (qtyEl) qtyEl.placeholder = '100';
+        const val = normalizeText(document.getElementById('meal-item')?.value);
+        const matched = allIngredients.find(i => normalizeText(i.name) === val);
+        if (unitEl) unitEl.value = (matched && matched.unit) ? matched.unit : 'gr';
+      }}
+    }}
+
     function updateMealDatalist() {{
       const type = document.getElementById('meal-item-type').value;
       const datalist = document.getElementById('meal-items-datalist');
@@ -1570,10 +1586,13 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
     function onMealItemInput() {{
       const val = normalizeText(document.getElementById('meal-item').value);
       const type = document.getElementById('meal-item-type').value;
-      if (type === 'ingredient') {{
+      const unitEl = document.getElementById('meal-unit');
+      if (type === 'recipe') {{
+        if (unitEl) unitEl.value = 'u';
+      }} else if (type === 'ingredient') {{
         const matched = allIngredients.find(i => normalizeText(i.name) === val);
-        if (matched && matched.unit) {{
-          document.getElementById('meal-unit').value = matched.unit;
+        if (matched && matched.unit && unitEl) {{
+          unitEl.value = matched.unit;
         }}
       }}
     }}
