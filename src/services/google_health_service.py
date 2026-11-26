@@ -14,6 +14,7 @@ from src.db.models import (
     WeightLog,
 )
 from src.models.health import SleepRecord, StepRecord, WeightRecord
+from src.services.body_progress_service import BodyProgressService
 from src.services.google_health_client import GoogleHealthClient
 from src.services.meal_service import MACRO_KEYS, MealService
 from src.utils.errors import ValidationError
@@ -27,9 +28,11 @@ class GoogleHealthService:
         self,
         client: Optional[GoogleHealthClient] = None,
         meal_service: Optional[MealService] = None,
+        body_progress_service: Optional[BodyProgressService] = None,
     ):
         self.client = client or GoogleHealthClient()
         self.meal_service = meal_service or MealService()
+        self.body_progress_service = body_progress_service or BodyProgressService()
 
     def _parse_date(self, date_str: Optional[str]) -> str:
         if not date_str:
@@ -330,6 +333,17 @@ class GoogleHealthService:
             "records": [asdict(r) for r in saved_records],
         }
 
+    @staticmethod
+    def _to_weight_record(row: WeightLog) -> WeightRecord:
+        return WeightRecord(
+            id=row.id,
+            date=row.date,
+            weight_kg=row.weight_kg,
+            bmi=row.bmi,
+            body_fat_pct=row.body_fat_pct,
+            source=row.source,
+        )
+
     def fetch_weight(
         self,
         date: Optional[str] = None,
@@ -363,6 +377,19 @@ class GoogleHealthService:
                 (WeightLog.date == log_date) & (WeightLog.source == "google_health")
             )
             if exists is not None:
+                if weight_kg > 0 and exists.weight_kg != weight_kg:
+                    exists.weight_kg = weight_kg
+                    exists.save()
+                    self.body_progress_service.sync_weight_from_google_health(
+                        log_date, weight_kg
+                    )
+                    saved_records.append(self._to_weight_record(exists))
+                elif log_date == valid_date and exists.weight_kg > 0:
+                    existing_bp = self.body_progress_service.get_by_date(log_date)
+                    if existing_bp is None or existing_bp.weight_kg is None:
+                        self.body_progress_service.sync_weight_from_google_health(
+                            log_date, exists.weight_kg
+                        )
                 continue
 
             row = WeightLog.create(
@@ -372,16 +399,11 @@ class GoogleHealthService:
                 body_fat_pct=body_fat,
                 source="google_health",
             )
-            saved_records.append(
-                WeightRecord(
-                    id=row.id,
-                    date=row.date,
-                    weight_kg=row.weight_kg,
-                    bmi=row.bmi,
-                    body_fat_pct=row.body_fat_pct,
-                    source=row.source,
+            if weight_kg > 0:
+                self.body_progress_service.sync_weight_from_google_health(
+                    log_date, weight_kg
                 )
-            )
+            saved_records.append(self._to_weight_record(row))
 
         latest = saved_records[-1].weight_kg if saved_records else None
 

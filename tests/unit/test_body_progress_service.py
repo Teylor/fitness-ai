@@ -97,3 +97,32 @@ def test_delete_progress_removes_record_or_raises_not_found(db):
 
     with pytest.raises(NotFoundError):
         svc.delete_progress(rec.id)
+
+
+def test_sync_weight_from_google_health_creates_and_preserves_existing_metrics(db):
+    svc = BodyProgressService()
+
+    # 1. Creates a new entry with default Google Health note when none exists
+    created = svc.sync_weight_from_google_health(date="20-11-2026", weight_kg=78.4)
+    assert created is not None
+    assert created.date == "20-11-2026"
+    assert created.weight_kg == 78.4
+    assert created.notes == "Sincronizado desde Google Health"
+
+    # 2. Preserves existing measurements and notes when date already has progress data
+    svc.log_progress(
+        date="21-11-2026",
+        waist_cm=82.0,
+        chest_cm=101.0,
+        notes="Check-in",
+    )
+    updated = svc.sync_weight_from_google_health(date="21-11-2026", weight_kg=77.9)
+    assert updated is not None
+    assert updated.weight_kg == 77.9
+    assert updated.waist_cm == 82.0
+    assert updated.chest_cm == 101.0
+    assert updated.notes == "Check-in"
+
+    # 3. Non-positive weight is ignored cleanly
+    assert svc.sync_weight_from_google_health(date="22-11-2026", weight_kg=0) is None
+    assert svc.get_by_date("22-11-2026") is None

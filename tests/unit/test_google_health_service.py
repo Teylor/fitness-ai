@@ -469,6 +469,117 @@ def test_register_meal_async_sync_schedules_background_task(db, monkeypatch):
     assert scheduled_dates == ["11-11-2026"]
 
 
+def test_fetch_weight_syncs_body_progress_and_preserves_other_metrics(db):
+    from src.db.models import BodyProgressLog
+
+    BodyProgressLog.create(
+        date="10-11-2026",
+        waist_cm=81.5,
+        notes="Mediciones",
+    )
+
+    def mock_handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(
+            200,
+            json={
+                "dataPoints": [
+                    {
+                        "weight": {
+                            "sampleTime": {"physicalTime": "2026-11-10T08:00:00Z"},
+                            "weightGrams": 78500,
+                        }
+                    },
+                    {
+                        "weight": {
+                            "sampleTime": {"physicalTime": "2026-11-11T08:00:00Z"},
+                            "weightGrams": 78200,
+                        }
+                    },
+                ]
+            },
+        )
+
+    client = GoogleHealthClient(
+        token="mock-token",
+        http_client=httpx2.Client(transport=httpx2.MockTransport(mock_handler)),
+    )
+    service = GoogleHealthService(client=client)
+    res = service.fetch_weight(date="11-11-2026")
+    assert res["status"] == "ok"
+    assert res["count"] == 2
+
+    bp1 = BodyProgressLog.get(BodyProgressLog.date == "10-11-2026")
+    assert bp1.weight_kg == 78.5
+    assert bp1.waist_cm == 81.5
+    assert bp1.notes == "Mediciones"
+
+    bp2 = BodyProgressLog.get(BodyProgressLog.date == "11-11-2026")
+    assert bp2.weight_kg == 78.2
+    assert bp2.notes == "Sincronizado desde Google Health"
+
+
+def test_fetch_weight_backfills_target_date_and_updates_changed_weight(db):
+    from src.db.models import BodyProgressLog
+
+    WeightLog.create(date="12-11-2026", weight_kg=78.0, source="google_health")
+
+    client = GoogleHealthClient(token="mock-token")
+    service = GoogleHealthService(client=client)
+
+    # Same weight already in WeightLog -> dedup count stays 0, target date backfilled in BodyProgressLog
+    res_same = service.fetch_weight(
+        date="12-11-2026",
+        raw_points=[
+            {
+                "weight": {
+                    "sampleTime": {"physicalTime": "2026-11-12T08:00:00Z"},
+                    "weightGrams": 78000,
+                }
+            }
+        ],
+    )
+    assert res_same["count"] == 0
+    bp = BodyProgressLog.get(BodyProgressLog.date == "12-11-2026")
+    assert bp.weight_kg == 78.0
+
+    # Updated weight in Google Health -> updates WeightLog and BodyProgressLog
+    res_updated = service.fetch_weight(
+        date="12-11-2026",
+        raw_points=[
+            {
+                "weight": {
+                    "sampleTime": {"physicalTime": "2026-11-12T18:00:00Z"},
+                    "weightGrams": 77400,
+                }
+            }
+        ],
+    )
+    assert res_updated["count"] == 1
+    assert res_updated["latest_weight_kg"] == 77.4
+    assert WeightLog.get(WeightLog.date == "12-11-2026").weight_kg == 77.4
+    assert BodyProgressLog.get(BodyProgressLog.date == "12-11-2026").weight_kg == 77.4
+
+
+def test_fetch_weight_ignores_zero_weight_for_body_progress(db):
+    from src.db.models import BodyProgressLog
+
+    client = GoogleHealthClient(token="mock-token")
+    service = GoogleHealthService(client=client)
+    res = service.fetch_weight(
+        date="13-11-2026",
+        raw_points=[
+            {
+                "weight": {
+                    "sampleTime": {"physicalTime": "2026-11-13T08:00:00Z"},
+                    "weightGrams": 0,
+                }
+            }
+        ],
+    )
+    assert res["status"] == "ok"
+    assert BodyProgressLog.select().where(BodyProgressLog.date == "13-11-2026").count() == 0
+
+
 
 
 

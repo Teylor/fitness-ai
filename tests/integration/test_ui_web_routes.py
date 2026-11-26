@@ -1314,6 +1314,68 @@ async def test_ui_meal_recipe_autoselects_units(db):
         assert bowl_meal["entry"]["unit"] == "u"
 
 
+@pytest.mark.anyio
+async def test_ui_google_health_sync_populates_body_progress_and_refreshes_chart(db, monkeypatch):
+    from src.config import settings
+    from src.services.google_health_client import GoogleHealthClient
+
+    monkeypatch.setattr(settings, "google_health_token", "test-bearer-token")
+
+    def mock_handler(request: httpx2.Request) -> httpx2.Response:
+        url_str = str(request.url)
+        if "/dataTypes/weight/dataPoints" in url_str:
+            return httpx2.Response(
+                200,
+                json={
+                    "dataPoints": [
+                        {
+                            "weight": {
+                                "sampleTime": {"physicalTime": "2026-11-26T08:00:00Z"},
+                                "weightGrams": 77600,
+                            }
+                        }
+                    ]
+                },
+            )
+        return httpx2.Response(200, json={"dataPoints": []})
+
+    mock_http = httpx2.Client(transport=httpx2.MockTransport(mock_handler))
+    orig_init = GoogleHealthClient.__init__
+
+    def patched_init(self, *args, **kwargs):
+        orig_init(self, token="test-bearer-token", http_client=mock_http)
+
+    monkeypatch.setattr(GoogleHealthClient, "__init__", patched_init)
+
+    server = create_server()
+    app = server.streamable_http_app()
+    transport = httpx2.ASGITransport(app=app)
+
+    async with httpx2.AsyncClient(transport=transport, base_url="http://localhost:9700") as client:
+        ui_res = await client.get("/ui/summary")
+        assert ui_res.status_code == 200
+        html = ui_res.text
+        sync_start = html.index("async function syncGoogleHealthUI()")
+        sync_end = html.index("function escapeHtml(")
+        sync_snippet = html[sync_start:sync_end]
+        assert "fetchBodyProgress(" in sync_snippet
+
+        sync_res = await client.post("/api/sync_google_health", json={"date": "26-11-2026"})
+        assert sync_res.status_code == 200
+        s_data = sync_res.json()
+        assert s_data["status"] == "ok"
+        assert s_data["weight_records_fetched"] == 1
+        assert s_data["latest_weight_kg"] == 77.6
+
+        prog_res = await client.get("/api/list_body_progress?month=2026-11")
+        assert prog_res.status_code == 200
+        p_data = prog_res.json()
+        assert p_data["status"] == "ok"
+        entry = next((e for e in p_data["entries"] if e["date"] == "26-11-2026"), None)
+        assert entry is not None
+        assert entry["weight_kg"] == 77.6
+
+
 
 
 

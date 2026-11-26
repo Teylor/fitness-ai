@@ -1430,6 +1430,11 @@ def generate_html(form_type: Optional[str] = "hub") -> str:
           const wtVal = data.latest_weight_kg ? ` (${{data.latest_weight_kg}} kg)` : '';
           showToast(`☁️ Sincronizado con Google Health: ${{meals}} comidas, ${{steps}} pasos, ${{sleep}} sesiones de sueño, ${{weight}} pesos${{wtVal}}`, 'ok');
           await fetchSummary();
+          const progressMonthInput = document.getElementById('progress-month');
+          if (progressMonthInput && dateInput && dateInput.value && dateInput.value.length >= 7) {{
+            progressMonthInput.value = dateInput.value.slice(0, 7);
+          }}
+          await fetchBodyProgress(targetDate || null);
         }} else {{
           showToast(data.message || 'Error al sincronizar con Google Health', 'error');
         }}

@@ -119,6 +119,37 @@ class BodyProgressService:
 
         return self._to_domain(row)
 
+    def sync_weight_from_google_health(
+        self, date: str, weight_kg: Optional[float]
+    ) -> Optional[BodyProgressRecord]:
+        """Upsert Google Health weight for a date while preserving other metrics and notes."""
+        self._parse_date(date)
+        if weight_kg is None:
+            return None
+        try:
+            num = float(weight_kg)
+        except (TypeError, ValueError):
+            return None
+        if num <= 0:
+            return None
+        parsed_weight = self._parse_metric("weight_kg", num)
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        with BodyProgressLogModel._meta.database.atomic():
+            row = BodyProgressLogModel.get_or_none(BodyProgressLogModel.date == date)
+            if row is None:
+                row = BodyProgressLogModel.create(
+                    date=date,
+                    weight_kg=parsed_weight,
+                    notes="Sincronizado desde Google Health",
+                )
+            else:
+                row.weight_kg = parsed_weight
+                row.updated_at = now_str
+                row.save()
+
+        return self._to_domain(row)
+
     def get_by_date(self, date: str) -> Optional[BodyProgressRecord]:
         """Return the body progress record for a specific date, or None."""
         self._parse_date(date)
